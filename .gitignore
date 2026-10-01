@@ -1,0 +1,18 @@
+﻿node_modules/
+.next/
+.npm-cache/
+data/*.sqlite
+data/*.sqlite-shm
+data/*.sqlite-wal
+.env
+.env.local
+npm-debug.log*
+.next-runtime/
+.next-runtime-stale/
+.codex-git/
+dist/
+*.tsbuildinfo
+
+# Client-provided source workbooks are local reference data, not application code.
+*.xlsx
+*.xls
