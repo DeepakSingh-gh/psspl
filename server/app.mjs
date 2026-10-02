@@ -56,6 +56,15 @@ app.post("/api/salespeople/me/check-in", authenticate, async (req, res, next) =>
 app.post("/api/visits/:id/start", authenticate, async (req, res, next) => { try { db.prepare("UPDATE visits SET status='in_progress',started_at=? WHERE id=? AND user_id=?").run(new Date().toISOString(), req.params.id, req.user.id); res.json(await buildSalesDay(req.user.id)); } catch (error) { next(error); } });
 app.post("/api/visits/:id/complete", authenticate, async (req, res, next) => { try { const parsed = visitSchema.safeParse(req.body); if (!parsed.success) return res.status(400).json({ error: "Complete the required visit fields" }); const visit = db.prepare("SELECT * FROM visits WHERE id=? AND user_id=?").get(req.params.id, req.user.id); if (!visit) return res.status(404).json({ error: "Visit not found" }); transaction(() => { db.prepare("UPDATE visits SET status='completed',completed_at=?,outcome=?,notes=? WHERE id=?").run(new Date().toISOString(), parsed.data.outcome, parsed.data.notes ?? null, visit.id); db.prepare("DELETE FROM visit_products WHERE visit_id=?").run(visit.id); db.prepare("INSERT INTO visit_products (visit_id,tally_product_id) VALUES (?,?)").run(visit.id, parsed.data.productId); if (parsed.data.expectedOrderValue > 0) db.prepare("INSERT INTO expected_orders (id,visit_id,user_id,tally_customer_id,tally_product_id,expected_value,expected_date) VALUES (?,?,?,?,?,?,?)").run(randomUUID(), visit.id, req.user.id, visit.tally_customer_id, parsed.data.productId, parsed.data.expectedOrderValue, parsed.data.expectedOrderDate || null); db.prepare("INSERT INTO follow_ups (id,user_id,visit_id,tally_customer_id,title,due_date,priority) VALUES (?,?,?,?,?,?,?)").run(randomUUID(), req.user.id, visit.id, visit.tally_customer_id, `Follow up: ${parsed.data.outcome}`, parsed.data.nextFollowUp, "today"); }); res.json(await buildSalesDay(req.user.id)); } catch (error) { next(error); } });
 app.patch("/api/follow-ups/:id/toggle", authenticate, async (req, res, next) => { try { db.prepare("UPDATE follow_ups SET completed=CASE completed WHEN 1 THEN 0 ELSE 1 END WHERE id=? AND user_id=?").run(req.params.id, req.user.id); res.json(await buildSalesDay(req.user.id)); } catch (error) { next(error); } });
+import cron from "node-cron";
+import { sendEodSummary } from "./whatsapp.mjs";
+
 app.use((error, _req, res, _next) => { console.error(error); res.status(500).json({ error: "Something went wrong" }); });
 const port = Number(process.env.CRM_API_PORT) || 4000;
+
+cron.schedule("0 17 * * *", () => {
+  console.log("[Cron] Running EOD summary generation...");
+  sendEodSummary(db).then((r) => console.log("[Cron] EOD WhatsApp result:", r)).catch((e) => console.error("[Cron] EOD Error:", e));
+});
+
 app.listen(port, "127.0.0.1", () => console.log(`PSSPL API running at http://127.0.0.1:${port}`));

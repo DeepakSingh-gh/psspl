@@ -1,0 +1,22 @@
+@media print {
+  body { background: white; margin: 0; padding: 0; font-size: 11px; }
+  .admin-sidebar, .admin-nav-toggle, .admin-page-actions, .report-controls, .report-presets, .report-view-bar, .report-history, .admin-pager { display: none !important; }
+  .admin-main { padding: 0; }
+  .admin-card { border: none; box-shadow: none; padding: 0; margin-bottom: 20px; break-inside: avoid; }
+  .admin-table-wrap { overflow: visible; border: none; box-shadow: none; }
+  .admin-table { font-size: 10px; width: 100%; border-collapse: collapse; }
+  .admin-table th { background: transparent !important; color: black; border-bottom: 1px solid #ccc; padding: 6px; }
+  .admin-table td { border-bottom: 1px solid #eee; padding: 6px; }
+  .admin-stats { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 20px; }
+  .admin-stats > div { border: 1px solid #ccc; box-shadow: none; padding: 10px; flex: 1; }
+  .month-detail > td { background: white !important; padding: 0 !important; }
+  .month-detail-grid { grid-template-columns: 1fr 1fr; border-top: none; }
+  .month-toggle { display: none; }
+  .month-row.is-open { background: white !important; }
+  .month-spark { display: none; }
+  .admin-shell { display: block; }
+  .admin-page-header { margin-bottom: 20px; }
+  .admin-page-header h1 { font-size: 18px; }
+  .admin-page-header p { font-size: 10px; }
+  @page { margin: 1.5cm; size: A4 portrait; }
+}

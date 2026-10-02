@@ -101,6 +101,7 @@ export const adminApi = {
     request<{ user: UserListResponse["items"][number] }>(`/admin/users/${encodeURIComponent(id)}`, { method: "PATCH", body: JSON.stringify(payload) }),
   resetPassword: (id: string, password: string) =>
     request<{ ok: boolean }>(`/admin/users/${encodeURIComponent(id)}/password`, { method: "POST", body: JSON.stringify({ password }) }),
+  sendWhatsApp: (reportId: string) => request<any>("/admin/reports/send-whatsapp", { method: "POST", body: JSON.stringify({ reportId }) }),
 };
 
 export const salesApi = {
@@ -115,6 +116,11 @@ export const salesApi = {
 
 export const rmApi = {
   dashboard: (from?: string, to?: string) => request<any>(`/rm/dashboard${query({ from, to })}`),
+  customers: (q = "", page = 0) => request<{ total: number; items: any[] }>(`/rm/customers${query({ q, page })}`),
+  customerDetail: (id: string) => request<any>(`/rm/customers/${encodeURIComponent(id)}`),
+  productTrends: () => request<any>("/rm/product-trends"),
+  alerts: () => request<any>("/rm/alerts"),
+  askAi: (question: string) => request<any>("/rm/ask-ai", { method: "POST", body: JSON.stringify({ question }) }),
 };
 
 export const salesFeaturesApi = {
@@ -122,6 +128,7 @@ export const salesFeaturesApi = {
   customer: (id: string) => request<any>(`/sales/customers/${id}`),
   addActivity: (payload: any) => request<any>("/sales/activities", { method: "POST", body: JSON.stringify(payload) }),
   leads: () => request<any[]>("/sales/leads"),
+  leadDetail: (id: string) => request<any>(`/sales/leads/${id}`),
   addLead: (payload: any) => request<any>("/sales/leads", { method: "POST", body: JSON.stringify(payload) }),
   setLeadStage: (id: string, stage: string) => request<any>(`/sales/leads/${id}/stage`, { method: "PATCH", body: JSON.stringify({ stage }) }),
   requests: () => request<any[]>("/sales/requests"),
@@ -135,4 +142,9 @@ export const salesFeaturesApi = {
   location: (payload: { latitude: number; longitude: number; accuracy?: number }) => request<any>("/sales/location", { method: "POST", body: JSON.stringify(payload) }),
   movement: (date?: string) => request<any>(`/sales/movement${date ? `?date=${date}` : ""}`),
   addUnplannedVisit: (payload: any) => request<any>("/sales/visits/unplanned", { method: "POST", body: JSON.stringify(payload) }),
+  uploadVoiceNote: (visitId: string, blob: Blob, ext: string) => {
+    const form = new FormData(); form.append("audio", blob, `note.${ext}`);
+    const token = typeof window !== "undefined" ? localStorage.getItem(TOKEN_KEY) : null;
+    return fetch(`${API_URL}/sales/visits/${visitId}/voice-note`, { method: "POST", headers: token ? { Authorization: `Bearer ${token}` } : {}, body: form }).then((r) => r.json());
+  },
 };

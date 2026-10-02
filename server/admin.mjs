@@ -620,41 +620,28 @@ adminRouter.post("/reports/history", (req, res, next) => {
   } catch (error) { next(error); }
 });
 
-adminRouter.post("/ask-ai", (req, res, next) => {
+adminRouter.post("/reports/send-whatsapp", async (req, res, next) => {
+  try {
+    const report = db.prepare("SELECT * FROM generated_reports WHERE id=? AND user_id=?").get(req.body.reportId, req.user.id);
+    if (!report) return res.status(404).json({ error: "Report not found" });
+    const summary = JSON.parse(report.payload_json).summary;
+    const { sendWhatsAppText } = await import("./whatsapp.mjs");
+    const text = `📄 *PSSPL CRM Report*\n\nType: ${report.report_type.replace("admin_sales_", "").toUpperCase()}\nPeriod: ${report.date_from} to ${report.date_to}\nSales: ₹${(summary.totalSales / 100000).toFixed(2)} L\nInvoices: ${summary.invoiceCount}\n\nView full details in the PSSPL portal.`;
+    const result = await sendWhatsAppText(text);
+    if (!result.ok) return res.status(500).json({ error: result.message });
+    res.json(result);
+  } catch (error) { next(error); }
+});
+
+adminRouter.post("/ask-ai", async (req, res, next) => {
   try {
     const question = String(req.body?.question ?? "").trim();
     if (!question) return res.status(400).json({ error: "Enter a question" });
-    const to = /^\d{4}-\d{2}-\d{2}$/.test(String(req.body?.to ?? "")) ? String(req.body.to) : today();
-    const from = /^\d{4}-\d{2}-\d{2}$/.test(String(req.body?.from ?? "")) ? String(req.body.from) : `${to.slice(0, 4)}-04-01`;
-    if (from > to) return res.status(400).json({ error: "From date must be before the to date" });
-    const lower = question.toLowerCase();
-    const money = (value) => `₹${Number(value ?? 0).toLocaleString("en-IN", { maximumFractionDigits: 0 })}`;
-    let answer = "";
-    if (lower.includes("outstanding") || lower.includes("payment")) {
-      const total = db.prepare("SELECT COALESCE(SUM(outstanding),0) total FROM tally_customers").get().total;
-      const rows = db.prepare("SELECT name,outstanding FROM tally_customers WHERE outstanding>0 ORDER BY outstanding DESC LIMIT 5").all();
-      answer = `Total recorded outstanding is ${money(total)}. The highest outstanding customers are ${rows.map((row) => `${row.name} (${money(row.outstanding)})`).join(", ") || "not available"}.`;
-    } else if ((lower.includes("less") || lower.includes("lowest") || lower.includes("slow")) && lower.includes("product")) {
-      const rows = db.prepare(`SELECT l.product_name name,SUM(l.amount) sales FROM tally_invoice_lines l JOIN tally_invoices i ON i.id=l.invoice_id WHERE i.ingest_session_id IS NULL AND i.invoice_date BETWEEN ? AND ? GROUP BY l.product_name HAVING SUM(l.amount)>0 ORDER BY sales ASC LIMIT 5`).all(from, to);
-      answer = rows.length ? `The lowest-selling products in this period are ${rows.map((row) => `${row.name} (${money(row.sales)})`).join(", ")}.` : "No product sales were found for this period.";
-    } else if (lower.includes("product") && (lower.includes("top") || lower.includes("best") || lower.includes("attention") || lower.includes("territory") || lower.includes("region"))) {
-      const rows = db.prepare(`SELECT COALESCE(p.region,'Unassigned') region,l.product_name name,SUM(l.amount) sales FROM tally_invoice_lines l JOIN tally_invoices i ON i.id=l.invoice_id LEFT JOIN tally_customers c ON c.id=i.customer_id LEFT JOIN salesperson_profiles p ON p.user_id=c.owner_user_id WHERE i.ingest_session_id IS NULL AND i.invoice_date BETWEEN ? AND ? GROUP BY region,l.product_name ORDER BY sales DESC LIMIT 5`).all(from, to);
-      answer = rows.length ? `The strongest product and region combinations are ${rows.map((row) => `${row.name} in ${row.region} (${money(row.sales)})`).join(", ")}.` : "No product sales were found for this period.";
-    } else if (lower.includes("salesperson") || lower.includes("rm") || lower.includes("team") || lower.includes("perform")) {
-      const rows = db.prepare(`SELECT COALESCE(p.full_name,NULLIF(c.rm_name,''),'Unassigned') name,SUM(i.amount) sales,COUNT(DISTINCT i.customer_id) customers FROM tally_invoices i LEFT JOIN tally_customers c ON c.id=i.customer_id LEFT JOIN salesperson_profiles p ON p.user_id=c.owner_user_id WHERE i.ingest_session_id IS NULL AND i.invoice_date BETWEEN ? AND ? GROUP BY name ORDER BY sales DESC LIMIT 5`).all(from, to);
-      answer = rows.length ? `Top sales contributors are ${rows.map((row) => `${row.name}: ${money(row.sales)} from ${row.customers} customers`).join("; ")}.` : "No salesperson-linked sales were found for this period.";
-    } else if (lower.includes("repeat")) {
-      const row = db.prepare(`SELECT COUNT(*) customers FROM (SELECT customer_id FROM tally_invoices WHERE ingest_session_id IS NULL AND invoice_date BETWEEN ? AND ? AND customer_id IS NOT NULL GROUP BY customer_id HAVING COUNT(*)>1)`).get(from, to);
-      answer = `${row.customers} customers placed more than one invoiced order during this period.`;
-    } else if (lower.includes("visit") || lower.includes("follow") || lower.includes("activity") || lower.includes("check in")) {
-      const visits = db.prepare("SELECT COUNT(*) total,COALESCE(SUM(CASE WHEN status='completed' THEN 1 ELSE 0 END),0) completed FROM visits WHERE business_date BETWEEN ? AND ?").get(from, to);
-      const followUps = db.prepare("SELECT COUNT(*) total FROM follow_ups WHERE completed=0 AND due_date<=?").get(to).total;
-      answer = `${visits.completed} of ${visits.total} visits were completed in this period. ${followUps} follow-ups are currently open and due by the selected end date.`;
-    } else {
-      const row = db.prepare("SELECT COALESCE(SUM(amount),0) sales,COUNT(*) invoices,COUNT(DISTINCT customer_id) customers FROM tally_invoices WHERE ingest_session_id IS NULL AND invoice_date BETWEEN ? AND ?").get(from, to);
-      answer = `Sales were ${money(row.sales)} across ${row.invoices} invoices and ${row.customers} customers. Ask about top or low-selling products, salesperson performance, regions, repeat customers, outstanding payments, visits or follow-ups for more detail.`;
-    }
-    res.json({ question, answer, from, to, source: "Live Tally data and CRM activity" });
+    const { buildContext, buildSystemPrompt, askOpenAI } = await import("./ai-context.mjs");
+    const contextJson = await buildContext(req.user.id, "admin");
+    const answer = await askOpenAI(buildSystemPrompt(contextJson), question);
+    const to = today(); const from = `${to.slice(0, 4)}-04-01`;
+    res.json({ question, answer, from, to, source: "PSSPL CRM & Tally data via AI" });
   } catch (error) { next(error); }
 });
 

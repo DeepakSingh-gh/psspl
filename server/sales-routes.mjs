@@ -1,8 +1,13 @@
 import { Router } from "express";
 import { randomUUID } from "node:crypto";
+import { mkdirSync } from "node:fs";
+import multer from "multer";
 import { authenticate } from "./auth.mjs";
 import { db } from "./db.mjs";
 import { tally } from "./tally/connector.mjs";
+
+mkdirSync("data/voice-notes", { recursive: true });
+const voiceUpload = multer({ dest: "data/voice-notes/", limits: { fileSize: 25 * 1024 * 1024 }, fileFilter: (_req, file, cb) => cb(null, file.mimetype.startsWith("audio/") || file.originalname.endsWith(".webm") || file.originalname.endsWith(".ogg")) });
 
 export const salesRouter = Router();
 salesRouter.use(authenticate);
@@ -76,6 +81,18 @@ salesRouter.patch("/leads/:id/stage", (req, res) => {
   if (!allowed.includes(req.body?.stage)) return res.status(400).json({ error: "Invalid pipeline stage" });
   db.prepare("UPDATE leads SET stage=? WHERE id=? AND user_id=?").run(req.body.stage, req.params.id, req.user.id); res.json({ ok: true });
 });
+salesRouter.patch("/leads/:id", (req, res) => {
+  const { name, company, phone, email, city, source, interestedProductId, expectedValue, nextActionDate, notes } = req.body ?? {};
+  db.prepare("UPDATE leads SET name=COALESCE(?,name),company=?,phone=?,email=?,city=?,source=?,interested_product_id=?,expected_value=COALESCE(?,expected_value),next_action_date=?,notes=? WHERE id=? AND user_id=?")
+    .run(name||null, company||null, phone||null, email||null, city||null, source||null, interestedProductId||null, expectedValue!=null?Number(expectedValue):null, nextActionDate||null, notes||null, req.params.id, req.user.id);
+  res.json({ ok: true });
+});
+salesRouter.get("/leads/:id", (req, res) => {
+  const lead = db.prepare("SELECT * FROM leads WHERE id=? AND user_id=?").get(req.params.id, req.user.id);
+  if (!lead) return res.status(404).json({ error: "Lead not found" });
+  const activities = db.prepare("SELECT * FROM customer_activities WHERE lead_id=? ORDER BY occurred_at DESC").all(req.params.id);
+  res.json({ lead, activities });
+});
 
 salesRouter.get("/requests", (req, res) => res.json(db.prepare("SELECT r.*,c.name customer_name,l.name lead_name,p.name product_name FROM service_requests r LEFT JOIN tally_customers c ON c.id=r.tally_customer_id LEFT JOIN leads l ON l.id=r.lead_id LEFT JOIN tally_products p ON p.id=r.product_id WHERE r.user_id=? ORDER BY CASE r.status WHEN 'open' THEN 0 ELSE 1 END,r.due_date").all(req.user.id)));
 salesRouter.post("/requests", (req, res) => {
@@ -105,13 +122,21 @@ salesRouter.get("/reports/activity", (req, res) => {
 });
 salesRouter.get("/reports/history", (req, res) => res.json(db.prepare("SELECT id,report_type,date_from,date_to,created_at FROM generated_reports WHERE user_id=? ORDER BY created_at DESC LIMIT 25").all(req.user.id)));
 
+salesRouter.post("/visits/:id/voice-note", voiceUpload.single("audio"), (req, res) => {
+  if (!req.file) return res.status(400).json({ error: "Audio file required (max 25 MB)" });
+  db.prepare("UPDATE visits SET voice_note_path=? WHERE id=? AND user_id=?").run(req.file.path, req.params.id, req.user.id);
+  res.json({ ok: true, path: req.file.path });
+});
+
 salesRouter.post("/ask-ai", async (req, res) => {
-  const question = String(req.body?.question || "").trim(); if (!question) return res.status(400).json({ error: "Enter a question" });
-  const overview = await tally.overview({ salespersonId: req.user.id }); const lower = question.toLowerCase(); let answer;
-  if (lower.includes("product") && (lower.includes("top") || lower.includes("best"))) answer = `Top products are ${overview.topProducts.slice(0, 3).map((p) => `${p.name} (₹${(p.salesValue / 100000).toFixed(2)} L)`).join(", ")}.`;
-  else if (lower.includes("declin") || lower.includes("sold less")) answer = overview.decliningProducts.length ? `Products needing attention: ${overview.decliningProducts.slice(0, 3).map((p) => p.name).join(", ")}.` : "No declining products were found in the available comparison data.";
-  else if (lower.includes("outstanding")) answer = `Recorded outstanding across the imported customer base is ₹${(overview.totalOutstanding / 100000).toFixed(2)} lakh.`;
-  else if (lower.includes("customer")) answer = `${overview.customerCount} customer, dealer and export records are available in the current PSSPL snapshot.`;
-  else answer = "I can answer questions about top or declining products, customers, outstanding amounts, visits, follow-ups and expected orders using the current PSSPL snapshot.";
-  res.json({ question, answer, source: "Live Tally data and PSSPL CRM activity" });
+  const question = String(req.body?.question || "").trim();
+  if (!question) return res.status(400).json({ error: "Enter a question" });
+  try {
+    const { buildContext, buildSystemPrompt, askOpenAI } = await import("./ai-context.mjs");
+    const contextJson = await buildContext(req.user.id, "salesperson");
+    const answer = await askOpenAI(buildSystemPrompt(contextJson), question);
+    res.json({ question, answer, source: "PSSPL CRM & Tally data via AI" });
+  } catch (err) {
+    res.status(500).json({ error: "Ask AI encountered an error" });
+  }
 });
