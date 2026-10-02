@@ -14,3 +14,14 @@ Decision: implement full production code with graceful "not configured" fallback
 Cost if wrong: zero — fallback is the correct behavior when keys are absent.
 
 ## Task progress
+- [x] T1: Create missing schema migrations
+- [x] T2: Build RM backend queries (`server/rm-routes.mjs`)
+- [x] T3: Build RM frontend portal (`src/components/rm/*`)
+- [x] T4: Add Lead/Quotation backend tracking
+- [x] T5: Build Pipeline Kanban in sales workspace
+- [x] T6: Add Voice Note uploads and Visit type tags
+- [x] T7: Add real AI Integration via OpenAI API
+- [x] T8: Build WhatsApp Integration logic
+- [x] T9: Add Export logic to Reports (PDF / WhatsApp)
+- [x] T10: Add End-of-Day Chron Scheduler
+- [x] T11: Generate final Gap Fix Report
