@@ -355,6 +355,11 @@ ensureColumn("tally_customers", "owner_user_id", "TEXT REFERENCES users(id)");
 
 db.exec(`CREATE INDEX IF NOT EXISTS idx_tally_customers_owner_user_id ON tally_customers(owner_user_id);`);
 
+// Gap-fix migrations
+ensureColumn("visits", "visit_tags", "TEXT");
+ensureColumn("visits", "voice_note_path", "TEXT");
+ensureColumn("follow_ups", "assigned_to_user_id", "TEXT REFERENCES users(id)");
+
 db.exec("PRAGMA optimize;");
 
 export function transaction(work) {
