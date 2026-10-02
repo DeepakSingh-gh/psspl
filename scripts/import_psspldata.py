@@ -407,7 +407,66 @@ for cust_id, cust_name, period, total_amount in active_sales:
         )
         invoice_lines_created += 1
 
-print(f"[import] Generated {invoices_created} invoices with {invoice_lines_created} product lines.")
+# Generate invoices for FY 2024-25 and FY 2025-26 from tally_rm_product_sales to drive all annual graphs
+rm_cust_map = {}
+for cid, cname, rm in con.execute("SELECT id, name, rm_name FROM tally_customers").fetchall():
+    key = (rm or "").strip().lower()
+    rm_cust_map.setdefault(key, []).append((cid, cname))
+
+all_custs = con.execute("SELECT id, name FROM tally_customers").fetchall()
+
+rm_sales = con.execute("""
+    SELECT rm_name, product_name, financial_year, quantity, sales_value 
+    FROM tally_rm_product_sales 
+    WHERE sales_value > 0
+""").fetchall()
+
+for rm_name, prod_name, fy, tot_qty, tot_val in rm_sales:
+    # Match customer for RM
+    c_list = rm_cust_map.get(rm_name.strip().lower(), all_custs)
+    if not c_list:
+        c_list = all_custs
+    cust_id, cust_name = c_list[inv_counter % len(c_list)]
+    
+    start_year = 2024 if fy == "2024-25" else 2025
+    monthly_val = round(tot_val / 12, 2)
+    monthly_qty = round(tot_qty / 12, 2)
+    
+    # Try finding rate/product_id
+    prod_row = con.execute("SELECT id, rate, uom FROM tally_products WHERE lower(name)=lower(?)", (prod_name,)).fetchone()
+    p_id = prod_row[0] if prod_row else f"PROD-{slug(prod_name)[:30]}"
+    p_rate = prod_row[1] if (prod_row and prod_row[1] > 0) else round(monthly_val / max(1, monthly_qty), 2)
+    p_uom = prod_row[2] if prod_row else "Nos"
+
+    for idx in range(12):
+        month = 4 + idx if idx < 9 else idx - 8
+        year = start_year if idx < 9 else start_year + 1
+        period = f"{year}-{month:02d}"
+        inv_date = f"{period}-15"
+        
+        inv_id = f"INV-{period.replace('-', '')}-{inv_counter}"
+        voucher_no = f"PSS/{period.replace('-', '')}/{inv_counter}"
+        inv_counter += 1
+
+        con.execute(
+            """INSERT OR REPLACE INTO tally_invoices 
+               (id, company_name, voucher_guid, voucher_number, voucher_type, invoice_date, customer_id, customer_name, amount, reference, source_sync_id, ingest_session_id)
+               VALUES (?, 'Progressive Surface Systems Pvt. Ltd.', ?, ?, 'Sales', ?, ?, ?, ?, 'RM Product Invoice', 'excel-import', NULL)""",
+            (inv_id, f"GUID-{inv_id}", voucher_no, inv_date, cust_id, cust_name, monthly_val)
+        )
+        invoices_created += 1
+
+        line_id = f"LINE-{inv_id}-1"
+        con.execute(
+            """INSERT OR REPLACE INTO tally_invoice_lines 
+               (id, invoice_id, product_id, product_name, quantity, rate, amount, uom)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
+            (line_id, inv_id, p_id, prod_name, monthly_qty, p_rate, monthly_val, p_uom)
+        )
+        invoice_lines_created += 1
+
+print(f"[import] Generated total {invoices_created} invoices with {invoice_lines_created} product lines across FY 2023-24, FY 2024-25, and FY 2025-26.")
+
 
 # 9. Seed Field Visits, Overdue Follow-ups, and Expected Orders for Field Rep
 today_str = datetime.now().strftime("%Y-%m-%d")
