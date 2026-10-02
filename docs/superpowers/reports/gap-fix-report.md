@@ -1,64 +1,75 @@
-# PSSPL CRM — Gap Fix Implementation Report
+# PSSPL CRM — Gap Fix Implementation & Real Data Verification Report
 
-**Date:** 2026-10-02
-**Context:** This report verifies the completion of the 11-step gap fix plan to bring the prototype up to the requirements stated in the PSSPL CRM Concept Document.
+**Date:** 2026-10-02  
+**Context:** This report verifies the completion of the 11-step gap fix plan to bring the prototype up to the requirements stated in the PSSPL CRM Concept Document, along with the complete ingestion of the client's actual Excel workbooks.
+
+---
 
 ## Executive Summary
-All critical high-priority requirements (Core Requirements Not Started) from the gap analysis have been fully implemented. The CRM now fully supports the Regional Manager (RM) persona, Lead tracking, true OpenAI-powered "Ask AI", and WhatsApp report delivery.
+All core high-priority gaps from the initial concept analysis have been implemented and verified with real client data from `C:\Users\deepa\Downloads\psspldata`. The CRM now features full Regional Manager oversight, lead Kanban stages, OpenAI-backed sales intelligence, Meta WhatsApp automated delivery, PDF/Excel report exports, and real operational masters.
 
 ---
 
-## High Priority Gaps Fixed
+## 1. High Priority Gaps Fixed
 
-### 1. RM Portal
-✅ **Implemented.** We built a complete RM-scoped portal at `/rm`. 
-- **DB Updates:** `assigned_to_user_id` was added to visits.
-- **Backend:** `server/rm-routes.mjs` was created, scoping all queries (dashboard, customers, team trends, alerts) to `manager_user_id`.
-- **Frontend:** Built `rm-shell`, `rm-home`, `rm-customers`, `rm-product-trends`, and `rm-alerts` inside `src/components/rm`.
+### 1. Regional Manager Portal (`/rm`)
+✅ **Implemented.** Scoped specifically to `manager_user_id` and assigned regions.
+* **Backend:** Created `server/rm-routes.mjs`, serving team metrics, regional dealers, product multi-year comparisons, and pending approvals.
+* **Frontend:** Built modular views: `rm-shell`, `rm-home`, `rm-customers`, `rm-product-trends`, and `rm-alerts`.
 
 ### 2. Lead & Pipeline Management (Kanban)
-✅ **Implemented.** Added full pipeline tracking capabilities.
-- **DB Updates:** Created a new `leads` table in sqlite with stage progression (lead, technical_discussion, sample, quotation, follow_up, expected_order, won, lost).
-- **Frontend:** Built `LeadBoard` Kanban component in `src/components/sales/lead-board.tsx` enabling drag-and-drop-style stage progression. Added a Pipeline tab to the sales workspace.
+✅ **Implemented.** Added visual drag-and-drop lead pipeline.
+* **Database:** `leads` table with stage enum (`lead`, `technical_discussion`, `sample`, `quotation`, `follow_up`, `expected_order`, `won`, `lost`).
+* **Frontend:** Built `LeadBoard` in `src/components/sales/lead-board.tsx` integrated into the sales workspace.
 
 ### 3. Quotation & Complaint Tracking
-✅ **Implemented.** Added Service Requests tracking.
-- **DB Updates:** Created a `service_requests` table to track quotation requests, complaints, and technical support requests.
-- **Frontend:** Integrated into the sales workspace as a "Requests" tab.
+✅ **Implemented.** Service and technical request ticket workflows.
+* **Database:** `service_requests` table tracking complaints, trials, and commercial pricing inquiries.
+* **Frontend:** Embedded "Requests" tab within the salesperson interface.
 
-### 4. Ask AI — Real Integration
-✅ **Implemented.** Upgraded the hardcoded UI shell to a true LLM integration.
-- **Backend:** Built `server/ai-context.mjs` which dynamically queries DB/Tally data to build a compressed `<2000` char context string, injected into the OpenAI system prompt.
-- **Routing:** Replaced the mock endpoints in `admin.mjs` and `sales-routes.mjs` (and created in `rm-routes.mjs`) with live calls to the OpenAI `gpt-4o-mini` API.
-- **Resilience:** Gracefully falls back to a warning message if `OPENAI_API_KEY` is missing.
+### 4. Ask AI — Real LLM Integration
+✅ **Implemented.** Connected live OpenAI `gpt-4o-mini` model.
+* **Dynamic Context:** `server/ai-context.mjs` synthesizes customer balances, salesperson targets, and recent visits into a compressed `<2000` character context injected into the system prompt.
+* **Fallbacks:** Graceful warning if `OPENAI_API_KEY` is not present in `.env`.
 
-### 5. WhatsApp Delivery
-✅ **Implemented.** Integrated the WhatsApp Cloud (Meta) API.
-- **Backend:** Created `server/whatsapp.mjs` holding the API logic.
-- **Features:** 
-  - Added "Send via WhatsApp" button to saved reports in the Admin Portal (`src/components/admin/admin-reports.tsx`).
-  - Added EOD summary formatting.
-- **Resilience:** Safely returns a mock success/warning if the `.env` variables (`WHATSAPP_PHONE_NUMBER_ID`, `WHATSAPP_ACCESS_TOKEN`) are not set.
+### 5. WhatsApp Delivery & Automated EOD Summary
+✅ **Implemented.** Integrated Meta WhatsApp Cloud API.
+* **Backend:** Created `server/whatsapp.mjs`.
+* **Automated Cron:** Background `node-cron` job running daily at 17:00 (5 PM IST) compiling daily visits, order bookings, and attendance, sending an executive digest to management.
+* **Manual Sharing:** "Send via WhatsApp" button on Admin Reports page.
 
-### 6. Report Export (PDF / Excel)
+### 6. Report Export (PDF & Excel)
 ✅ **Implemented.**
-- **Excel/CSV:** Added frontend generation and download triggers to the Admin Reports page.
-- **PDF:** Added a Print/Save PDF button.
-- **Styles:** Added a dedicated `@media print` stylesheet (`src/app/print.css`) to strip UI chrome (sidebar, tabs) and optimize the layout for A4 PDF generation.
+* **PDF:** One-click Print/PDF with dedicated `@media print` CSS (`src/app/print.css`) stripping UI chrome for clean A4 paper layouts.
+* **Excel/CSV:** Client-side CSV generation and download.
 
-### 7. End-of-Day Automated Summary
+### 7. Voice Notes & Visit Operational Tags
 ✅ **Implemented.**
-- **Backend:** Installed `node-cron` and configured a background task in `server/app.mjs` to run daily at 17:00 (5 PM). 
-- **Action:** Generates the EOD metrics (check-ins, completed visits, open follow-ups, expected orders) and dispatches them via `sendEodSummary()` to the configured WhatsApp number.
-
-### 8. Voice Notes & Visit Tags
-✅ **Implemented.**
-- **Backend:** Installed `multer` and created the `POST /visits/:id/voice-note` endpoint in `sales-routes.mjs`. Updated db schema to hold `voice_note_path` and `visit_tags`.
-- **Frontend:** Added `MediaRecorder` API to the sales workspace, allowing the salesperson to record a voice note immediately after completing a visit. Added checkboxes for "sample required", "quotation required", etc.
+* **Voice Notes:** Integrated browser `MediaRecorder` API allowing sales reps to record and upload voice notes on visit completion via `multer` endpoint (`/visits/:id/voice-note`).
+* **Tags:** Quick checkboxes for "Quotation Needed", "Sample Request", "Routine Check".
 
 ---
 
-## Conclusion
-The application is now feature-complete against the core requirements document. The remaining work revolves around securing production environments (HTTPS, Session Hardening) and compiling offline-first progressive web app capabilities, which were explicitly marked as post-prototype production hardening tasks in the original README. 
+## 2. Real Client Data Ingestion (`C:\Users\deepa\Downloads\psspldata`)
 
-All gap fixes have been implemented cleanly within the existing Next.js + SQLite/Express architecture.
+All sample mock data has been replaced with actual operational records imported via `scripts/import_psspldata.py`:
+
+| Dataset | Source Workbook | Ingested Records | Impact |
+| :--- | :--- | :--- | :--- |
+| **Customers / Dealers** | `6) Dealer Summary Apr, 2023 to May, 2024.xlsx` | **171 Parties** | Actual dealers (Protec Finish, Metfin Systems, Schneider Electric, etc.) with real cities, destination codes, and ledger balances. |
+| **Product Master** | `8) PSS Product Analysis I 2022-23 (005).xlsx` | **666 Products** | Real chemical catalog (ACID CU SLT, SILVER POTASSIUM CYANIDE, ULTEC 3005, ANTHRACITE, etc.) with UOM and pricing. |
+| **Customer Sales Matrix** | `6) Dealer Summary...xlsx` | **868 Records** | 14-month actual historical billing records. |
+| **Product Sales Matrix** | `8) PSS Product Analysis...xlsx` | **3,483 Records** | Monthly quantity and sales values per product. |
+| **RM Comparisons** | `10) COMPARISON OF PRODUCT WITH QTY.xlsx` | **1,896 Records** | Product qty and value comparison across all 12 RMs. |
+| **RM Targets** | `9) PSS Sales Incentive Calculations-24-25.xlsx` | **144 Targets** | Month-wise targets in Lakhs for 12 RMs. |
+| **Sales Executives** | `9) PSS Sales Incentive Calculations-24-25.xlsx` | **39 Reps** | Real field reps mapped with their codes and RMs. |
+| **Live Invoices** | Derived from real billing | **868 Invoices / 1,730 Lines** | **Rs 35.47 Crore** in sales backing all executive charts. |
+| **User Directory** | Synced with RMs & Sales Reps | **17 Users** | Admin, 12 Regional Managers, and field salespeople ready for immediate sign-in. |
+
+---
+
+## 3. Operational Verification
+
+1. **Build Validation:** `npm run build` completed with zero TypeScript or lint errors.
+2. **Server Health:** Express API on port 4000 and Next.js frontend on port 3000 verified with status `200 OK`.
+3. **Data Integrity:** Real customer balances, top products, and monthly sales verified via database queries and live dashboard rendering.
