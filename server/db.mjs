@@ -313,6 +313,13 @@ db.exec(`
     ON tally_purchase_lines(product_id, purchase_id);
   CREATE INDEX IF NOT EXISTS idx_audit_logs_created
     ON audit_logs(created_at DESC, user_id);
+
+  CREATE INDEX IF NOT EXISTS idx_tally_invoice_lines_invoice_id ON tally_invoice_lines(invoice_id);
+  CREATE INDEX IF NOT EXISTS idx_tally_purchase_lines_purchase_id ON tally_purchase_lines(purchase_id);
+  CREATE INDEX IF NOT EXISTS idx_tally_invoices_customer_id ON tally_invoices(customer_id);
+  CREATE INDEX IF NOT EXISTS idx_tally_payments_customer_id ON tally_payments_live(customer_id);
+  CREATE INDEX IF NOT EXISTS idx_visits_user_id ON visits(user_id);
+  CREATE INDEX IF NOT EXISTS idx_follow_ups_user_id ON follow_ups(user_id);
 `);
 
 function ensureColumn(table, column, definition) {
