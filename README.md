@@ -2,7 +2,69 @@
 
 An enterprise CRM and field sales platform specifically designed for **Progressive Surface Systems Pvt. Ltd. (PSSPL)**, integrating Tally accounting data with field sales mobility, Regional Manager oversight, and executive analytics.
 
+<<<<<<< HEAD
 ---
+=======
+## Local setup for a teammate
+
+Requirements: Node.js 22 or newer and npm. The CRM uses a local SQLite file, so Supabase is not required for local development.
+
+```bash
+git clone https://github.com/Khushi-Bizgenix/psspl.git
+cd psspl
+npm install
+cp .env.example .env
+npm run db:setup
+npm run dev
+```
+
+On Windows Command Prompt, use `copy .env.example .env` instead of `cp`. Before running `db:setup`, change `CRM_ADMIN_PASSWORD` in `.env` to a private local password.
+
+Open:
+
+- CRM: `http://localhost:3000`
+- API health: `http://127.0.0.1:4000/api/health`
+
+Development-only salesperson credentials created by `npm run db:seed`:
+
+```text
+demo.salesperson@local.test
+demo123
+```
+
+The admin email and password are read from the teammate's `.env` file.
+
+### Database migration workflow
+
+The database is created at `data/crm.sqlite` unless `CRM_DATABASE_PATH` is changed. Applied versions are stored in the `schema_migrations` table.
+
+After pulling new code:
+
+```bash
+npm install
+npm run db:migrate
+npm run dev
+```
+
+For a schema change, create the next numbered file under `database/migrations`, for example:
+
+```text
+database/migrations/002_add_customer_category.sql
+```
+
+Commit the migration with the related application change. Never edit an already-shared migration and never place real Tally, Excel, customer or password data in a migration or seed file.
+
+Useful commands:
+
+```bash
+npm run db:migrate   # Apply pending migrations
+npm run db:status    # Confirm whether the schema is current
+npm run db:seed      # Add fictional local development accounts
+npm run db:setup     # Migrate and seed a new local database
+```
+
+## Signing in
+>>>>>>> origin/master
 
 ## 🚀 Quick Start
 

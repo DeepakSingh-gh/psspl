@@ -2,6 +2,7 @@ import { DatabaseSync } from "node:sqlite";
 import { mkdirSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { runMigrations } from "./migrations.mjs";
 
 const projectRoot = fileURLToPath(new URL("..", import.meta.url));
 const databasePath = process.env.CRM_DATABASE_PATH || join(projectRoot, "data", "crm.sqlite");
@@ -9,6 +10,7 @@ mkdirSync(dirname(databasePath), { recursive: true });
 
 export const db = new DatabaseSync(databasePath);
 db.exec("PRAGMA foreign_keys = ON; PRAGMA journal_mode = WAL; PRAGMA temp_store = MEMORY;");
+runMigrations(db);
 
 db.exec(`
   CREATE TABLE IF NOT EXISTS users (
