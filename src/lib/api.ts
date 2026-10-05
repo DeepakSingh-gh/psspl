@@ -102,6 +102,7 @@ export const adminApi = {
   resetPassword: (id: string, password: string) =>
     request<{ ok: boolean }>(`/admin/users/${encodeURIComponent(id)}/password`, { method: "POST", body: JSON.stringify({ password }) }),
   sendWhatsApp: (reportId: string) => request<any>("/admin/reports/send-whatsapp", { method: "POST", body: JSON.stringify({ reportId }) }),
+  rmDetail: (id: string, from?: string, to?: string) => request<any>(`/admin/team/${encodeURIComponent(id)}${query({ from, to })}`),
 };
 
 export const salesApi = {

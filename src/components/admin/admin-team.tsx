@@ -1,5 +1,6 @@
 "use client";
 import { useState } from "react";
+import Link from "next/link";
 import { AdminPage, AdminState } from "./admin-shell";
 import { adminApi } from "@/lib/api";
 import { useAdminData } from "@/lib/use-admin-data";
@@ -7,7 +8,14 @@ import { formatFinancialYear, formatNumber, formatPercent, formatRupees } from "
 
 export function AdminTeam() {
   const [financialYear, setFinancialYear] = useState<string>("");
+  const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
   const { data, loading, error, reload } = useAdminData(() => adminApi.team(financialYear || undefined), [financialYear]);
+
+  const sortedMembers = data ? [...data.members].sort((a, b) => {
+    const aVal = a.achievementPercent !== null ? a.achievementPercent : a.salesValue;
+    const bVal = b.achievementPercent !== null ? b.achievementPercent : b.salesValue;
+    return sortOrder === "asc" ? aVal - bVal : bVal - aVal;
+  }) : [];
 
   return (
     <AdminPage
@@ -16,12 +24,21 @@ export function AdminTeam() {
       description="Live Tally sales are matched to each salesperson or regional manager through the customer owner saved in the CRM."
       actions={
         data && data.financialYears.length > 0 ? (
-          <label className="admin-select">
-            <span>Financial year</span>
-            <select value={financialYear || data.financialYear || ""} onChange={(event) => setFinancialYear(event.target.value)}>
-              {data.financialYears.map((year) => <option key={year} value={year}>{formatFinancialYear(year)}</option>)}
-            </select>
-          </label>
+          <>
+            <label className="admin-select">
+              <span>Sort performance</span>
+              <select value={sortOrder} onChange={(event) => setSortOrder(event.target.value as "asc" | "desc")}>
+                <option value="asc">Poor to good</option>
+                <option value="desc">Good to poor</option>
+              </select>
+            </label>
+            <label className="admin-select">
+              <span>Financial year</span>
+              <select value={financialYear || data.financialYear || ""} onChange={(event) => setFinancialYear(event.target.value)}>
+                {data.financialYears.map((year) => <option key={year} value={year}>{formatFinancialYear(year)}</option>)}
+              </select>
+            </label>
+          </>
         ) : null
       }
     >
@@ -41,6 +58,8 @@ export function AdminTeam() {
             )}
             {data.unassignedSalesValue > 0 && <p className="admin-note subtle">Unassigned Tally sales for this year: {formatRupees(data.unassignedSalesValue)}.</p>}
 
+            <p className="admin-note subtle">Click on any RM or salesperson name to view their detailed sales activity — visits, pipeline, and actual sales.</p>
+
             <div className="admin-table-wrap">
               <table className="admin-table">
                 <thead>
@@ -58,10 +77,10 @@ export function AdminTeam() {
                   </tr>
                 </thead>
                 <tbody>
-                  {data.members.map((member) => (
+                  {sortedMembers.map((member) => (
                     <tr key={member.id}>
                       <td>
-                        <strong>{member.name}</strong>
+                        <Link href={`/admin/team/${encodeURIComponent(member.id)}`} className="rm-name-link">{member.name}</Link>
                         <small>
                           {member.crmUser?.role === "salesperson" ? "CRM salesperson" : `${member.salespeopleCount} salespeople`}
                           {member.aliases.length > 0 && <> · also spelled {member.aliases.join(", ")}</>}

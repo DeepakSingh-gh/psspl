@@ -299,6 +299,223 @@ adminRouter.get("/team", (req, res, next) => {
   } catch (error) { next(error); }
 });
 
+/* ----------------------- RM sales activity detail ------------------------- */
+
+adminRouter.get("/team/:id", (req, res, next) => {
+  try {
+    const rmId = decodeURIComponent(req.params.id);
+    const todayStr = today();
+
+    // Default period: first day of current month → today
+    const defaultFrom = `${todayStr.slice(0, 7)}-01`;
+    const from = req.query.from || defaultFrom;
+    const to = req.query.to || todayStr;
+
+    // Resolve RM from directory
+    const directory = buildRmDirectory();
+    const rm = directory.find((entry) => entry.id === rmId);
+    if (!rm) return res.status(404).json({ error: "RM not found" });
+
+    // All name aliases for Tally customer matching
+    const allNames = [rm.name, ...rm.aliases];
+
+    // Find linked CRM user (salesperson/rm account)
+    const crmUser = db.prepare(`
+      SELECT u.id, u.email, u.role, p.full_name, p.region, p.territory, p.monthly_target
+      FROM users u JOIN salesperson_profiles p ON p.user_id = u.id
+      WHERE u.active = 1
+      ORDER BY p.full_name
+    `).all().find((user) => user.full_name && resolveRmId(directory, user.full_name) === rmId) ?? null;
+
+    const userId = crmUser?.id ?? null;
+
+    // KPI: visits
+    const visitsKpi = userId ? db.prepare(`
+      SELECT
+        COUNT(*) visitsTotal,
+        SUM(CASE WHEN status='completed' THEN 1 ELSE 0 END) visitsCompleted,
+        COUNT(DISTINCT CASE WHEN status='completed' THEN tally_customer_id END) customersCovered
+      FROM visits WHERE user_id = ? AND business_date BETWEEN ? AND ?
+    `).get(userId, from, to) : { visitsTotal: 0, visitsCompleted: 0, customersCovered: 0 };
+
+    // KPI: expected orders (open)
+    const pipelineKpi = userId ? db.prepare(`
+      SELECT
+        COALESCE(SUM(expected_value),0) expectedValue,
+        SUM(CASE WHEN expected_date IS NOT NULL AND expected_date < ? THEN 1 ELSE 0 END) overdue
+      FROM expected_orders WHERE user_id = ? AND status = 'open'
+    `).get(todayStr, userId) : { expectedValue: 0, overdue: 0 };
+
+    // KPI: follow-ups
+    const followUpKpi = userId ? db.prepare(`
+      SELECT
+        SUM(CASE WHEN completed=0 THEN 1 ELSE 0 END) open,
+        SUM(CASE WHEN completed=0 AND due_date IS NOT NULL AND due_date < ? THEN 1 ELSE 0 END) overdue
+      FROM follow_ups WHERE user_id = ?
+    `).get(todayStr, userId) : { open: 0, overdue: 0 };
+
+    // KPI: actual Tally sales in period (match by rm_name via customer)
+    const nameList = allNames.map(() => "?").join(",");
+    const actualSalesKpi = db.prepare(`
+      SELECT COALESCE(SUM(i.amount),0) salesValue
+      FROM tally_invoices i
+      JOIN tally_customers c ON c.id = i.customer_id
+      WHERE i.ingest_session_id IS NULL
+        AND i.invoice_date BETWEEN ? AND ?
+        AND c.rm_name IN (${nameList})
+    `).get(from, to, ...allNames);
+
+    // KPI: target (monthly target × months in period)
+    const monthlyTarget = (crmUser?.monthly_target ?? 0) * CRORE;
+    const monthsInPeriod = Math.max(1, Math.round((new Date(to) - new Date(from)) / (30 * 24 * 3600 * 1000)));
+    const targetValue = monthlyTarget * monthsInPeriod;
+    const achievementPercent = targetValue > 0 ? Math.round((actualSalesKpi.salesValue / targetValue) * 100) : null;
+
+    // Daily activity breakdown
+    const dailyActivity = userId ? db.prepare(`
+      SELECT
+        v.business_date date,
+        COUNT(*) visitsCount,
+        COUNT(DISTINCT v.tally_customer_id) customersCount,
+        COALESCE(SUM(CASE WHEN e.status='open' THEN e.expected_value ELSE 0 END),0) expectedValue,
+        COALESCE(SUM(f.cnt),0) followUpsCount
+      FROM visits v
+      LEFT JOIN expected_orders e ON e.user_id = v.user_id AND date(e.created_at) = v.business_date
+      LEFT JOIN (
+        SELECT user_id, date(created_at) created_date, COUNT(*) cnt
+        FROM follow_ups GROUP BY user_id, created_date
+      ) f ON f.user_id = v.user_id AND f.created_date = v.business_date
+      WHERE v.user_id = ? AND v.business_date BETWEEN ? AND ?
+      GROUP BY v.business_date ORDER BY v.business_date DESC LIMIT 31
+    `).all(userId, from, to).map((row) => {
+      // actual sales for that day
+      const daySales = db.prepare(`
+        SELECT COALESCE(SUM(i.amount),0) val FROM tally_invoices i
+        JOIN tally_customers c ON c.id=i.customer_id
+        WHERE i.ingest_session_id IS NULL AND i.invoice_date=? AND c.rm_name IN (${nameList})
+      `).get(row.date, ...allNames);
+      return { ...row, actualValue: daySales.val };
+    }) : [];
+
+    // Customer visit log
+    const customerVisits = userId ? db.prepare(`
+      SELECT v.id, v.business_date date, COALESCE(c.name, v.dealer_name, 'Unknown') customerName,
+             v.status, v.purpose, v.outcome, v.notes,
+             e.expected_value expectedOrderValue,
+             (SELECT f.due_date FROM follow_ups f WHERE f.user_id=v.user_id AND f.completed=0 ORDER BY f.due_date LIMIT 1) nextFollowUpDate
+      FROM visits v
+      LEFT JOIN tally_customers c ON c.id = v.tally_customer_id
+      LEFT JOIN expected_orders e ON e.user_id=v.user_id AND date(e.created_at)=v.business_date AND e.status='open'
+      WHERE v.user_id = ? AND v.business_date BETWEEN ? AND ?
+      ORDER BY v.business_date DESC, v.id DESC LIMIT 50
+    `).all(userId, from, to) : [];
+
+    // Pipeline (expected orders)
+    const pipeline = userId ? db.prepare(`
+      SELECT e.id, COALESCE(c.name,'Unknown') customerName,
+             tp.name productName,
+             e.expected_value expectedValue, e.expected_date expectedDate,
+             e.status stage,
+             CASE WHEN e.expected_date IS NOT NULL AND e.expected_date < ? THEN 1 ELSE 0 END isOverdue,
+             date(e.created_at) lastActivityDate
+      FROM expected_orders e
+      LEFT JOIN tally_customers c ON c.id = e.tally_customer_id
+      LEFT JOIN tally_products tp ON tp.id = e.tally_product_id
+      WHERE e.user_id = ? AND e.status = 'open'
+      ORDER BY isOverdue DESC, e.expected_date ASC LIMIT 50
+    `).all(todayStr, userId).map((row) => ({ ...row, isOverdue: Boolean(row.isOverdue) })) : [];
+
+    // Actual sales invoices
+    const actualSales = db.prepare(`
+      SELECT i.id, i.invoice_date invoiceDate, i.voucher_number invoiceNumber,
+             COALESCE(c.name, i.customer_name) customerName, i.amount
+      FROM tally_invoices i
+      LEFT JOIN tally_customers c ON c.id = i.customer_id
+      WHERE i.ingest_session_id IS NULL AND i.invoice_date BETWEEN ? AND ?
+        AND c.rm_name IN (${nameList})
+      ORDER BY i.invoice_date DESC LIMIT 50
+    `).all(from, to, ...allNames);
+
+    // Top products
+    const prevFrom = (() => { const d = new Date(from); d.setFullYear(d.getFullYear() - 1); return d.toISOString().slice(0, 10); })();
+    const prevTo = (() => { const d = new Date(to); d.setFullYear(d.getFullYear() - 1); return d.toISOString().slice(0, 10); })();
+    const productRows = db.prepare(`
+      SELECT l.product_name name, COALESCE(SUM(l.amount),0) salesValue,
+             COUNT(DISTINCT l.invoice_id) invoiceCount
+      FROM tally_invoice_lines l
+      JOIN tally_invoices i ON i.id = l.invoice_id
+      JOIN tally_customers c ON c.id = i.customer_id
+      WHERE i.ingest_session_id IS NULL AND i.invoice_date BETWEEN ? AND ?
+        AND c.rm_name IN (${nameList})
+      GROUP BY l.product_name ORDER BY salesValue DESC LIMIT 20
+    `).all(from, to, ...allNames);
+    const prevProductRows = db.prepare(`
+      SELECT l.product_name name, COALESCE(SUM(l.amount),0) salesValue
+      FROM tally_invoice_lines l
+      JOIN tally_invoices i ON i.id = l.invoice_id
+      JOIN tally_customers c ON c.id = i.customer_id
+      WHERE i.ingest_session_id IS NULL AND i.invoice_date BETWEEN ? AND ?
+        AND c.rm_name IN (${nameList})
+      GROUP BY l.product_name
+    `).all(prevFrom, prevTo, ...allNames);
+    const prevProductMap = new Map(prevProductRows.map((r) => [r.name, r.salesValue]));
+    const topProducts = productRows.map((row) => {
+      const prev = prevProductMap.get(row.name) ?? 0;
+      return { ...row, previousSalesValue: prev, growthPercent: prev > 0 ? Math.round(((row.salesValue - prev) / prev) * 100) : null };
+    });
+
+    // Follow-ups
+    const followUps = userId ? db.prepare(`
+      SELECT f.id, f.title, f.due_date dueDate, f.priority,
+             COALESCE(c.name,'') customerName,
+             CASE WHEN f.due_date IS NOT NULL AND f.due_date < ? AND f.completed=0 THEN 1 ELSE 0 END isOverdue
+      FROM follow_ups f
+      LEFT JOIN tally_customers c ON c.id = f.tally_customer_id
+      WHERE f.user_id = ? AND f.completed = 0
+      ORDER BY isOverdue DESC, f.due_date ASC LIMIT 50
+    `).all(todayStr, userId).map((row) => ({ ...row, isOverdue: Boolean(row.isOverdue) })) : [];
+
+    // Today activity feed
+    const todayActivity = userId ? db.prepare(`
+      SELECT v.check_in_at time,
+             COALESCE(c.name, v.dealer_name, 'Unknown') customerName,
+             v.purpose,
+             e.expected_value expectedValue
+      FROM visits v
+      LEFT JOIN tally_customers c ON c.id = v.tally_customer_id
+      LEFT JOIN expected_orders e ON e.user_id=v.user_id AND date(e.created_at)=? AND e.status='open'
+      WHERE v.user_id = ? AND v.business_date = ?
+      ORDER BY v.check_in_at DESC LIMIT 10
+    `).all(todayStr, userId, todayStr) : [];
+
+    res.json({
+      id: rmId,
+      name: rm.name,
+      region: crmUser?.region ?? null,
+      from,
+      to,
+      kpi: {
+        visitsPlanned: visitsKpi.visitsTotal,
+        visitsCompleted: visitsKpi.visitsCompleted,
+        customersCovered: visitsKpi.customersCovered,
+        expectedOrdersValue: pipelineKpi.expectedValue,
+        actualSalesValue: actualSalesKpi.salesValue,
+        targetValue,
+        achievementPercent,
+        followUpsOpen: followUpKpi.open,
+        followUpsOverdue: followUpKpi.overdue,
+      },
+      dailyActivity,
+      customerVisits,
+      pipeline,
+      actualSales,
+      topProducts,
+      followUps,
+      todayActivity,
+    });
+  } catch (error) { next(error); }
+});
+
 adminRouter.get("/product-trends", (req, res, next) => {
   try {
     const financialYear = resolveFinancialYear(req.query.fy);
