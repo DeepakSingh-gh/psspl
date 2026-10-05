@@ -399,7 +399,7 @@ adminRouter.get("/team/:id", (req, res, next) => {
 
     // Customer visit log
     const customerVisits = userId ? db.prepare(`
-      SELECT v.id, v.business_date date, COALESCE(c.name, v.dealer_name, 'Unknown') customerName,
+      SELECT v.id, v.business_date date, COALESCE(c.name, 'Unknown') customerName,
              v.status, v.purpose, v.outcome, v.notes,
              e.expected_value expectedOrderValue,
              (SELECT f.due_date FROM follow_ups f WHERE f.user_id=v.user_id AND f.completed=0 ORDER BY f.due_date LIMIT 1) nextFollowUpDate
@@ -477,15 +477,15 @@ adminRouter.get("/team/:id", (req, res, next) => {
 
     // Today activity feed
     const todayActivity = userId ? db.prepare(`
-      SELECT v.check_in_at time,
-             COALESCE(c.name, v.dealer_name, 'Unknown') customerName,
+      SELECT v.started_at time,
+             COALESCE(c.name, 'Unknown') customerName,
              v.purpose,
              e.expected_value expectedValue
       FROM visits v
       LEFT JOIN tally_customers c ON c.id = v.tally_customer_id
       LEFT JOIN expected_orders e ON e.user_id=v.user_id AND date(e.created_at)=? AND e.status='open'
       WHERE v.user_id = ? AND v.business_date = ?
-      ORDER BY v.check_in_at DESC LIMIT 10
+      ORDER BY v.started_at DESC LIMIT 10
     `).all(todayStr, userId, todayStr) : [];
 
     res.json({
