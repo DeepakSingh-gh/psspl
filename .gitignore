@@ -1,4 +1,4 @@
-﻿node_modules/
+node_modules/
 .next/
 .npm-cache/
 data/*.sqlite
@@ -12,6 +12,11 @@ npm-debug.log*
 .codex-git/
 dist/
 *.tsbuildinfo
+
+# Temporary scratch scripts & debug files
+scratch/
+scripts/explain*.js
+scripts/apply-indexes.js
 
 # Client-provided source workbooks are local reference data, not application code.
 *.xlsx
