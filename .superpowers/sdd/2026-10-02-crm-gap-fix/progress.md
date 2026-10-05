@@ -27,3 +27,4 @@ Cost if wrong: zero — fallback is the correct behavior when keys are absent.
 - [x] T11: Generate final Gap Fix Report
 - [x] T12: Ingest real customer & product data from `C:\Users\deepa\Downloads\psspldata` (`scripts/import_psspldata.py`)
 - [x] T13: Server health check & comprehensive documentation update (`README.md`, `ARCHITECTURE.md`, reports)
+- [x] T14: Implement & fix RM Sales Activity & Performance Drill-down Dashboard (`/admin/team/[id]`, 7 tabs, customer subquery matching, fallback aggregation for Tally product sales)

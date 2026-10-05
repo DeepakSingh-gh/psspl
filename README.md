@@ -64,6 +64,11 @@ py -3.11 scripts/import_psspldata.py "C:\Users\deepa\Downloads\psspldata"
 
 ### 1. Executive Admin Dashboard (`/admin`)
 - **Revenue & Territory Intelligence:** Total sales, collection status, territory breakdown, top-performing chemical products.
+- **Team Performance & Accountability:** Sortable team performance tables prioritizing target achievement ("Poor to Good" and "Good to Poor").
+- **RM Sales Activity & Performance Drill-down (`/admin/team/[id]`):** Clicking any RM or salesperson name opens a comprehensive 7-tab sales activity dashboard featuring:
+  - **KPI Cards:** Completed visits, customers covered, expected orders value, actual Tally sales, FY target achievement %, and open follow-ups.
+  - **7 Scoped Tabs:** *Performance* (Target vs Actual gap & daily activity), *Customer Visits* (detailed visit log with outcomes and notes), *Pipeline* (open expected orders with overdue alerts), *Actual Sales* (Tally invoice drill-down), *Products* (product volume & revenue ranking), *Follow-ups* (due dates & priority levels), and *AI Insight* (automated sales summary).
+  - **Period Controls:** Seamless switching between *Today*, *This Week*, *This Month*, and *FYTD*.
 - **Quotations & Margin Approvals:** Multi-level approval matrix for discounts and sub-margin pricing.
 - **Reports & EOD WhatsApp Summary:** Filterable management reports with one-click **PDF Print** (A4 optimized via `print.css`), **Excel/CSV Export**, and direct **WhatsApp sharing**.
 - **Tally Live Connector:** Pairing codes, rotating HMAC tokens, heartbeat monitoring, and chunked session imports.

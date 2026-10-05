@@ -83,8 +83,13 @@ All application state resides in `data/crm.sqlite` across three primary domains:
 
 ### Route Structure
 * `/admin/*`: Admin dashboard, quotation approvals, user directory, management reports, Tally sync.
+* `/admin/team/[id]`: RM Sales Activity & Performance Drill-down Dashboard (7-tab breakdown of visits, pipeline, actual sales, products, follow-ups, and AI insights).
 * `/rm/*`: RM home, team accountability, regional customer 360, product comparisons, overdue alerts.
 * `/sales/*` & `/field`: Salesperson Day-Planner, GPS check-in, visit execution, voice note recording, Kanban pipeline.
+
+### API Services
+* `GET /api/admin/team`: Aggregates team performance, sales values, targets, and unassigned sales across all Regional Managers for the selected Financial Year.
+* `GET /api/admin/team/:id`: Fetches detailed RM sales activity metrics, visits log, expected order pipeline, actual Tally invoices, product movement ranking, and open follow-ups. Uses subquery matching `c.rm_name IN (allNames)` and `v.user_id` to attribute field operations and invoices across all team customers and sales representatives.
 
 ---
 

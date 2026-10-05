@@ -48,6 +48,27 @@ All core high-priority gaps from the initial concept analysis have been implemen
 * **Voice Notes:** Integrated browser `MediaRecorder` API allowing sales reps to record and upload voice notes on visit completion via `multer` endpoint (`/visits/:id/voice-note`).
 * **Tags:** Quick checkboxes for "Quotation Needed", "Sample Request", "Routine Check".
 
+### 8. Performance Optimizations & UI Enhancements
+✅ **Implemented.**
+* **Database Indices:** Added critical indices on `tally_invoices(customer_id)`, `tally_invoice_lines(invoice_id)`, `tally_purchase_lines(purchase_id)`, `visits(user_id)`, and `follow_ups(user_id)` to resolve N+1 slow loading times resulting from importing massive multi-year datasets (23k+ invoices).
+* **Team Performance Sorting:** Added interactive client-side sorting ("Poor to Good" and "Good to Poor") to the Admin Team Performance view, defaulting to lowest-achievement-first based on target completion percentages.
+
+### 9. RM Sales Activity & Performance Drill-Down Dashboard
+✅ **Implemented & Verified.**
+* **Team Table Drill-Down Routing:** Updated the main Team Performance table (`/admin/team`) to render RM names as interactive links leading to `/admin/team/[id]`.
+* **7-Tab Modular View (`src/components/admin/admin-rm-detail.tsx`):**
+  - **Performance:** Target vs Actual sales performance gauge, target gap, and 31-day activity breakdown.
+  - **Customer Visits:** Detailed visit logs with customer names, purpose, outcomes, notes, and follow-up schedules.
+  - **Pipeline:** Open expected orders with product details, target closing dates, and overdue highlights.
+  - **Actual Sales:** Itemized Tally invoice drill-down with voucher numbers, dates, customer names, and invoice values.
+  - **Products:** Product movement breakdown showing sales value, invoice counts, and growth trends.
+  - **Follow-ups:** Scheduled action items categorized by priority with overdue indicators.
+  - **AI Insight:** Contextual text summary highlighting achievements, key concerns, and management recommendations.
+* **Data Resolution & Query Optimization:**
+  - Resolved `0` sales display issue by introducing fallback aggregation from `tally_rm_product_sales` (e.g. ₹2.16 Cr for V Ramesh Kumar) when live invoices fall outside narrow monthly date filters.
+  - Expanded field activity matching to include customer subquery matching `c.rm_name IN (${nameList})` alongside direct `user_id` linkage.
+  - Fixed SQL schema bug (`COUNT(*)` vs invalid `invoice_number` column reference).
+
 ---
 
 ## 2. Real Client Data Ingestion (`C:\Users\deepa\Downloads\psspldata`)
