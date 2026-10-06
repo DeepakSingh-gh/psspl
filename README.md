@@ -2,11 +2,23 @@
 
 An enterprise CRM and field sales platform specifically designed for **Progressive Surface Systems Pvt. Ltd. (PSSPL)**, integrating Tally accounting data with field sales mobility, Regional Manager oversight, and executive analytics.
 
-<<<<<<< HEAD
 ---
-=======
-## Local setup for a teammate
 
+## 🚀 Quick Start
+
+### 1. Installation & Running
+```bash
+# Install dependencies
+npm install
+
+# Setup database migrations and seeds
+npm run db:setup
+
+# Start development servers (Next.js on 3000 + Express API on 4000)
+npm run dev
+```
+
+### 2. Local setup for teammates
 Requirements: Node.js 22 or newer and npm. The CRM uses a local SQLite file, so Supabase is not required for local development.
 
 ```bash
@@ -17,65 +29,9 @@ cp .env.example .env
 npm run db:setup
 npm run dev
 ```
+*(On Windows Command Prompt, use `copy .env.example .env` instead of `cp`)*.
 
-On Windows Command Prompt, use `copy .env.example .env` instead of `cp`. Before running `db:setup`, change `CRM_ADMIN_PASSWORD` in `.env` to a private local password.
-
-Open:
-
-- CRM: `http://localhost:3000`
-- API health: `http://127.0.0.1:4000/api/health`
-
-Development-only salesperson credentials created by `npm run db:seed`:
-
-```text
-demo.salesperson@local.test
-demo123
-```
-
-The admin email and password are read from the teammate's `.env` file.
-
-### Database migration workflow
-
-The database is created at `data/crm.sqlite` unless `CRM_DATABASE_PATH` is changed. Applied versions are stored in the `schema_migrations` table.
-
-After pulling new code:
-
-```bash
-npm install
-npm run db:migrate
-npm run dev
-```
-
-For a schema change, create the next numbered file under `database/migrations`, for example:
-
-```text
-database/migrations/002_add_customer_category.sql
-```
-
-Commit the migration with the related application change. Never edit an already-shared migration and never place real Tally, Excel, customer or password data in a migration or seed file.
-
-Useful commands:
-
-```bash
-npm run db:migrate   # Apply pending migrations
-npm run db:status    # Confirm whether the schema is current
-npm run db:seed      # Add fictional local development accounts
-npm run db:setup     # Migrate and seed a new local database
-```
-
-## Signing in
->>>>>>> origin/master
-
-## 🚀 Quick Start
-
-### 1. Installation & Running
-```bash
-# Install dependencies
-npm install
-
-# Start development servers (Next.js on 3000 + Express API on 4000)
-npm run dev
-```
+---
 
 ### 2. Live Application Portals
 * **Main App & Login:** [http://localhost:3000](http://localhost:3000)
@@ -101,7 +57,7 @@ All accounts are pre-seeded in the database for local development and testing:
 
 ## 📊 Real Client Dataset & Ingestion
 
-The CRM is loaded with actual client records imported from `C:\Users\deepa\Downloads\psspldata`:
+The CRM is loaded with actual client records imported from `<your-data-directory>`:
 
 * **171 Customers & Dealers:** Protec Finish Innovators, Metfin Systems, Schneider Electric, Shree Gurukrupa, Vignesh Enterprises, etc., including city mappings, destination codes, and outstanding balances.
 * **666 PSS Chemical Products:** Complete catalog with packing sizes, UOM (Kgs., Ltrs., Nos.), rates, and historical sales (ACID CU SLT, SILVER POTASSIUM CYANIDE, ULTEC 3005, ANTHRACITE, etc.).
@@ -117,7 +73,7 @@ To reload or refresh data from Excel workbooks at any time:
 npm run import:data
 
 # Or directly using Python:
-py -3.11 scripts/import_psspldata.py "C:\Users\deepa\Downloads\psspldata"
+py -3.11 scripts/import_psspldata.py "<your-data-directory>"
 ```
 
 ---
@@ -148,22 +104,26 @@ py -3.11 scripts/import_psspldata.py "C:\Users\deepa\Downloads\psspldata"
 - **Service & Support Requests:** Track customer complaints, technical trials, and commercial quotation requests.
 
 ### 4. AI & Automation Services
-- **Ask AI Assistant:** Context-aware AI queries backed by OpenAI `gpt-4o-mini`, with automatic synthesis of customer outstanding balances, top products, and recent visits (graceful fallback if API key is not configured).
+- **Ask AI Assistant:** Context-aware AI business analyst powered by **Google Gemini API** (`gemini-3.6-flash`, `gemini-3.7-flash`, `gemini-3.8-flash`, `gemini-2.5-flash`) via `GEMINI_API_KEY` (with fallback to OpenAI `gpt-4o-mini`). Synthesizes customer outstanding balances, top products, and recent visits into grounded insights.
 - **Automated 5:00 PM EOD Cron:** Built with `node-cron` in `server/app.mjs`, compiling daily visits, order booking, and attendance into a WhatsApp digest sent via Meta WhatsApp Cloud API.
 
 ---
 
-## ⚙️ Environment Variables (Optional)
+## ⚙️ Environment Variables
 
-Create a `.env` file in the root directory to customize API keys:
+Create a `.env` file in the root directory to customize configuration and API keys:
 
 ```ini
-# Server Configuration
+# Server & API Configuration
 PORT=4000
 CRM_ADMIN_EMAIL=admin@psspl.com
 CRM_ADMIN_PASSWORD=psspl-admin-2026
+CRM_DATABASE_PATH=./data/crm.sqlite
 
-# OpenAI Integration (Ask AI)
+# Google Gemini API Integration (Ask AI Assistant)
+GEMINI_API_KEY=your_gemini_api_key_here
+
+# OpenAI Integration (Optional Fallback)
 OPENAI_API_KEY=your_openai_api_key_here
 
 # Meta WhatsApp Cloud API (Automated EOD & Report Sharing)

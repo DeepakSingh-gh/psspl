@@ -28,3 +28,7 @@ Cost if wrong: zero — fallback is the correct behavior when keys are absent.
 - [x] T12: Ingest real customer & product data from `C:\Users\deepa\Downloads\psspldata` (`scripts/import_psspldata.py`)
 - [x] T13: Server health check & comprehensive documentation update (`README.md`, `ARCHITECTURE.md`, reports)
 - [x] T14: Implement & fix RM Sales Activity & Performance Drill-down Dashboard (`/admin/team/[id]`, 7 tabs, customer subquery matching, fallback aggregation for Tally product sales)
+- [x] T15: Fix Dashboard UI Overlap (Sales vs Target layout, Field Activity label formatting, and SVG Performance Status badge redesign)
+- [x] T16: Optimize Authentication Module (asynchronous non-blocking scrypt, malformed hash guards, safe UTC date handling, strict Bearer header parsing, and background session cleanup)
+- [x] T17: Redesign Report Card UI with high-visibility borders, enhanced table styling, and print/PDF contrast optimization
+- [x] T18: Implement Google Gemini AI Integration (`GEMINI_API_KEY`, `gemini-3.6-flash` model failover engine, and env parser in `server/ai-context.mjs`)

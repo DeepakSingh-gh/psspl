@@ -6,7 +6,7 @@
 ---
 
 ## Executive Summary
-All core high-priority gaps from the initial concept analysis have been implemented and verified with real client data from `C:\Users\deepa\Downloads\psspldata`. The CRM now features full Regional Manager oversight, lead Kanban stages, OpenAI-backed sales intelligence, Meta WhatsApp automated delivery, PDF/Excel report exports, and real operational masters.
+All core high-priority gaps from the initial concept analysis have been implemented and verified with real client data from `<your-data-directory>`. The CRM now features full Regional Manager oversight, lead Kanban stages, OpenAI-backed sales intelligence, Meta WhatsApp automated delivery, PDF/Excel report exports, and real operational masters.
 
 ---
 
@@ -28,9 +28,9 @@ All core high-priority gaps from the initial concept analysis have been implemen
 * **Frontend:** Embedded "Requests" tab within the salesperson interface.
 
 ### 4. Ask AI — Real LLM Integration
-✅ **Implemented.** Connected live OpenAI `gpt-4o-mini` model.
+✅ **Implemented.** Connected live Google Gemini API (`gemini-3.6-flash`).
 * **Dynamic Context:** `server/ai-context.mjs` synthesizes customer balances, salesperson targets, and recent visits into a compressed `<2000` character context injected into the system prompt.
-* **Fallbacks:** Graceful warning if `OPENAI_API_KEY` is not present in `.env`.
+* **Fallbacks:** Automatic model failover across `gemini-3.6-flash`, `gemini-3.7-flash`, `gemini-3.8-flash`, and `gemini-2.5-flash`, with fallback to OpenAI `gpt-4o-mini` if configured.
 
 ### 5. WhatsApp Delivery & Automated EOD Summary
 ✅ **Implemented.** Integrated Meta WhatsApp Cloud API.
@@ -69,9 +69,32 @@ All core high-priority gaps from the initial concept analysis have been implemen
   - Expanded field activity matching to include customer subquery matching `c.rm_name IN (${nameList})` alongside direct `user_id` linkage.
   - Fixed SQL schema bug (`COUNT(*)` vs invalid `invoice_number` column reference).
 
+### 10. Dashboard UI Overlap & Visual Enhancements
+✅ **Implemented & Verified.**
+* **Sales vs Target Layout:** Removed negative absolute positioning on bar charts to resolve text overlap (`₹1.00 Cr` over `Sales vs Target` section header).
+* **Field Activity Formatting:** Replaced raw `\n` string literals in card labels (`Open\nFollow-ups`, `Unique\nCustomers`) with clean React JSX `<br />` breaks and aligned flex layouts.
+* **Performance Status Badge Card:** Redesigned the "Underperforming" / "On Track" status indicator with high-contrast gradient cards, custom SVG trend arrows, crisp typography, and subtle drop shadows.
+
+### 11. Authentication Module Performance & Error Hardening
+✅ **Implemented & Verified.**
+* **Async `scrypt` Verification:** Converted `verifyPassword` to non-blocking asynchronous `crypto.scrypt` (via `promisify`), eliminating main-thread event loop blocking during user logins.
+* **Malformed Hash Guard:** Added structural input checks to return `false` safely on corrupt/malformed password hash strings instead of throwing runtime `TypeError` exceptions.
+* **Background Session Cleanup:** Replaced synchronous `DELETE FROM sessions` inside `createSession` with an unref'd hourly `setInterval` cleanup task, minimizing database write lock contention on the hot login path.
+* **Header & Timestamp Safety:** Enforced strict `Bearer ` Authorization header validation and added null guards in UTC date parsing to prevent `NaN` comparison issues.
+
+### 12. Report Card High-Contrast Border Redesign
+✅ **Implemented & Verified.**
+* **High-Visibility Container Borders:** Added crisp `1.5px solid #cbd5e1` borders and subtle box-shadows across all Report Card metric cards, KPI widgets, and table blocks.
+* **Table & Stat Box Styling:** Enhanced table headers (`#f8fafc` background with `1.5px solid #cbd5e1` divider) and stat box borders (`1px solid #e2e8f0`) to ensure sharp visibility on both high-DPI displays and PDF print/export outputs.
+
+### 13. Gemini AI Integration (`GEMINI_API_KEY`)
+✅ **Implemented & Verified.**
+* **Gemini API Engine:** Integrated Google Gemini REST API (`gemini-3.6-flash`) using user-provided `GEMINI_API_KEY`.
+* **Automatic Failover:** Configured automatic fallback mechanism (`getGeminiKey`) with model failover list (`gemini-3.6-flash`, `gemini-3.7-flash`, `gemini-3.8-flash`, `gemini-2.5-flash`), providing lightning-fast, context-grounded responses across Admin, RM, and Salesperson portals.
+
 ---
 
-## 2. Real Client Data Ingestion (`C:\Users\deepa\Downloads\psspldata`)
+## 2. Real Client Data Ingestion (`<your-data-directory>`)
 
 All sample mock data has been replaced with actual operational records imported via `scripts/import_psspldata.py`:
 

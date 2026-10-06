@@ -84,37 +84,97 @@ CURRENT PSSPL DATA:
 ${contextJson}`;
 }
 
-export async function askOpenAI(systemPrompt, userQuestion) {
-  const apiKey = process.env.OPENAI_API_KEY;
-  if (!apiKey) {
-    return "Ask AI is not configured. Please add OPENAI_API_KEY to the server .env file to enable AI-powered analysis.";
-  }
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 30000);
+import fs from "node:fs";
+import path from "node:path";
+
+function getGeminiKey() {
+  if (process.env.GEMINI_API_KEY) return process.env.GEMINI_API_KEY;
+  if (process.env["gemini api key"]) return process.env["gemini api key"];
   try {
-    const resp = await fetch("https://api.openai.com/v1/chat/completions", {
-      method: "POST",
-      signal: controller.signal,
-      headers: { "Content-Type": "application/json", "Authorization": `Bearer ${apiKey}` },
-      body: JSON.stringify({
-        model: "gpt-4o-mini",
-        messages: [{ role: "system", content: systemPrompt }, { role: "user", content: userQuestion }],
-        max_tokens: 800,
-        temperature: 0.3,
-      }),
-    });
-    if (!resp.ok) {
-      const errText = await resp.text().catch(() => "unknown error");
-      console.error("[AI] OpenAI error:", errText);
-      return "Ask AI is temporarily unavailable. Please try again shortly.";
+    const envPath = path.resolve(process.cwd(), ".env");
+    if (fs.existsSync(envPath)) {
+      const content = fs.readFileSync(envPath, "utf8");
+      for (const line of content.split("\n")) {
+        const trimmed = line.trim();
+        if (trimmed.startsWith("GEMINI_API_KEY=") || trimmed.toLowerCase().startsWith("gemini api key=")) {
+          const parts = trimmed.split("=");
+          if (parts.length >= 2) return parts.slice(1).join("=").trim();
+        }
+      }
     }
-    const json = await resp.json();
-    return json.choices?.[0]?.message?.content ?? "No response received from AI.";
-  } catch (e) {
-    if (e.name === "AbortError") return "Ask AI timed out after 30 seconds. Please try a simpler question.";
-    console.error("[AI] Error:", e);
-    return "Ask AI is temporarily unavailable.";
-  } finally {
-    clearTimeout(timeout);
-  }
+  } catch {}
+  return null;
 }
+
+export async function askAI(systemPrompt, userQuestion) {
+  const geminiKey = getGeminiKey();
+  const openAiKey = process.env.OPENAI_API_KEY;
+
+  if (geminiKey) {
+    const models = ["gemini-3.6-flash", "gemini-3.7-flash", "gemini-3.8-flash", "gemini-2.5-flash"];
+    for (const model of models) {
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 12000);
+      try {
+        const resp = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${geminiKey}`, {
+          method: "POST",
+          signal: controller.signal,
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            contents: [
+              {
+                role: "user",
+                parts: [{ text: `${systemPrompt}\n\nUSER QUESTION: ${userQuestion}` }]
+              }
+            ],
+            generationConfig: {
+              temperature: 0.3,
+              maxOutputTokens: 800
+            }
+          })
+        });
+
+        if (resp.ok) {
+          const json = await resp.json();
+          const text = json.candidates?.[0]?.content?.parts?.[0]?.text;
+          if (text) return text;
+        }
+      } catch (e) {
+        if (e.name === "AbortError") return "Ask AI timed out after 30 seconds. Please try again.";
+        console.error(`[AI] Gemini ${model} error:`, e);
+      } finally {
+        clearTimeout(timeout);
+      }
+    }
+  }
+
+  if (openAiKey) {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 30000);
+    try {
+      const resp = await fetch("https://api.openai.com/v1/chat/completions", {
+        method: "POST",
+        signal: controller.signal,
+        headers: { "Content-Type": "application/json", "Authorization": `Bearer ${openAiKey}` },
+        body: JSON.stringify({
+          model: "gpt-4o-mini",
+          messages: [{ role: "system", content: systemPrompt }, { role: "user", content: userQuestion }],
+          max_tokens: 800,
+          temperature: 0.3,
+        }),
+      });
+      if (resp.ok) {
+        const json = await resp.json();
+        return json.choices?.[0]?.message?.content ?? "No response received from AI.";
+      }
+    } catch (e) {
+      console.error("[AI] OpenAI error:", e);
+    } finally {
+      clearTimeout(timeout);
+    }
+  }
+
+  return "Ask AI is not configured. Please verify GEMINI_API_KEY in `.env`.";
+}
+
+export const askOpenAI = askAI;

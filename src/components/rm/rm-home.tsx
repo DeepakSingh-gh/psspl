@@ -13,6 +13,7 @@ const STAGE_ORDER = ["lead", "technical_discussion", "sample", "quotation", "fol
 
 const NAV_ITEMS = [
   { href: "/rm", label: "Home" },
+  { href: "/rm/report-card", label: "Report Card" },
   { href: "/rm/team", label: "My Team" },
   { href: "/rm/customers", label: "Customers" },
   { href: "/rm/products", label: "Product Trends" },

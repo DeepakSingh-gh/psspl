@@ -39,6 +39,133 @@ rmRouter.get("/dashboard", (req, res, next) => {
   } catch (error) { next(error); }
 });
 
+rmRouter.get("/report-card", (req, res, next) => {
+  try {
+    const todayStr = today();
+    // Current calendar month boundaries
+    const now = new Date();
+    const monthStart = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-01`;
+    const monthEnd = todayStr;
+
+    // RM profile + monthly target
+    const profile = db.prepare(`
+      SELECT u.id, u.email, p.full_name fullName, p.region, p.territory, p.monthly_target monthlyTarget, u.created_at joinedAt
+      FROM users u JOIN salesperson_profiles p ON p.user_id=u.id WHERE u.id=?
+    `).get(req.user.id);
+
+    // Actual sales this month (own customer book)
+    const sales = db.prepare(`
+      SELECT COALESCE(SUM(i.amount),0) salesValue, COUNT(*) invoiceCount
+      FROM tally_invoices i JOIN tally_customers c ON c.id=i.customer_id
+      WHERE i.ingest_session_id IS NULL AND c.owner_user_id=? AND i.invoice_date BETWEEN ? AND ?
+    `).get(req.user.id, monthStart, monthEnd);
+
+    // Field activity this month
+    const visitsRow = db.prepare(`
+      SELECT COUNT(*) visitsTotal,
+             COALESCE(SUM(CASE WHEN status='completed' THEN 1 ELSE 0 END),0) visitsCompleted
+      FROM visits WHERE user_id=? AND business_date BETWEEN ? AND ?
+    `).get(req.user.id, monthStart, monthEnd);
+
+    // Unique customers visited this month
+    const uniqueCustomers = db.prepare(`
+      SELECT COUNT(DISTINCT tally_customer_id) count FROM visits
+      WHERE user_id=? AND business_date BETWEEN ? AND ? AND tally_customer_id IS NOT NULL
+    `).get(req.user.id, monthStart, monthEnd);
+
+    // Calls logged (activities of type 'call' this month)
+    const callsLogged = db.prepare(`
+      SELECT COUNT(*) count FROM customer_activities
+      WHERE user_id=? AND activity_type='call' AND DATE(occurred_at) BETWEEN ? AND ?
+    `).get(req.user.id, monthStart, monthEnd);
+
+    // Follow-ups
+    const followUpsOpen = db.prepare("SELECT COUNT(*) count FROM follow_ups WHERE user_id=? AND completed=0").get(req.user.id).count;
+    const followUpsOverdue = db.prepare("SELECT COUNT(*) count FROM follow_ups WHERE user_id=? AND completed=0 AND due_date<?").get(req.user.id, todayStr).count;
+
+    // Pipeline (leads)
+    const pipelineLeads = db.prepare(`
+      SELECT COALESCE(SUM(expected_value),0) totalValue,
+             COALESCE(SUM(CASE WHEN stage='expected_order' THEN expected_value ELSE 0 END),0) highValue,
+             COUNT(CASE WHEN stage='expected_order' THEN 1 END) highCount,
+             COUNT(CASE WHEN stage='quotation' THEN 1 END) mediumCount,
+             COALESCE(SUM(CASE WHEN stage='quotation' THEN expected_value ELSE 0 END),0) mediumValue,
+             COUNT(CASE WHEN stage='follow_up' THEN 1 END) lowCount,
+             COALESCE(SUM(CASE WHEN stage='follow_up' THEN expected_value ELSE 0 END),0) lowValue
+      FROM leads WHERE user_id=?
+    `).get(req.user.id);
+
+    // Top 5 dealers by revenue this month
+    const topDealers = db.prepare(`
+      SELECT c.name dealerName, COALESCE(SUM(i.amount),0) salesValue
+      FROM tally_customers c
+      LEFT JOIN tally_invoices i ON i.customer_id=c.id AND i.invoice_date BETWEEN ? AND ? AND i.ingest_session_id IS NULL
+      WHERE c.owner_user_id=?
+      GROUP BY c.id
+      ORDER BY salesValue DESC
+      LIMIT 5
+    `).all(monthStart, monthEnd, req.user.id);
+
+    const topDealersTotal = topDealers.reduce((sum, d) => sum + d.salesValue, 0) || 1;
+    const topDealersWithShare = topDealers.map((d) => ({
+      ...d, pctShare: Math.round((d.salesValue / topDealersTotal) * 100),
+    }));
+
+    // Dormant dealers (no invoice in last 90 days)
+    const dormantDealers = db.prepare(`
+      SELECT c.name dealerName, MAX(i.invoice_date) lastInvoice
+      FROM tally_customers c
+      LEFT JOIN tally_invoices i ON i.customer_id=c.id AND i.ingest_session_id IS NULL
+      WHERE c.owner_user_id=?
+      GROUP BY c.id
+      HAVING lastInvoice IS NULL OR lastInvoice < date('now', '-90 days')
+      ORDER BY lastInvoice ASC
+      LIMIT 5
+    `).all(req.user.id);
+
+    // Product performance top 5 this month
+    const topProducts = db.prepare(`
+      SELECT p.name productName, COALESCE(SUM(l.amount),0) salesValue
+      FROM tally_products p
+      JOIN tally_invoice_lines l ON l.product_id=p.id
+      JOIN tally_invoices i ON i.id=l.invoice_id AND i.invoice_date BETWEEN ? AND ? AND i.ingest_session_id IS NULL
+      JOIN tally_customers c ON c.id=i.customer_id AND c.owner_user_id=?
+      GROUP BY p.id
+      ORDER BY salesValue DESC
+      LIMIT 5
+    `).all(monthStart, monthEnd, req.user.id);
+
+    // Tally sync info
+    const tallySync = db.prepare("SELECT MAX(synced_at) lastSync FROM tally_ingest_log").get();
+
+    res.json({
+      profile,
+      period: { from: monthStart, to: monthEnd },
+      monthlyTarget: profile?.monthlyTarget ?? 0,
+      salesValue: sales.salesValue,
+      invoiceCount: sales.invoiceCount,
+      fieldActivity: {
+        visitsTotal: visitsRow.visitsTotal,
+        visitsCompleted: visitsRow.visitsCompleted,
+        callsLogged: callsLogged.count,
+        uniqueCustomers: uniqueCustomers.count,
+        followUpsOpen,
+        followUpsOverdue,
+      },
+      pipeline: {
+        totalValue: pipelineLeads.totalValue,
+        high: { count: pipelineLeads.highCount ?? 0, value: pipelineLeads.highValue },
+        medium: { count: pipelineLeads.mediumCount ?? 0, value: pipelineLeads.mediumValue },
+        low: { count: pipelineLeads.lowCount ?? 0, value: pipelineLeads.lowValue },
+      },
+      topDealers: topDealersWithShare,
+      dormantDealers,
+      topProducts,
+      tallySync: tallySync?.lastSync ?? null,
+    });
+  } catch (error) { next(error); }
+});
+
 rmRouter.get("/customers", (req, res, next) => {
   try {
     const teamIds = getTeamIds(req.user.id);

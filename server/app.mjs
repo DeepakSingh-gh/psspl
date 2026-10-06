@@ -44,7 +44,7 @@ async function buildSalesDay(userId) {
 
 app.use("/api/admin", adminRouter);
 app.get("/api/health", async (_req, res) => res.json({ status: "ok", database: "sqlite", tally: await tally.status() }));
-app.post("/api/auth/login", (req, res) => { const parsed = loginSchema.safeParse(req.body); if (!parsed.success) return res.status(400).json({ error: "Enter a valid email and password" }); const user = db.prepare("SELECT * FROM users WHERE email=? AND active=1").get(parsed.data.email.toLowerCase()); if (!user || !verifyPassword(parsed.data.password, user.password_hash)) return res.status(401).json({ error: "Incorrect email or password" }); const session = createSession(user.id); return res.json({ ...session, user: { id: user.id, email: user.email, role: user.role } }); });
+app.post("/api/auth/login", async (req, res) => { const parsed = loginSchema.safeParse(req.body); if (!parsed.success) return res.status(400).json({ error: "Enter a valid email and password" }); const user = db.prepare("SELECT * FROM users WHERE email=? AND active=1").get(parsed.data.email.toLowerCase()); if (!user || !(await verifyPassword(parsed.data.password, user.password_hash))) return res.status(401).json({ error: "Incorrect email or password" }); const session = createSession(user.id); return res.json({ ...session, user: { id: user.id, email: user.email, role: user.role } }); });
 app.get("/api/auth/me", authenticate, (req, res) => res.json({ user: req.user }));
 app.post("/api/auth/logout", authenticate, (req, res) => { db.prepare("DELETE FROM sessions WHERE token_hash=?").run(req.sessionTokenHash); res.json({ ok: true }); });
 app.get("/api/tally/status", authenticate, async (_req, res) => res.json(await tally.status()));

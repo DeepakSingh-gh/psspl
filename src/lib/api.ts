@@ -117,6 +117,7 @@ export const salesApi = {
 
 export const rmApi = {
   dashboard: (from?: string, to?: string) => request<any>(`/rm/dashboard${query({ from, to })}`),
+  reportCard: () => request<any>("/rm/report-card"),
   customers: (q = "", page = 0) => request<{ total: number; items: any[] }>(`/rm/customers${query({ q, page })}`),
   customerDetail: (id: string) => request<any>(`/rm/customers/${encodeURIComponent(id)}`),
   productTrends: () => request<any>("/rm/product-trends"),

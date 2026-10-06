@@ -9,13 +9,10 @@ DB_PATH = ROOT / "data" / "crm.sqlite"
 
 # Determine data directory
 CLI_DIR = sys.argv[1] if len(sys.argv) > 1 else None
-DEFAULT_DIR = Path(r"C:\Users\deepa\Downloads\psspldata")
-if CLI_DIR and Path(CLI_DIR).is_dir():
-    DATA_DIR = Path(CLI_DIR)
-elif DEFAULT_DIR.is_dir():
-    DATA_DIR = DEFAULT_DIR
-else:
-    DATA_DIR = ROOT
+if not CLI_DIR or not Path(CLI_DIR).is_dir():
+    print("Usage: py import_psspldata.py <path_to_data_directory>")
+    sys.exit(1)
+DATA_DIR = Path(CLI_DIR)
 
 print(f"[import] Using data directory: {DATA_DIR}")
 print(f"[import] Target database: {DB_PATH}")

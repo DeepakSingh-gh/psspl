@@ -13,7 +13,7 @@ graph TD
     Backend -->|Native WAL| DB[(SQLite: data/crm.sqlite)]
     
     subgraph Data Flow & Integrations
-        Backend -->|Prompt Context Injection| OpenAI[OpenAI gpt-4o-mini]
+        Backend -->|Context Injection| Gemini[Google Gemini API gemini-3.6-flash]
         Backend -->|Meta Graph API| WhatsApp[WhatsApp Cloud API]
         Backend -->|Cron 17:00 IST| EODService[EOD Daily Summary Cron]
         TallyAgent[Tally Windows Agent] -->|Chunked HMAC Sync| Backend
@@ -26,10 +26,11 @@ graph TD
 ## 2. Technology Stack
 
 * **Frontend Framework:** Next.js 15.5 (React 19, TypeScript 5.9) with App Router.
-* **Styling & Presentation:** Vanilla CSS Design Tokens, responsive glassmorphism aesthetic, media query print stylesheet (`print.css`).
+* **Styling & Presentation:** Vanilla CSS Design Tokens, high-contrast Report Card container borders (`1.5px solid #cbd5e1`), media query print stylesheet (`print.css`).
 * **Backend Runtime:** Node.js native ES Modules (`server/app.mjs`), Express 5.1.
+* **Authentication Security:** Asynchronous non-blocking `crypto.scrypt` password verification (`promisify`), malformed hash guards, strict `Bearer` token validation, and background session cleanup.
 * **Database Engine:** Node 22+ built-in `node:sqlite` (synchronous execution, WAL journal mode, memory temp store).
-* **AI Engine:** OpenAI `gpt-4o-mini` with dynamic context window synthesis (`ai-context.mjs`).
+* **AI Engine:** Google Gemini API (`gemini-3.6-flash`, `gemini-3.7-flash`, `gemini-3.8-flash`, `gemini-2.5-flash`) via `GEMINI_API_KEY` with dynamic context window synthesis (`server/ai-context.mjs`).
 * **Scheduler & Automation:** `node-cron` running daily at 5:00 PM IST (EOD WhatsApp digest).
 * **Media & Voice Recording:** HTML5 `MediaRecorder` API + `multer` backend audio storage.
 
@@ -106,7 +107,7 @@ Located in `server/app.mjs`:
 * Compresses data into `<2000` tokens and passes it into system prompt for real-time grounded intelligence.
 
 ### 3. Excel Workbook Importer (`scripts/import_psspldata.py`)
-* Automatically parses workbooks from `C:\Users\deepa\Downloads\psspldata`:
+* Automatically parses workbooks from `<your-data-directory>`:
   - `6) Dealer Summary Apr, 2023 to May, 2024.xlsx`
   - `8) PSS Product Analysis I 2022-23 (005).xlsx`
   - `10) COMPARISON OF PRODUCT WITH QTY.xlsx`

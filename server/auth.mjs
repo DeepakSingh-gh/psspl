@@ -1,16 +1,25 @@
-import { createHash, randomBytes, scryptSync, timingSafeEqual } from "node:crypto";
+import { createHash, randomBytes, scrypt, scryptSync, timingSafeEqual } from "node:crypto";
+import { promisify } from "node:util";
 import { db } from "./db.mjs";
+
+const scryptAsync = promisify(scrypt);
 
 export function passwordHash(password, salt = randomBytes(16).toString("hex")) {
   const digest = scryptSync(password, salt, 64).toString("hex");
   return `${salt}:${digest}`;
 }
 
-export function verifyPassword(password, stored) {
+export async function verifyPassword(password, stored) {
+  if (typeof stored !== "string" || !stored.includes(":")) return false;
   const [salt, expectedHex] = stored.split(":");
-  const actual = scryptSync(password, salt, 64);
-  const expected = Buffer.from(expectedHex, "hex");
-  return expected.length === actual.length && timingSafeEqual(expected, actual);
+  if (!salt || !expectedHex) return false;
+  try {
+    const actual = await scryptAsync(password, salt, 64);
+    const expected = Buffer.from(expectedHex, "hex");
+    return expected.length === actual.length && timingSafeEqual(expected, actual);
+  } catch {
+    return false;
+  }
 }
 
 export function seedUsers() {
@@ -62,20 +71,39 @@ const RENEW_AFTER_MS = 5 * 60 * 1000;                                   // throt
 const idleDeadline = (from = Date.now()) => new Date(from + IDLE_HOURS * 60 * 60 * 1000).toISOString();
 
 /** SQLite CURRENT_TIMESTAMP is UTC without a zone marker. */
-const asUtc = (value) => new Date(String(value).includes("T") ? value : `${String(value).replace(" ", "T")}Z`);
+const asUtc = (value) => {
+  if (!value) return new Date(0);
+  const str = String(value);
+  return new Date(str.includes("T") ? str : `${str.replace(" ", "T")}Z`);
+};
+
+export function cleanupExpiredSessions() {
+  try {
+    db.prepare("DELETE FROM sessions WHERE expires_at <= ?").run(new Date().toISOString());
+  } catch (e) {
+    console.error("[auth] Session cleanup error:", e);
+  }
+}
+
+// Background cleanup every hour instead of blocking createSession
+if (typeof setInterval !== "undefined") {
+  setInterval(cleanupExpiredSessions, 60 * 60 * 1000).unref?.();
+}
 
 export function createSession(userId) {
   const token = randomBytes(32).toString("hex");
   const tokenHash = createHash("sha256").update(token).digest("hex");
   const expiresAt = idleDeadline();
-  db.prepare("DELETE FROM sessions WHERE expires_at <= ?").run(new Date().toISOString());
   db.prepare("INSERT INTO sessions (token_hash,user_id,expires_at) VALUES (?,?,?)").run(tokenHash, userId, expiresAt);
   return { token, expiresAt };
 }
 
 export function authenticate(req, res, next) {
-  const token = req.headers.authorization?.replace(/^Bearer\s+/i, "");
+  const authHeader = req.headers.authorization;
+  if (!authHeader || !authHeader.startsWith("Bearer ")) return res.status(401).json({ error: "Please sign in" });
+  const token = authHeader.slice(7).trim();
   if (!token) return res.status(401).json({ error: "Please sign in" });
+
   const hash = createHash("sha256").update(token).digest("hex");
   const session = db.prepare(`SELECT u.id,u.email,u.role,s.expires_at,s.created_at FROM sessions s JOIN users u ON u.id=s.user_id WHERE s.token_hash=? AND u.active=1`).get(hash);
   const now = Date.now();
