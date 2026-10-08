@@ -339,7 +339,8 @@ adminRouter.get("/team/:id", (req, res, next) => {
         COUNT(DISTINCT CASE WHEN v.status='completed' THEN v.tally_customer_id END) customersCovered
       FROM visits v
       WHERE (v.tally_customer_id IN (SELECT id FROM tally_customers WHERE rm_name IN (${nameList})) OR v.user_id = ?)
-    `).get(...allNames, userId ?? "");
+        AND v.business_date BETWEEN ? AND ?
+    `).get(...allNames, userId ?? "", from, to);
 
     // KPI: expected orders (open)
     const pipelineKpi = db.prepare(`
@@ -421,8 +422,9 @@ adminRouter.get("/team/:id", (req, res, next) => {
       LEFT JOIN tally_customers c ON c.id = v.tally_customer_id
       LEFT JOIN expected_orders e ON (e.user_id=v.user_id OR e.tally_customer_id=v.tally_customer_id) AND date(e.created_at)=v.business_date AND e.status='open'
       WHERE (v.tally_customer_id IN (SELECT id FROM tally_customers WHERE rm_name IN (${nameList})) OR v.user_id = ?)
+        AND v.business_date BETWEEN ? AND ?
       ORDER BY v.business_date DESC, v.id DESC LIMIT 50
-    `).all(...allNames, userId ?? "");
+    `).all(...allNames, userId ?? "", from, to);
 
     // Pipeline (expected orders)
     const pipeline = db.prepare(`
