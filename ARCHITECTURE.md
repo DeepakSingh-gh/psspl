@@ -13,7 +13,7 @@ graph TD
     Backend -->|Native WAL| DB[(SQLite: data/crm.sqlite)]
     
     subgraph Data Flow & Integrations
-        Backend -->|Context Injection| Gemini[Google Gemini API gemini-3.6-flash]
+        Backend -->|Context Injection| Gemini[Google Gemini API gemini-2.5-flash / gemini-2.0-flash]
         Backend -->|Meta Graph API| WhatsApp[WhatsApp Cloud API]
         Backend -->|Cron 17:00 IST| EODService[EOD Daily Summary Cron]
         TallyAgent[Tally Windows Agent] -->|Chunked HMAC Sync| Backend
@@ -26,13 +26,14 @@ graph TD
 ## 2. Technology Stack
 
 * **Frontend Framework:** Next.js 15.5 (React 19, TypeScript 5.9) with App Router.
-* **Styling & Presentation:** Vanilla CSS Design Tokens, high-contrast Report Card container borders (`1.5px solid #cbd5e1`), media query print stylesheet (`print.css`).
+* **Styling & Presentation:** Vanilla CSS Design Tokens, high-contrast Report Card container borders (`1.5px solid #cbd5e1`), custom follow-up description box styles (`.followup-textarea` with `1.5px solid #0284c7` border & focus ring + `.followup-notes-display` left accent container), media query print stylesheet (`print.css`), and global header AI bar (`.topbar-ai-search`).
+* **Modal Overlay & Executive Formatting:** React `createPortal` (`document.body`) for `AskAi` overlays + `AiResponseFormatter` component for parsing LLM Markdown into structured **Executive Insight Cards** with data point badges, action boxes, and metric pills.
+* **Integrated Search Controls & Voice STT:** `<VoiceMicButton>` component integrated on all search inputs with dual-engine Speech-to-Text (browser Web Speech API for free instant transcription + backend OpenAI Whisper API `POST /api/stt` endpoint in `server/stt.mjs`).
 * **Backend Runtime:** Node.js native ES Modules (`server/app.mjs`), Express 5.1.
 * **Authentication Security:** Asynchronous non-blocking `crypto.scrypt` password verification (`promisify`), malformed hash guards, strict `Bearer` token validation, and background session cleanup.
-* **Database Engine:** Node 22+ built-in `node:sqlite` (synchronous execution, WAL journal mode, memory temp store).
-* **AI Engine:** Google Gemini API (`gemini-3.6-flash`, `gemini-3.7-flash`, `gemini-3.8-flash`, `gemini-2.5-flash`) via `GEMINI_API_KEY` with dynamic context window synthesis (`server/ai-context.mjs`).
+* **AI Engine:** Google Gemini API (`gemini-2.5-flash`, `gemini-2.0-flash`, `gemini-1.5-flash`, `gemini-1.5-pro`, `gemini-3.6-flash`) via `GEMINI_API_KEY` with live SQL context window synthesis (`server/ai-context.mjs`).
 * **Scheduler & Automation:** `node-cron` running daily at 5:00 PM IST (EOD WhatsApp digest).
-* **Media & Voice Recording:** HTML5 `MediaRecorder` API + `multer` backend audio storage.
+* **Media & Voice Recording:** HTML5 `MediaRecorder` API + Web Speech API + `multer` backend audio storage and OpenAI Whisper `whisper-1` transcription.
 
 ---
 
@@ -48,11 +49,11 @@ All application state resides in `data/crm.sqlite` across three primary domains:
 
 ### B. Field Mobility & Commercial Pipeline
 * `attendance`: Daily GPS check-in and check-out with coordinates and timestamps.
-* `visits`: Scheduled, in-progress, and completed dealer visits with purpose, outcomes, notes, `visit_tags`, and `voice_note_path`.
+* `visits`: Scheduled, in-progress, and completed dealer visits with purpose, outcomes, notes, `visit_tags`, `voice_note_path`, and `priority` (`high`, `medium`, `low`).
 * `leads`: Kanban pipeline stages (`lead`, `technical_discussion`, `sample`, `quotation`, `follow_up`, `expected_order`, `won`, `lost`).
 * `service_requests`: Customer complaints, technical trial evaluations, and quotation support tickets.
 * `expected_orders`: Order pipeline tracking with expected amounts, dates, and statuses.
-* `follow_ups`: Scheduled action items with due dates, priority levels (`today`, `high`, `normal`), and assignment.
+* `follow_ups`: Scheduled action items with due dates, priority levels (`high`, `medium`, `low`), channel mode (`follow_up_type`: `'call'` | `'visit'`), discussion notes (`notes`), and assignment (`assigned_to_user_id`).
 
 ### C. Tally Accounting Snapshots
 * `tally_customers`: Master list of 171 dealers/customers with city, RM assignment, outstanding ledger balance, and last payment date.
@@ -91,6 +92,7 @@ All application state resides in `data/crm.sqlite` across three primary domains:
 ### API Services
 * `GET /api/admin/team`: Aggregates team performance, sales values, targets, and unassigned sales across all Regional Managers for the selected Financial Year.
 * `GET /api/admin/team/:id`: Fetches detailed RM sales activity metrics, visits log, expected order pipeline, actual Tally invoices, product movement ranking, and open follow-ups. Uses subquery matching `c.rm_name IN (allNames)` and `v.user_id` to attribute field operations and invoices across all team customers and sales representatives.
+* `POST /api/stt`: Receives recorded speech audio blobs (`multipart/form-data`) and transcribes speech to text using OpenAI Whisper API (`whisper-1`).
 
 ---
 
@@ -102,12 +104,14 @@ Located in `server/app.mjs`:
 * Queries day attendance, completed visits, expected order bookings, and pending collections.
 * Formats a clean WhatsApp markdown message and dispatches it via `server/whatsapp.mjs`.
 
-### 2. OpenAI Context Synthesis (`server/ai-context.mjs`)
-* Dynamically extracts recent user visits, team sales, target variance, and top active customers.
-* Compresses data into `<2000` tokens and passes it into system prompt for real-time grounded intelligence.
+### 2. Live Database AI Context & Response Formatting (`server/ai-context.mjs` & `AiResponseFormatter`)
+* Dynamically synthesizes live database tables (`tally_invoices`, `tally_products`, `tally_customers`, `leads`, `follow_ups`, `salesperson_profiles`).
+* Formats response via `AiResponseFormatter` into visual executive cards, metric pill badges, and data point callouts.
+* Features integrated gradient search button and instant chip execution.
+* Automatic model failover across `gemini-2.5-flash`, `gemini-2.0-flash`, `gemini-1.5-flash`, `gemini-1.5-pro`, and `gemini-3.6-flash`.
 
 ### 3. Excel Workbook Importer (`scripts/import_psspldata.py`)
-* Automatically parses workbooks from `<your-data-directory>`:
+* Automatically parses workbooks from client workbooks:
   - `6) Dealer Summary Apr, 2023 to May, 2024.xlsx`
   - `8) PSS Product Analysis I 2022-23 (005).xlsx`
   - `10) COMPARISON OF PRODUCT WITH QTY.xlsx`

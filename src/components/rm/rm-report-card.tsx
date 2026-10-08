@@ -68,10 +68,11 @@ export function RmReportCard() {
   const pl = data?.pipeline ?? {};
   const topDealers: any[] = data?.topDealers ?? [];
   const dormantDealers: any[] = data?.dormantDealers ?? [];
-  const topProducts: any[] = data?.topProducts ?? [];
+  const allProducts: any[] = data?.topProducts ?? [];
+  const topProducts = allProducts.slice(0, 5);
 
   /* product share */
-  const productTotal = topProducts.reduce((s: number, p: any) => s + p.salesValue, 0) || 1;
+  const productTotal = allProducts.reduce((s: number, p: any) => s + p.salesValue, 0) || 1;
 
   /* AI-style insights */
   const insights: { color: string; icon: string; title: string; body: string }[] = [];
@@ -234,6 +235,101 @@ export function RmReportCard() {
                 </div>
               </div>
 
+              {/* ── Key Insights & Next Actions (Top AI Suggestions) ── */}
+              {insights.length > 0 && (
+                <div
+                  style={{
+                    background: "linear-gradient(135deg, #fffcf0 0%, #fefce8 40%, #f5f3ff 100%)",
+                    border: "1.5px solid #fde047",
+                    borderRadius: 16,
+                    padding: "18px 22px",
+                    marginBottom: 20,
+                    boxShadow: "0 4px 20px -2px rgba(245, 158, 11, 0.12), 0 2px 6px -1px rgba(0, 0, 0, 0.03)",
+                  }}
+                >
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14 }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                      <div
+                        style={{
+                          width: 32,
+                          height: 32,
+                          borderRadius: 10,
+                          background: "linear-gradient(135deg, #f59e0b, #d97706)",
+                          display: "grid",
+                          placeItems: "center",
+                          fontSize: 16,
+                          color: "#fff",
+                          boxShadow: "0 3px 8px rgba(217, 119, 6, 0.3)",
+                        }}
+                      >
+                        💡
+                      </div>
+                      <div>
+                        <h3 style={{ margin: 0, fontSize: 15, fontWeight: 800, color: "#0f172a", letterSpacing: "-0.01em" }}>
+                          Key Insights &amp; Next Actions
+                        </h3>
+                        <p style={{ margin: "2px 0 0", fontSize: 11.5, color: "#64748b", fontWeight: 500 }}>
+                          Automated AI-driven performance recommendations
+                        </p>
+                      </div>
+                    </div>
+                    <span
+                      style={{
+                        fontSize: 11,
+                        fontWeight: 700,
+                        background: "linear-gradient(135deg, #fef08a 0%, #fde047 100%)",
+                        border: "1px solid #facc15",
+                        borderRadius: 20,
+                        padding: "4px 12px",
+                        color: "#854d0e",
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: 5,
+                        boxShadow: "0 2px 6px rgba(234, 179, 8, 0.2)",
+                      }}
+                    >
+                      ✨ AI Executive Summary
+                    </span>
+                  </div>
+
+                  <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: 14 }}>
+                    {insights.map((ins, i) => (
+                      <div
+                        key={i}
+                        style={{
+                          background: "#ffffff",
+                          border: `1px solid ${ins.color}33`,
+                          borderLeft: `4px solid ${ins.color}`,
+                          borderRadius: 12,
+                          padding: "14px 16px",
+                          boxShadow: "0 2px 8px rgba(0, 0, 0, 0.04)",
+                          transition: "all 0.2s ease-in-out",
+                        }}
+                      >
+                        <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 8 }}>
+                          <span
+                            style={{
+                              width: 28,
+                              height: 28,
+                              borderRadius: 8,
+                              background: `${ins.color}15`,
+                              display: "grid",
+                              placeItems: "center",
+                              fontSize: 15,
+                              flexShrink: 0,
+                            }}
+                          >
+                            {ins.icon}
+                          </span>
+                          <strong style={{ fontSize: 13, color: "#0f172a", fontWeight: 800 }}>{ins.title}</strong>
+                        </div>
+                        <p style={{ margin: 0, fontSize: 12, color: "#475569", lineHeight: 1.55, fontWeight: 500 }}>{ins.body}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               {/* ── 6 KPI cards ── */}
               <div style={{ display: "grid", gridTemplateColumns: "repeat(6, 1fr)", gap: 12, marginBottom: 20 }}>
                 <KpiCard icon="🎯" iconBg="#eaf5fc" label="Monthly Target" value={formatRupees(target)} />
@@ -271,25 +367,52 @@ export function RmReportCard() {
               </div>
 
               {/* ── Row 2: Sales chart + Field Activity + Pipeline ── */}
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 16, marginBottom: 20 }}>
-                {/* Sales vs Target bar */}
+              <div style={{ display: "grid", gridTemplateColumns: "1.1fr 1fr 1fr", gap: 16, marginBottom: 20 }}>
+                {/* Sales vs Target */}
                 <div style={cardStyle}>
-                  <p style={cardTitleStyle}>📈 Sales vs Target (Monthly)</p>
-                  <div style={{ display: "flex", gap: 20, alignItems: "flex-end", height: 110, padding: "24px 12px 4px" }}>
-                    <div style={{ flex: 1, textAlign: "center", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "flex-end" }}>
-                      <span style={{ fontSize: 11, fontWeight: 700, color: "#0b2a5b", marginBottom: 4 }}>{formatRupees(target)}</span>
-                      <div style={{ width: "100%", background: "#d9e5ef", borderRadius: "4px 4px 0 0", height: 64 }} />
-                      <p style={{ margin: "4px 0 0", fontSize: 11, color: "#5d7898", fontWeight: 600 }}>Target</p>
+                  <p style={cardTitleStyle}>📈 Sales vs Target (This Month)</p>
+                  
+                  <div style={{ marginTop: 14 }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 6 }}>
+                      <span style={{ fontSize: 12, fontWeight: 700, color: "#475569" }}>Target Achievement</span>
+                      <span style={{ fontSize: 14, fontWeight: 800, color: isUnderperforming ? "#dc2626" : "#16a34a" }}>
+                        {pct}% <span style={{ fontSize: 11, fontWeight: 600, color: "#64748b" }}>({formatRupees(actual)})</span>
+                      </span>
                     </div>
-                    <div style={{ flex: 1, textAlign: "center", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "flex-end" }}>
-                      <span style={{ fontSize: 11, fontWeight: 700, color: "#087cc1", marginBottom: 4 }}>{formatRupees(actual)}</span>
-                      <div style={{ width: "100%", background: "#087cc1", borderRadius: "4px 4px 0 0", height: Math.max(8, Math.round((actual / Math.max(target, actual, 1)) * 64)) }} />
-                      <p style={{ margin: "4px 0 0", fontSize: 11, color: "#5d7898", fontWeight: 600 }}>Actual</p>
+                    
+                    {/* Visual Progress Bar */}
+                    <div style={{ height: 12, width: "100%", background: "#f1f5f9", borderRadius: 8, overflow: "hidden", border: "1px solid #cbd5e1" }}>
+                      <div
+                        style={{
+                          height: "100%",
+                          width: `${Math.min(100, Math.max(1, pct))}%`,
+                          background: isUnderperforming
+                            ? "linear-gradient(90deg, #ef4444 0%, #dc2626 100%)"
+                            : "linear-gradient(90deg, #22c55e 0%, #16a34a 100%)",
+                          borderRadius: 8,
+                          transition: "width 0.5s ease",
+                        }}
+                      />
+                    </div>
+
+                    <div style={{ display: "flex", justifyContent: "space-between", marginTop: 10, padding: "8px 12px", background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: 8, fontSize: 12 }}>
+                      <div>
+                        <span style={{ color: "#64748b", fontWeight: 600 }}>Target: </span>
+                        <strong style={{ color: "#0f172a", fontWeight: 800 }}>{formatRupees(target)}</strong>
+                      </div>
+                      <div>
+                        <span style={{ color: "#64748b", fontWeight: 600 }}>Actual: </span>
+                        <strong style={{ color: "#0284c7", fontWeight: 800 }}>{formatRupees(actual)}</strong>
+                      </div>
                     </div>
                   </div>
-                  <div style={{ marginTop: 12, padding: "10px 12px", background: "#fef6f0", borderRadius: 8 }}>
-                    <strong style={{ color: "#d13a3a", fontSize: 15, fontWeight: 800 }}>{formatRupees(remaining)}</strong>
-                    <p style={{ margin: "2px 0 0", fontSize: 11, color: "#d13a3a" }}>Remaining to reach target</p>
+
+                  <div style={{ marginTop: 12, padding: "10px 14px", background: "#fef2f2", border: "1.5px solid #fecaca", borderRadius: 10, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                    <div>
+                      <span style={{ fontSize: 11, fontWeight: 800, color: "#991b1b", textTransform: "uppercase", letterSpacing: ".04em" }}>Remaining to Target</span>
+                      <div style={{ fontSize: 18, fontWeight: 800, color: "#991b1b", marginTop: 1 }}>{formatRupees(remaining)}</div>
+                    </div>
+                    <span style={{ fontSize: 20 }}>⚠️</span>
                   </div>
                 </div>
 
@@ -390,12 +513,22 @@ export function RmReportCard() {
                   </table>
                 </div>
 
-                {/* Product Performance */}
+                {/* Product Performance (Top 5) */}
                 <div style={cardStyle}>
-                  <p style={cardTitleStyle}>📦 Product Performance (Top 5)</p>
-                  <table style={{ width: "100%", borderCollapse: "collapse", marginTop: 10, fontSize: 12 }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", paddingBottom: 8, borderBottom: "1px solid #f1f5f9" }}>
+                    <p style={{ margin: 0, fontSize: 14, fontWeight: 700, color: "#0f172a" }}>📦 Product Performance (Top 5)</p>
+                    {allProducts.length > 5 && (
+                      <a
+                        href="/rm/products"
+                        style={{ textDecoration: "none", background: "#e0f2fe", color: "#0369a1", borderRadius: 6, padding: "3px 8px", fontSize: 11, fontWeight: 700 }}
+                      >
+                        View All ({allProducts.length}) →
+                      </a>
+                    )}
+                  </div>
+                  <table style={{ width: "100%", borderCollapse: "collapse", marginTop: 12, fontSize: 12.5 }}>
                     <thead>
-                      <tr style={{ color: "#5d7898" }}>
+                      <tr style={{ color: "#475569" }}>
                         <th style={thStyle}>#</th>
                         <th style={thStyle}>Product</th>
                         <th style={{ ...thStyle, textAlign: "right" }}>Sales Value</th>
@@ -404,15 +537,15 @@ export function RmReportCard() {
                     </thead>
                     <tbody>
                       {topProducts.length === 0 ? (
-                        <tr><td colSpan={4} style={{ textAlign: "center", color: "#5d7898", padding: "16px 0" }}>No product sales this month</td></tr>
+                        <tr><td colSpan={4} style={{ textAlign: "center", color: "#64748b", padding: "20px 0" }}>No product sales this month</td></tr>
                       ) : topProducts.map((p: any, i: number) => (
-                        <tr key={i} style={{ borderTop: "1px solid #f0f4f8" }}>
-                          <td style={{ padding: "7px 4px", color: "#5d7898" }}>{i + 1}</td>
-                          <td style={{ padding: "7px 4px", fontWeight: 600, color: "#0b2a5b" }}>{p.productName}</td>
-                          <td style={{ padding: "7px 4px", textAlign: "right", color: "#0b2a5b" }}>{formatRupees(p.salesValue)}</td>
-                          <td style={{ padding: "7px 4px", width: 60 }}>
-                            <div style={{ height: 5, borderRadius: 3, background: "#f0f4f8" }}>
-                              <div style={{ height: "100%", width: `${Math.round((p.salesValue / productTotal) * 100)}%`, background: "#7c3aed", borderRadius: 3 }} />
+                        <tr key={i} style={{ borderTop: "1px solid #f1f5f9" }}>
+                          <td style={{ padding: "8px 4px", color: "#64748b", fontWeight: 600 }}>{i + 1}</td>
+                          <td style={{ padding: "8px 4px", fontWeight: 700, color: "#0f172a" }}>{p.productName}</td>
+                          <td style={{ padding: "8px 4px", textAlign: "right", color: "#0f172a", fontWeight: 700 }}>{formatRupees(p.salesValue)}</td>
+                          <td style={{ padding: "8px 4px", width: 60 }}>
+                            <div style={{ height: 6, borderRadius: 4, background: "#f1f5f9", overflow: "hidden" }}>
+                              <div style={{ height: "100%", width: `${Math.round((p.salesValue / productTotal) * 100)}%`, background: "linear-gradient(90deg, #7c3aed, #6d28d9)", borderRadius: 4 }} />
                             </div>
                           </td>
                         </tr>
@@ -422,26 +555,7 @@ export function RmReportCard() {
                 </div>
               </div>
 
-              {/* ── Key Insights & Next Actions ── */}
-              {insights.length > 0 && (
-                <div style={{ background: "#fffbf0", border: "1px solid #f0e0a0", borderRadius: 14, padding: "18px 22px", boxShadow: "0 1px 4px rgba(11,42,91,.05)" }}>
-                  <p style={{ margin: "0 0 14px", fontSize: 13, fontWeight: 700, color: "#0b2a5b", display: "flex", alignItems: "center", gap: 6 }}>
-                    💡 Key Insights &amp; Next Actions
-                    <span style={{ fontSize: 11, background: "#f5e090", borderRadius: 6, padding: "2px 8px", color: "#7a5c00" }}>AI Suggestions</span>
-                  </p>
-                  <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 12 }}>
-                    {insights.map((ins, i) => (
-                      <div key={i} style={{ background: "#fff", border: `1px solid ${ins.color}33`, borderRadius: 10, padding: "12px 14px" }}>
-                        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
-                          <span style={{ fontSize: 18 }}>{ins.icon}</span>
-                          <strong style={{ fontSize: 12.5, color: ins.color }}>{ins.title}</strong>
-                        </div>
-                        <p style={{ margin: 0, fontSize: 12, color: "#5d7898", lineHeight: 1.5 }}>{ins.body}</p>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
+
             </>
           )}
         </div>

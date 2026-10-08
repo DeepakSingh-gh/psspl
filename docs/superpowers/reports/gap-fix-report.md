@@ -1,12 +1,12 @@
 # PSSPL CRM — Gap Fix Implementation & Real Data Verification Report
 
-**Date:** 2026-10-02  
-**Context:** This report verifies the completion of the 11-step gap fix plan to bring the prototype up to the requirements stated in the PSSPL CRM Concept Document, along with the complete ingestion of the client's actual Excel workbooks.
+**Date:** 2026-10-07  
+**Context:** This report verifies the completion of the gap fix plan to bring the prototype up to the requirements stated in the PSSPL CRM Concept Document, along with complete ingestion of actual client Excel workbooks and AI Executive Intelligence enhancements.
 
 ---
 
 ## Executive Summary
-All core high-priority gaps from the initial concept analysis have been implemented and verified with real client data from `<your-data-directory>`. The CRM now features full Regional Manager oversight, lead Kanban stages, OpenAI-backed sales intelligence, Meta WhatsApp automated delivery, PDF/Excel report exports, and real operational masters.
+All core high-priority gaps from the initial concept analysis have been implemented and verified with real client data. The CRM now features full Regional Manager oversight, lead Kanban stages, Gemini AI-backed executive sales intelligence formatted as visual insight cards, Meta WhatsApp automated delivery, PDF/Excel report exports, integrated search controls, and real operational masters.
 
 ---
 
@@ -27,10 +27,14 @@ All core high-priority gaps from the initial concept analysis have been implemen
 * **Database:** `service_requests` table tracking complaints, trials, and commercial pricing inquiries.
 * **Frontend:** Embedded "Requests" tab within the salesperson interface.
 
-### 4. Ask AI — Real LLM Integration
-✅ **Implemented.** Connected live Google Gemini API (`gemini-3.6-flash`).
-* **Dynamic Context:** `server/ai-context.mjs` synthesizes customer balances, salesperson targets, and recent visits into a compressed `<2000` character context injected into the system prompt.
-* **Fallbacks:** Automatic model failover across `gemini-3.6-flash`, `gemini-3.7-flash`, `gemini-3.8-flash`, and `gemini-2.5-flash`, with fallback to OpenAI `gpt-4o-mini` if configured.
+### 4. Ask AI — Executive Response Representation & Live LLM Integration
+✅ **Implemented & Verified.** Connected live Google Gemini API with dynamic SQL context and custom executive card formatting.
+* **Executive Formatting Component (`AiResponseFormatter`):** Converts raw LLM output into structured visual **Executive Insight Cards** featuring blue **Data Point** badges, green **Recommended Action** boxes, and inline currency/count metric pills (`askai-metric-pill`).
+* **Integrated Search Button:** Embedded a stylish, un-missable gradient **Search** button (`.askai-submit-btn`) directly inside the `.askai-field` container on both Admin and Sales modals.
+* **Instant Chip Execution:** Clicking any suggested prompt chip populates the input field and executes live database intelligence retrieval immediately.
+* **One-Click Copy & Provenance:** Integrated **Copy** button with instant state feedback and live SQL data provenance footer.
+* **Live Database Context:** `server/ai-context.mjs` synthesizes customer balances, salesperson targets, top product sales, and recent visits into a compressed character context injected into system prompt.
+* **Model Fallbacks:** Automatic model failover across `gemini-2.5-flash`, `gemini-2.0-flash`, `gemini-1.5-flash`, `gemini-1.5-pro`, and `gemini-3.6-flash`, with fallback to OpenAI `gpt-4o-mini` if configured.
 
 ### 5. WhatsApp Delivery & Automated EOD Summary
 ✅ **Implemented.** Integrated Meta WhatsApp Cloud API.
@@ -50,51 +54,42 @@ All core high-priority gaps from the initial concept analysis have been implemen
 
 ### 8. Performance Optimizations & UI Enhancements
 ✅ **Implemented.**
-* **Database Indices:** Added critical indices on `tally_invoices(customer_id)`, `tally_invoice_lines(invoice_id)`, `tally_purchase_lines(purchase_id)`, `visits(user_id)`, and `follow_ups(user_id)` to resolve N+1 slow loading times resulting from importing massive multi-year datasets (23k+ invoices).
-* **Team Performance Sorting:** Added interactive client-side sorting ("Poor to Good" and "Good to Poor") to the Admin Team Performance view, defaulting to lowest-achievement-first based on target completion percentages.
+* **Database Indices:** Added critical indices on `tally_invoices(customer_id)`, `tally_invoice_lines(invoice_id)`, `tally_purchase_lines(purchase_id)`, `visits(user_id)`, and `follow_ups(user_id)` to resolve N+1 slow loading times resulting from importing massive multi-year datasets.
+* **Team Performance Sorting & Styling:** Added interactive client-side sorting ("Poor to Good" and "Good to Poor") to the Admin Team Performance view, defaulting to lowest-achievement-first based on target completion percentages. Streamlined hover interactions by eliminating distracting underlines on RM profile links (`.rm-name-link:hover { text-decoration: none; }`).
+* **Connector & Field Flow Polishing:** Resolved Tally Connector Disconnect action visibility by using permanent high-contrast button styling (`.admin-button`) instead of faint hover ghosting, ensuring zero disruption to live Tally connectivity. Enhanced Unplanned Visit modal form inputs (Customer, Purpose, Priority) with distinct borders (`1px solid var(--line)`) and crisp solid background fills for improved mobile readability.
 
 ### 9. RM Sales Activity & Performance Drill-Down Dashboard
 ✅ **Implemented & Verified.**
-* **Team Table Drill-Down Routing:** Updated the main Team Performance table (`/admin/team`) to render RM names as interactive links leading to `/admin/team/[id]`.
-* **7-Tab Modular View (`src/components/admin/admin-rm-detail.tsx`):**
-  - **Performance:** Target vs Actual sales performance gauge, target gap, and 31-day activity breakdown.
-  - **Customer Visits:** Detailed visit logs with customer names, purpose, outcomes, notes, and follow-up schedules.
-  - **Pipeline:** Open expected orders with product details, target closing dates, and overdue highlights.
-  - **Actual Sales:** Itemized Tally invoice drill-down with voucher numbers, dates, customer names, and invoice values.
-  - **Products:** Product movement breakdown showing sales value, invoice counts, and growth trends.
-  - **Follow-ups:** Scheduled action items categorized by priority with overdue indicators.
-  - **AI Insight:** Contextual text summary highlighting achievements, key concerns, and management recommendations.
-* **Data Resolution & Query Optimization:**
-  - Resolved `0` sales display issue by introducing fallback aggregation from `tally_rm_product_sales` (e.g. ₹2.16 Cr for V Ramesh Kumar) when live invoices fall outside narrow monthly date filters.
-  - Expanded field activity matching to include customer subquery matching `c.rm_name IN (${nameList})` alongside direct `user_id` linkage.
-  - Fixed SQL schema bug (`COUNT(*)` vs invalid `invoice_number` column reference).
+* **Team Table Drill-Down Routing:** Updated main Team Performance table (`/admin/team`) to render RM names as interactive links leading to `/admin/team/[id]`.
+* **7-Tab Modular View (`src/components/admin/admin-rm-detail.tsx`):** *Performance*, *Customer Visits*, *Pipeline*, *Actual Sales*, *Products*, *Follow-ups*, and *AI Insight*.
 
 ### 10. Dashboard UI Overlap & Visual Enhancements
 ✅ **Implemented & Verified.**
-* **Sales vs Target Layout:** Removed negative absolute positioning on bar charts to resolve text overlap (`₹1.00 Cr` over `Sales vs Target` section header).
-* **Field Activity Formatting:** Replaced raw `\n` string literals in card labels (`Open\nFollow-ups`, `Unique\nCustomers`) with clean React JSX `<br />` breaks and aligned flex layouts.
-* **Performance Status Badge Card:** Redesigned the "Underperforming" / "On Track" status indicator with high-contrast gradient cards, custom SVG trend arrows, crisp typography, and subtle drop shadows.
+* **Sales vs Target Layout:** Removed text overlap issues.
+* **Field Activity Formatting:** Replaced raw `\n` string literals in card labels with clean React JSX `<br />` breaks.
+* **Status Badges:** Redesigned status indicators with high-contrast gradient cards and custom SVG arrows.
 
-### 11. Authentication Module Performance & Error Hardening
+### 11. Dual-Mode Follow-ups & Daily Discussion Notes
 ✅ **Implemented & Verified.**
-* **Async `scrypt` Verification:** Converted `verifyPassword` to non-blocking asynchronous `crypto.scrypt` (via `promisify`), eliminating main-thread event loop blocking during user logins.
-* **Malformed Hash Guard:** Added structural input checks to return `false` safely on corrupt/malformed password hash strings instead of throwing runtime `TypeError` exceptions.
-* **Background Session Cleanup:** Replaced synchronous `DELETE FROM sessions` inside `createSession` with an unref'd hourly `setInterval` cleanup task, minimizing database write lock contention on the hot login path.
-* **Header & Timestamp Safety:** Enforced strict `Bearer ` Authorization header validation and added null guards in UTC date parsing to prevent `NaN` comparison issues.
+* **Dual Channel Selection:** Added support for **🚗 Field Visit** and **📞 Phone Call** follow-up channels across database schema, backend API routes, and frontend views.
+* **Discussion Description Box & Premium UI:** Integrated editable daily discussion description text area on follow-up cards (`sales-workspace.tsx`) styled with a high-definition border (`1.5px solid #0284c7`), interactive focus glow ring, and left-accented notes display container (`.followup-notes-display`) with **"✏️ Edit Notes"** and **"Save Notes"** buttons, saving notes directly to `follow_ups.notes`.
+* **Visit Completion Integration:** Enhanced visit completion modal to capture next follow-up channel mode and discussion notes.
 
-### 12. Report Card High-Contrast Border Redesign
+### 12. Metric Labels & Lead Referral Custom Source
 ✅ **Implemented & Verified.**
-* **High-Visibility Container Borders:** Added crisp `1.5px solid #cbd5e1` borders and subtle box-shadows across all Report Card metric cards, KPI widgets, and table blocks.
-* **Table & Stat Box Styling:** Enhanced table headers (`#f8fafc` background with `1.5px solid #cbd5e1` divider) and stat box borders (`1px solid #e2e8f0`) to ensure sharp visibility on both high-DPI displays and PDF print/export outputs.
+* **Metric Card Rename:** Updated sales workspace metric label to **"Order Expected"**.
+* **Custom Referral Source:** Added **"Other"** referral source option with a custom text write-in field when adding new lead requirements.
 
-### 13. Gemini AI Integration (`GEMINI_API_KEY`)
+### 13. Actionable CRM Dashboard & Executive Manager Action Intelligence
 ✅ **Implemented & Verified.**
-* **Gemini API Engine:** Integrated Google Gemini REST API (`gemini-3.6-flash`) using user-provided `GEMINI_API_KEY`.
-* **Automatic Failover:** Configured automatic fallback mechanism (`getGeminiKey`) with model failover list (`gemini-3.6-flash`, `gemini-3.7-flash`, `gemini-3.8-flash`, `gemini-2.5-flash`), providing lightning-fast, context-grounded responses across Admin, RM, and Salesperson portals.
+* **Underperforming RM Priority & Traffic Light Badging:** RMs auto-sorted by sales target achievement (lowest first), featuring prominent traffic-light-colored pill badges (🔴 Needs Attention <50%, 🟡 Average 50-80%, 🟢 Good >80%) presented in a clean two-line stacked flex layout to deliver a polished executive view without text wrapping.
+* **Manager Action Plan Banner:** Integrated dynamic "What Should the Manager Do?" executive directive panel on the RM Report Card detailing exact remedial actions (prospecting mandates, target gaps, dormant accounts).
+* **Customer Dependency & Portfolio Risk:** Automated calculation and display of Top 5 Dealer Revenue Concentration metrics (alerting when >80% revenue depends on top accounts).
+* **Voice-to-Text Dictation & Phone Call Activity Logging:** Enhanced mobile sales workspace (`/sales/my-day`) with 🚗 Field Visit vs 📞 Phone Call activity toggles and voice note transcription (`transcribeSpeech`).
 
 ---
 
-## 2. Real Client Data Ingestion (`<your-data-directory>`)
+## 2. Real Client Data Ingestion
 
 All sample mock data has been replaced with actual operational records imported via `scripts/import_psspldata.py`:
 
@@ -114,6 +109,6 @@ All sample mock data has been replaced with actual operational records imported 
 
 ## 3. Operational Verification
 
-1. **Build Validation:** `npm run build` completed with zero TypeScript or lint errors.
+1. **Build Validation:** `npm run build` & `npx tsc --noEmit` completed with zero TypeScript or lint errors.
 2. **Server Health:** Express API on port 4000 and Next.js frontend on port 3000 verified with status `200 OK`.
-3. **Data Integrity:** Real customer balances, top products, and monthly sales verified via database queries and live dashboard rendering.
+3. **AI Intelligence Validation:** Verified executive insight card formatting, metric highlight pills, integrated search button, and live database context retrieval.

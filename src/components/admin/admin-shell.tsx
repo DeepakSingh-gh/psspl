@@ -5,6 +5,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { ApiError, authApi, clearSession, hasSession } from "@/lib/api";
 import { initialsOf } from "@/lib/format";
 import type { SessionUser } from "@/types/admin";
+import { HeaderAiAsk } from "./admin-ask-ai";
 
 /** One line-glyph vocabulary for the whole rail — same weight, same 16px box. */
 const ICONS: Record<string, ReactNode> = {
@@ -159,34 +160,20 @@ export function AdminShell({ children }: { children: ReactNode }) {
   );
 }
 
-/** Application bar: global search, alerts, who is signed in, sign out. */
+/** Application bar: global search & AI Ask, alerts, who is signed in, sign out. */
 function AdminTopBar({ user, onSignOut, onToggleNav, navOpen }: {
   user: SessionUser;
   onSignOut: () => void;
   onToggleNav: () => void;
   navOpen: boolean;
 }) {
-  const router = useRouter();
-  const [query, setQuery] = useState("");
-
-  function search(event: FormEvent) {
-    event.preventDefault();
-    const term = query.trim();
-    if (term) router.push(`/admin/customers?search=${encodeURIComponent(term)}`);
-  }
-
   return (
     <header className="topbar">
       <button type="button" className="admin-nav-toggle" onClick={onToggleNav} aria-expanded={navOpen}>
         {navOpen ? "Close" : "Menu"}
       </button>
 
-      <form className="topbar-search" onSubmit={search} role="search">
-        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" aria-hidden="true">
-          <circle cx="7.2" cy="7.2" r="4.4" /><path d="m10.6 10.6 2.7 2.7" />
-        </svg>
-        <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search customers, products, invoices…" aria-label="Search the CRM" />
-      </form>
+      <HeaderAiAsk />
 
       <div className="topbar-right">
         <Link className="topbar-icon" href="/admin/alerts" aria-label="Alerts">

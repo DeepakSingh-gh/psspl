@@ -6,6 +6,13 @@ import { adminApi } from "@/lib/api";
 import { useAdminData } from "@/lib/use-admin-data";
 import { formatFinancialYear, formatNumber, formatPercent, formatRupees } from "@/lib/format";
 
+function getTrafficLightStatus(percent: number | null) {
+  if (percent === null) return { light: "⚪", text: "No Target" };
+  if (percent < 50) return { light: "🔴", text: "Needs Attention" };
+  if (percent <= 80) return { light: "🟡", text: "Average" };
+  return { light: "🟢", text: "Good" };
+}
+
 export function AdminTeam() {
   const [financialYear, setFinancialYear] = useState<string>("");
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
@@ -80,7 +87,56 @@ export function AdminTeam() {
                   {sortedMembers.map((member) => (
                     <tr key={member.id}>
                       <td>
-                        <Link href={`/admin/team/${encodeURIComponent(member.id)}`} className="rm-name-link">{member.name}</Link>
+                        <Link href={`/admin/team/${encodeURIComponent(member.id)}`} className="rm-name-link" style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginBottom: '8px' }}>
+                          {(() => {
+                            const status = getTrafficLightStatus(member.achievementPercent);
+                            const badgeStyles = {
+                              '🔴': { bg: '#fef2f2', text: '#991b1b', border: '#fecaca' },
+                              '🟡': { bg: '#fefce8', text: '#854d0e', border: '#fef08a' },
+                              '🟢': { bg: '#f0fdf4', text: '#166534', border: '#bbf7d0' },
+                              '⚪': { bg: '#f8fafc', text: '#475569', border: '#e2e8f0' }
+                            }[status.light] || { bg: '#f8fafc', text: '#475569', border: '#e2e8f0' };
+
+                            return (
+                              <>
+                                <span style={{ fontWeight: 600, fontSize: '15px', color: '#0f172a' }}>
+                                  {status.light} {member.name}
+                                </span>
+                                {member.achievementPercent !== null ? (
+                                  <span style={{
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    fontSize: '12px',
+                                    fontWeight: 500,
+                                    padding: '2px 8px',
+                                    borderRadius: '12px',
+                                    backgroundColor: badgeStyles.bg,
+                                    color: badgeStyles.text,
+                                    border: `1px solid ${badgeStyles.border}`,
+                                    width: 'fit-content'
+                                  }}>
+                                    {formatPercent(member.achievementPercent)} Target Achieved → {status.text}
+                                  </span>
+                                ) : (
+                                  <span style={{
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    fontSize: '12px',
+                                    fontWeight: 500,
+                                    padding: '2px 8px',
+                                    borderRadius: '12px',
+                                    backgroundColor: badgeStyles.bg,
+                                    color: badgeStyles.text,
+                                    border: `1px solid ${badgeStyles.border}`,
+                                    width: 'fit-content'
+                                  }}>
+                                    {status.text}
+                                  </span>
+                                )}
+                              </>
+                            );
+                          })()}
+                        </Link>
                         <small>
                           {member.crmUser?.role === "salesperson" ? "CRM salesperson" : `${member.salespeopleCount} salespeople`}
                           {member.aliases.length > 0 && <> · also spelled {member.aliases.join(", ")}</>}

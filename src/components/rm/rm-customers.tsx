@@ -2,6 +2,7 @@
 import { useEffect, useState } from "react";
 import { rmApi } from "@/lib/api";
 import { formatRupees, formatNumber } from "@/lib/format";
+import { VoiceMicButton } from "@/components/common/voice-mic-button";
 
 export function RmCustomers() {
   const [items, setItems] = useState<any[]>([]);
@@ -36,14 +37,15 @@ export function RmCustomers() {
             <p className="admin-page-description">{total} customers assigned to your team.</p>
           </div>
         </header>
-        <div style={{ display: "flex", gap: "0.75rem", marginBottom: "1.25rem" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "1.25rem", border: "1px solid var(--color-border, #cbd5e1)", borderRadius: "8px", padding: "0 0.5rem", background: "var(--color-surface, #ffffff)" }}>
           <input
             className="admin-search"
             placeholder="Search customers…"
             value={q}
             onChange={(e) => { setQ(e.target.value); setPage(0); }}
-            style={{ flex: 1 }}
+            style={{ flex: 1, border: "none", outline: "none", background: "transparent" }}
           />
+          <VoiceMicButton onTranscript={(text) => { setQ(text); setPage(0); }} />
         </div>
         {loading ? <div className="admin-placeholder">Loading…</div> : (
           <div className="admin-table-wrap">

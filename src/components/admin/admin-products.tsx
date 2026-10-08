@@ -4,6 +4,7 @@ import { AdminPage, AdminState } from "./admin-shell";
 import { adminApi } from "@/lib/api";
 import { useAdminData } from "@/lib/use-admin-data";
 import { formatNumber, formatPeriod, formatRupees } from "@/lib/format";
+import { VoiceMicButton } from "@/components/common/voice-mic-button";
 import type { ProductDetail } from "@/types/admin";
 
 const PAGE_SIZE = 50;
@@ -33,10 +34,11 @@ export function AdminProducts() {
       title="Products"
       description="The live Tally item master, refreshed whenever the connector completes a sync."
       actions={
-        <label className="admin-search">
+        <div style={{ display: "flex", alignItems: "center", border: "1px solid var(--color-border, #cbd5e1)", borderRadius: "8px", padding: "0 0.4rem", background: "var(--color-surface, #ffffff)" }}>
           <span className="admin-sr-only">Search products</span>
-          <input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search product name" type="search" />
-        </label>
+          <input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search product name" type="search" style={{ border: "none", outline: "none", background: "transparent" }} />
+          <VoiceMicButton onTranscript={(text) => setSearch(text)} />
+        </div>
       }
     >
       <div className="admin-filters">

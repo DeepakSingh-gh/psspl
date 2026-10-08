@@ -2,7 +2,7 @@
 
 > **STATUS: COMPLETE (ALL TASKS IMPLEMENTED & VERIFIED WITH REAL CLIENT DATA)**
 
-**Goal:** Fix all 15 client-requirement gaps in the PSSPL CRM prototype, closing every ❌ and upgrading every 🟡 from the gap analysis.
+**Goal:** Fix all client-requirement gaps in the PSSPL CRM prototype, closing every ❌ and upgrading every 🟡 from the gap analysis, including dual-mode follow-ups (Visit/Call), daily discussion notes, custom referral sources, and metric branding.
 
 **Architecture:** Five independent sub-systems (A–E) each confined to specific files; they share only the existing database and auth middleware. All backend changes use the `ensureColumn` pattern for schema migrations. All frontend changes follow the existing component pattern in `src/components/`.
 
@@ -507,50 +507,18 @@
   }
   ```
 
-- [ ] **Step 5: Replace `POST /api/sales/ask-ai` in `sales-routes.mjs`**
-
-  ```js
-  import { buildContext, buildSystemPrompt, askOpenAI } from "./ai-context.mjs";
-  
-  salesRouter.post("/ask-ai", async (req, res) => {
-    const question = String(req.body?.question || "").trim();
-    if (!question) return res.status(400).json({ error: "Enter a question" });
-    const contextJson = await buildContext(req.user.id, "salesperson");
-    const answer = await askOpenAI(buildSystemPrompt(contextJson), question);
-    res.json({ question, answer, source: "PSSPL CRM & Tally data via AI" });
-  });
-  ```
-
-- [ ] **Step 6: Add `POST /api/rm/ask-ai` in `rm-routes.mjs`**
-
-  Same pattern as Step 5 but `scope="rm"`.
-
-- [ ] **Step 7: Replace `POST /api/admin/ask-ai` in `server/admin.mjs`**
-
-  Same pattern but `scope="admin"`.
-
-- [ ] **Step 8: Update `sales-ask-ai.tsx` — show loading state**
-
-  Add `loading` state; while waiting show "Thinking…" spinner. Response renders as formatted text (preserve newlines with `white-space: pre-wrap`).
-
-- [ ] **Step 9: Update `admin-ask-ai.tsx` — same loading state pattern**
-
-- [ ] **Step 10: TypeScript compile check**
-
-  Run: `npx tsc --noEmit`
-  Expected: 0 errors
-
-- [ ] **Step 11: Manual smoke test**
-
-  With `OPENAI_API_KEY` set: ask "Which products sold less than last month?" in the admin Ask AI.
-  Expected: real AI response with product data.
-  Without key: graceful "not configured" message.
-
-- [ ] **Step 12: Commit**
+- [x] **Step 5: Replace `POST /api/sales/ask-ai` in `sales-routes.mjs`**
+- [x] **Step 6: Add `POST /api/rm/ask-ai` in `rm-routes.mjs`**
+- [x] **Step 7: Replace `POST /api/admin/ask-ai` in `server/admin.mjs`**
+- [x] **Step 8: Build `AiResponseFormatter` (`src/components/ai-response-formatter.tsx`) & integrate into `sales-ask-ai.tsx`** (executive insight cards, data point badges, action boxes, metric pills, one-click copy, and integrated search button `.askai-submit-btn`).
+- [x] **Step 9: Integrate `AiResponseFormatter` into `admin-ask-ai.tsx`** (same executive card formatting, loading shimmer, integrated gradient search button, and instant chip search trigger).
+- [x] **Step 10: TypeScript compile check (`npx tsc --noEmit`)** — PASSED with 0 errors.
+- [x] **Step 11: Verification & Live Test** — PASSED with Google Gemini API & SQLite database context.
+- [x] **Step 12: Commit**
 
   ```bash
   git add server/ai-context.mjs server/sales-routes.mjs server/rm-routes.mjs server/admin.mjs src/ .env.example
-  git commit -m "feat(ai): wire Ask AI to OpenAI gpt-4o-mini with live PSSPL data context"
+  git commit -m "feat(ai): Executive Ask AI with Google Gemini API, live SQL context, AiResponseFormatter cards, and integrated search button"
   ```
 
 ---

@@ -113,6 +113,10 @@ export const salesApi = {
     request<SalesDay>(`/visits/${visitId}/complete`, { method: "POST", body: JSON.stringify(payload) }),
   toggleFollowUp: (id: string) =>
     request<SalesDay>(`/follow-ups/${id}/toggle`, { method: "PATCH" }),
+  updateFollowUp: (id: string, payload: { notes?: string; followUpType?: "call" | "visit"; completed?: boolean; priority?: string }) =>
+    request<SalesDay>(`/follow-ups/${id}`, { method: "PATCH", body: JSON.stringify(payload) }),
+  addFollowUp: (payload: { customerId: string; title: string; dueDate: string; priority?: string; followUpType?: "call" | "visit"; notes?: string }) =>
+    request<SalesDay>("/follow-ups", { method: "POST", body: JSON.stringify(payload) }),
 };
 
 export const rmApi = {
@@ -150,3 +154,20 @@ export const salesFeaturesApi = {
     return fetch(`${API_URL}/sales/visits/${visitId}/voice-note`, { method: "POST", headers: token ? { Authorization: `Bearer ${token}` } : {}, body: form }).then((r) => r.json());
   },
 };
+
+export async function transcribeSpeech(audioBlob: Blob): Promise<string> {
+  const form = new FormData();
+  form.append("audio", audioBlob, "speech.webm");
+  const token = typeof window !== "undefined" ? localStorage.getItem(TOKEN_KEY) : null;
+  const response = await fetch(`${API_URL}/stt`, {
+    method: "POST",
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+    body: form,
+  });
+  const data = await response.json().catch(() => ({ error: "Transcription failed" }));
+  if (!response.ok) {
+    throw new Error(data.error || "Speech transcription failed");
+  }
+  return data.text || "";
+}
+

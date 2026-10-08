@@ -5,6 +5,7 @@ import { AdminPage, AdminState } from "./admin-shell";
 import { adminApi } from "@/lib/api";
 import { useAdminData } from "@/lib/use-admin-data";
 import { formatDate, formatNumber, formatPeriod, formatRupees } from "@/lib/format";
+import { VoiceMicButton } from "@/components/common/voice-mic-button";
 import type { CustomerDetail } from "@/types/admin";
 
 const PAGE_SIZE = 50;
@@ -77,10 +78,11 @@ export function AdminCustomers() {
       title="Customers"
       description="The party master imported from Tally, with lifetime sales, outstanding balance and the last recorded payment."
       actions={
-        <label className="admin-search">
+        <div style={{ display: "flex", alignItems: "center", border: "1px solid var(--color-border, #cbd5e1)", borderRadius: "8px", padding: "0 0.4rem", background: "var(--color-surface, #ffffff)" }}>
           <span className="admin-sr-only">Search customers</span>
-          <input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search name, city or code" type="search" />
-        </label>
+          <input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search name, city or code" type="search" style={{ border: "none", outline: "none", background: "transparent" }} />
+          <VoiceMicButton onTranscript={(text) => setSearch(text)} />
+        </div>
       }
     >
       <div className="admin-filters">

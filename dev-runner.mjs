@@ -8,7 +8,7 @@ const nextBin = join(root, "node_modules", "next", "dist", "bin", "next");
 
 const processes = [
   spawn(process.execPath, [nextBin, production ? "start" : "dev", "-p", "3000"], { cwd: root, stdio: "inherit" }),
-  spawn(process.execPath, ["--env-file-if-exists=.env", join(root, "server", "app.mjs")], { cwd: root, stdio: "inherit" }),
+  spawn(process.execPath, ["--watch", "--env-file-if-exists=.env", join(root, "server", "app.mjs")], { cwd: root, stdio: "inherit" }),
 ];
 
 function stop() {

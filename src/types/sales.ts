@@ -12,15 +12,20 @@ export interface Visit {
   product: string;
   purpose: string;
   status: VisitStatus;
+  priority?: string;
 }
+
+export type FollowUpType = "call" | "visit";
 
 export interface FollowUp {
   id: string;
   title: string;
   customer: string;
   dueLabel: string;
-  priority: "high" | "today" | "overdue";
+  priority: "high" | "medium" | "low" | "today" | "overdue" | string;
   completed: boolean;
+  followUpType?: FollowUpType;
+  notes?: string;
 }
 
 export interface SalesDay {
@@ -40,6 +45,8 @@ export interface CompleteVisitPayload {
   expectedOrderValue: number;
   expectedOrderDate?: string;
   nextFollowUp: string;
+  nextFollowUpType?: FollowUpType;
+  nextFollowUpNotes?: string;
   notes?: string;
 }
 

@@ -156,6 +156,100 @@
 .topbar-search input { width: 100%; min-width: 0; border: 0; outline: 0; background: transparent; color: var(--a-navy); font-size: 13px; }
 .topbar-search input::placeholder { color: #93a7bc; }
 
+/* ── Header AI Ask Feature ── */
+.topbar-ai-search {
+  flex: 1;
+  max-width: 560px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  height: 40px;
+  padding: 0 5px 0 14px;
+  border: 1.5px solid rgba(139, 92, 246, 0.35);
+  border-radius: 12px;
+  background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+  color: var(--a-navy);
+  box-shadow: 0 2px 8px rgba(124, 58, 237, 0.05);
+  transition: all 0.2s ease;
+  cursor: pointer;
+}
+.topbar-ai-search:hover {
+  border-color: rgba(139, 92, 246, 0.65);
+  box-shadow: 0 4px 14px rgba(124, 58, 237, 0.12);
+}
+.topbar-ai-search:focus-within {
+  border-color: #7c3aed;
+  background: #ffffff;
+  box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.16), 0 4px 14px rgba(124, 58, 237, 0.1);
+}
+.topbar-ai-icon {
+  display: grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  color: #7c3aed;
+  flex: none;
+}
+.topbar-ai-icon svg {
+  width: 16px;
+  height: 16px;
+  fill: currentColor;
+}
+.topbar-ai-search input {
+  width: 100%;
+  min-width: 0;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: #0f172a;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+}
+.topbar-ai-search input::placeholder {
+  color: #64748b;
+  font-weight: 450;
+}
+.topbar-ai-kbd {
+  font-size: 10px;
+  font-weight: 700;
+  color: #64748b;
+  background: #f1f5f9;
+  border: 1px solid #cbd5e1;
+  border-radius: 4px;
+  padding: 2px 6px;
+  letter-spacing: .02em;
+  white-space: nowrap;
+}
+.topbar-ai-btn {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  height: 30px;
+  padding: 0 12px;
+  border: 1px solid #c084fc;
+  border-radius: 8px;
+  background: linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%);
+  color: #ffffff;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 2px 6px rgba(109, 40, 217, 0.25);
+  transition: all 0.15s ease;
+  flex-shrink: 0;
+}
+.topbar-ai-btn:hover {
+  background: linear-gradient(135deg, #6d28d9 0%, #5b21b6 100%);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 10px rgba(109, 40, 217, 0.35);
+}
+.topbar-ai-btn svg {
+  width: 13px;
+  height: 13px;
+  fill: currentColor;
+}
+
+
 .topbar-right { margin-left: auto; display: flex; align-items: center; gap: 10px; }
 .topbar-icon {
   display: grid; place-items: center; width: 36px; height: 36px;
@@ -981,23 +1075,45 @@
 
 /* ------------------------------ Ask AI modal ----------------------------- */
 .askai-overlay {
-  position: fixed; inset: 0; z-index: 60;
-  display: grid; place-items: start center;
-  padding: clamp(40px, 9vh, 110px) 20px 40px;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 99999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
   overflow-y: auto;
 }
-.askai-scrim { position: fixed; inset: 0; border: 0; padding: 0; background: rgba(7, 29, 66, .45); cursor: pointer; }
+.askai-scrim {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 99998;
+  border: 0;
+  padding: 0;
+  background: rgba(7, 29, 66, 0.55);
+  backdrop-filter: blur(4px);
+  cursor: pointer;
+}
 
 .askai-modal {
-  position: relative; z-index: 1;
+  position: relative;
+  z-index: 99999;
   width: min(680px, 100%);
-  border: 1px solid var(--a-line); border-radius: 14px;
+  border: 1px solid var(--a-line);
+  border-radius: 16px;
   background: #fff;
-  box-shadow: 0 24px 60px rgba(7, 29, 66, .26);
-  animation: askai-rise .18s ease-out both;
+  box-shadow: 0 24px 60px rgba(7, 29, 66, 0.3);
+  animation: askai-rise .2s ease-out both;
   overflow: hidden;
+  margin: auto;
 }
-@keyframes askai-rise { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: none; } }
+@keyframes askai-rise { from { opacity: 0; transform: translateY(-8px) scale(0.98); } to { opacity: 1; transform: none; } }
 
 .askai-head {
   display: flex; align-items: center; gap: 12px;
@@ -1026,29 +1142,58 @@
 .askai-page .askai-body { padding: 0; }
 
 /* The Ask button sits beside the field, not inside its border. */
-.askai-search { display: flex; align-items: stretch; gap: 10px; }
+.askai-search { width: 100%; }
 .askai-field {
-  flex: 1; min-width: 0;
-  display: flex; align-items: center; gap: 10px;
-  height: 48px; padding: 0 14px;
-  border: 1px solid var(--a-line); border-radius: 10px; background: #fff;
-  transition: border-color .16s ease, box-shadow .16s ease;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  height: 50px;
+  padding: 4px 4px 4px 14px;
+  border: 1.5px solid #cbd5e1;
+  border-radius: 12px;
+  background: #ffffff;
+  box-shadow: 0 2px 6px rgba(15, 23, 42, 0.04);
+  transition: border-color 0.16s ease, box-shadow 0.16s ease;
 }
-.askai-field:focus-within { border-color: var(--a-blue); box-shadow: 0 0 0 3px rgba(8, 124, 193, .14); }
-.askai-field > svg { width: 16px; height: 16px; flex: none; color: var(--a-muted); }
-.askai-field input { flex: 1; min-width: 0; height: 100%; border: 0; outline: 0; background: transparent; color: var(--a-navy); font-size: 14px; }
-.askai-field input::placeholder { color: #93a7bc; }
-.askai-ask {
-  flex: none; height: 48px; padding: 0 24px;
-  border: 0; border-radius: 10px;
-  background: var(--a-blue); color: #fff;
-  font-size: 13.5px; font-weight: 650; cursor: pointer;
-  transition: background-color .15s ease, opacity .15s ease;
+.askai-field:focus-within {
+  border-color: #7c3aed;
+  box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.16);
 }
-.askai-ask:focus-visible { outline: 2px solid var(--a-navy); outline-offset: 2px; }
-.askai-ask:hover:not(:disabled) { background: var(--a-blue-dark); }
-/* A washed-out brand blue reads as broken; use a neutral rest state instead. */
-.askai-ask:disabled { background: #e4ecf3; color: #94a8bc; cursor: default; }
+.askai-search-icon { width: 18px; height: 18px; flex: none; color: #64748b; }
+.askai-field input { flex: 1; min-width: 0; height: 100%; border: 0; outline: 0; background: transparent; color: #0f172a; font-size: 14px; font-weight: 500; }
+.askai-field input::placeholder { color: #94a3b8; }
+
+.askai-submit-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 40px;
+  padding: 0 18px;
+  border: 0;
+  border-radius: 9px;
+  background: linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%);
+  color: #ffffff;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(109, 40, 217, 0.3);
+  transition: all 0.15s ease;
+  flex: none;
+}
+.askai-submit-btn svg { width: 14px; height: 14px; fill: currentColor; }
+.askai-submit-btn:hover:not(:disabled) {
+  background: linear-gradient(135deg, #6d28d9 0%, #5b21b6 100%);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(109, 40, 217, 0.4);
+}
+.askai-submit-btn:disabled {
+  background: #cbd5e1;
+  color: #94a3b8;
+  box-shadow: none;
+  cursor: not-allowed;
+  transform: none;
+}
 
 /* One quiet strip rather than two loose fields. */
 .askai-range {
@@ -1089,13 +1234,264 @@
   font-size: 13px; color: #92262b;
 }
 
-.askai-answer {
-  margin: 18px 0 0; padding: 16px;
-  border: 1px solid #cfe3f1; border-left-width: 3px; border-radius: 10px; background: var(--a-wash);
+/* Executive Intelligence Answer Wrapper */
+.askai-answer-box {
+  margin-top: 16px;
+  animation: askai-fade-in 0.25s ease-out;
 }
-.askai-answer-label { margin: 0; font-size: 10.5px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: var(--a-blue); }
-.askai-answer strong { display: block; margin-top: 8px; font-size: 14.5px; font-weight: 500; line-height: 1.6; color: var(--a-navy); }
-.askai-answer small { display: block; margin-top: 10px; font-size: 11.5px; color: var(--a-muted); }
+@keyframes askai-fade-in { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+
+.askai-loading {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 16px;
+  padding: 16px 20px;
+  border: 1px dashed #7c3aed;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #fbfaff 0%, #f3e8ff 100%);
+  color: #6d28d9;
+  font-size: 13.5px;
+  font-weight: 500;
+}
+.askai-spinner {
+  width: 18px;
+  height: 18px;
+  border: 2px solid rgba(124, 58, 237, 0.2);
+  border-top-color: #7c3aed;
+  border-radius: 50%;
+  animation: admin-spin 0.7s linear infinite;
+  flex: none;
+}
+
+.askai-answer-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  border: 1px solid #e0e7ff;
+  border-radius: 14px;
+  background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+  box-shadow: 0 4px 20px rgba(15, 23, 42, 0.04);
+  overflow: hidden;
+}
+
+.askai-answer-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  border-bottom: 1px solid #e2e8f0;
+  background: linear-gradient(90deg, #f1f5f9 0%, #ffffff 100%);
+}
+
+.askai-answer-header-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.askai-sparkle-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #7c3aed;
+  box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.18);
+}
+
+.askai-header-tag {
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: #4c1d95;
+}
+
+.askai-copy-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 28px;
+  padding: 0 10px;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  background: #ffffff;
+  color: #475569;
+  font-size: 11.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+.askai-copy-btn:hover {
+  border-color: #7c3aed;
+  color: #7c3aed;
+  background: #f5f3ff;
+}
+
+.askai-answer-content {
+  padding: 16px;
+}
+
+/* Insight Cards Grid */
+.askai-cards-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.askai-insight-card {
+  display: flex;
+  gap: 14px;
+  padding: 14px 16px;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  background: #ffffff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+.askai-insight-card:hover {
+  border-color: #cbd5e1;
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.05);
+}
+
+.askai-card-num {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  background: #f1f5f9;
+  color: #0f172a;
+  font-size: 12px;
+  font-weight: 700;
+  flex: none;
+}
+
+.askai-card-body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.askai-card-title {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 700;
+  color: #0f172a;
+  line-height: 1.35;
+}
+
+.askai-card-dp, .askai-card-act {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 8px 12px;
+  border-radius: 8px;
+}
+
+.askai-card-dp {
+  background: #f8fafc;
+  border-left: 3px solid #0284c7;
+}
+
+.askai-dp-label {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #0369a1;
+}
+
+.askai-card-dp p, .askai-card-act p, .askai-card-raw p {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.55;
+  color: #334155;
+}
+
+.askai-card-act {
+  background: #f0fdf4;
+  border-left: 3px solid #16a34a;
+}
+
+.askai-act-label {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #15803d;
+}
+
+/* Metric Pills */
+.askai-metric-pill {
+  display: inline-block;
+  padding: 1px 7px;
+  margin: 0 2px;
+  border-radius: 6px;
+  font-size: 12.5px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  vertical-align: middle;
+}
+
+.askai-metric-pill.currency {
+  background: #e0f2fe;
+  color: #0369a1;
+  border: 1px solid #bae6fd;
+}
+
+.askai-metric-pill.num {
+  background: #f1f5f9;
+  color: #0f172a;
+  border: 1px solid #cbd5e1;
+}
+
+.askai-bold-text {
+  color: #0f172a;
+  font-weight: 650;
+}
+
+/* Prose view */
+.askai-prose {
+  font-size: 13.5px;
+  line-height: 1.6;
+  color: #334155;
+}
+.askai-heading {
+  margin: 12px 0 6px;
+  font-size: 14.5px;
+  font-weight: 700;
+  color: #0f172a;
+}
+.askai-list-item {
+  margin-left: 16px;
+  margin-bottom: 4px;
+}
+.askai-paragraph {
+  margin-bottom: 10px;
+}
+
+/* Footer */
+.askai-answer-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 16px;
+  background: #f8fafc;
+  border-top: 1px solid #e2e8f0;
+  font-size: 11px;
+  color: #64748b;
+}
+
+.askai-db-badge {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-weight: 600;
+  color: #0f172a;
+}
 
 @media (max-width: 620px) {
   .askai-overlay { padding: 20px 14px; }
@@ -1797,7 +2193,7 @@
   font-weight: 600;
   font-size: 14px;
 }
-.rm-name-link:hover { text-decoration: underline; }
+.rm-name-link:hover { text-decoration: none; }
 
 /* Back navigation */
 .rm-detail-back {

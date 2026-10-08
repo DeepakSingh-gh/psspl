@@ -128,38 +128,38 @@ saves to `data/voice-notes/<id>.<ext>`, stores relative path.
 Frontend: after completing a visit, show an optional "Add voice note" button that opens the browser
 media recorder; on stop, uploads the blob.
 
+#### C5 — Dual-mode follow-up channel & daily discussion notes
+Add `follow_up_type TEXT DEFAULT 'call'` (`'call'` | `'visit'`) and `notes TEXT` columns to `follow_ups` via `ensureColumn`.
+Backend: `PATCH /api/follow-ups/:id` and `POST /api/follow-ups` accept `followUpType` and `notes`.
+Frontend: Follow-up action list items render channel badges (**🚗 Field Visit** / **📞 Phone Call**) and expandable/inline **Discussion Description Boxes** with **"✏️ Edit Notes"** and **"Save Notes"** buttons so RMs and Field Execs can write down daily discussion details.
+
 ---
 
-## Sub-System D — Real Ask AI (OpenAI)
+## Sub-System D — Real Executive Ask AI (Google Gemini API & AI Response Formatter)
 
 ### What it does
-Replace the keyword-matching `ask-ai` route with a real OpenAI `chat/completions` call that
-includes a structured context block of live CRM+Tally data.
+Replaces keyword-matching logic with a real LLM integration powered by Google Gemini REST API (`gemini-2.5-flash`, `gemini-2.0-flash`, `gemini-1.5-flash`, `gemini-1.5-pro`, `gemini-3.6-flash`) with fallback to OpenAI (`gpt-4o-mini`). Includes structured context synthesized directly from live SQL database tables (`tally_invoices`, `tally_products`, `tally_customers`, `leads`, `follow_ups`, `salesperson_profiles`).
 
 ### Architecture
-1. **Context builder** (`server/ai-context.mjs`) — assembles a JSON summary: top/declining
-   products, team performance vs. target, overdue follow-ups count, inactive customers, pipeline
-   totals by stage, territory shortfalls. Kept under ~2,000 tokens.
-2. **System prompt** — identifies the AI as a PSSPL CRM analyst; instructs it to answer from
-   context, cite data, and if asked to draft an email, produce Markdown.
-3. **Admin Ask AI** — `POST /api/admin/ask-ai` wired to OpenAI with company-wide context.
-4. **Sales Ask AI** — `POST /api/sales/ask-ai` updated to use salesperson-scoped context.
-5. **RM Ask AI** — `POST /api/rm/ask-ai` with RM-scoped context (team only).
-6. **Frontend** — existing `admin-ask-ai.tsx`, `sales-ask-ai.tsx` already have UI shells; wire
-   them to stream the response (no streaming needed — single JSON response is fine).
+1. **Context builder** (`server/ai-context.mjs`) — assembles JSON metrics: top/declining products, team performance vs. target, overdue follow-ups count, inactive customers, pipeline totals by stage, territory shortfalls directly from live SQL queries.
+2. **System prompt** — identifies AI as an executive PSSPL business analyst; instructs it to cite exact numbers, use structured numbered points (1., 2., 3.), bold headers, Data Points, and Action Items without double asterisks or raw code symbols (`'[]'`).
+3. **Executive AI Formatter (`src/components/ai-response-formatter.tsx`)** — parses LLM output into styled **Executive Insight Cards** featuring blue **Data Point** badges, green **Recommended Action** boxes, inline currency/number metric pills (`askai-metric-pill`), and a one-click **Copy to Clipboard** action.
+4. **Integrated Search Controls & Instant Execution** — `.askai-field` features an integrated, un-missable gradient **Search** button (`.askai-submit-btn`) with sparkle icon. Clicking any suggested prompt chip populates the field and executes live database intelligence search immediately.
+5. **Loading Shimmer State** — displays an animated purple spinner (`askai-loading`) while fetching live intelligence.
+6. **Multi-Portal Integration** — `AdminAskAi` (`admin-ask-ai.tsx`), `SalesAskAi` (`sales-ask-ai.tsx`), and `RmAskAi` wired to live context.
 
-### OpenAI config
-- Model: `gpt-4o-mini` (cost-efficient; fast)
-- API key: `OPENAI_API_KEY` env var (add to `.env.example`)
-- Timeout: 30 s; on timeout/error return a graceful fallback message
+### LLM & Model Config
+- Primary Engine: Google Gemini API via `GEMINI_API_KEY` (`gemini-2.5-flash`, `gemini-2.0-flash`, `gemini-1.5-flash`, `gemini-1.5-pro`, `gemini-3.6-flash`)
+- Fallback Engine: OpenAI `gpt-4o-mini` via `OPENAI_API_KEY`
+- Timeout: 12-30 s per model with graceful failover
 
-### Six supported question types (system prompt enumerates these)
-1. Which RM needs attention and why?
-2. Which territory needs support for a product?
-3. Which products sold less than last month/year?
-4. Which customers reduced repeat orders?
-5. What is the likely year-end shortfall?
-6. Draft an email to an RM about a gap.
+### Supported question types
+1. Which RM or territory needs attention and why?
+2. Which products sold less than last month/year?
+3. Which customers reduced repeat orders?
+4. What is the likely year-end shortfall?
+5. Which territory needs support for a product?
+6. Draft a management email about a performance gap.
 
 ---
 

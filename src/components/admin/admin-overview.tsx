@@ -129,7 +129,6 @@ export function AdminOverview() {
         {data?.financialYears.length ? <select value={financialYear || data.financialYear || ""} onChange={(event) => setFinancialYear(event.target.value)}>{data.financialYears.map((year) => <option key={year} value={year}>{formatFinancialYear(year)}</option>)}</select> : null}
         <Link className="command-button" href="/admin/activity">Live field ops</Link>
         <Link className="command-button" href="/admin/reports">Sales report</Link>
-        <AskAiLauncher />
       </div>
     </header>
 

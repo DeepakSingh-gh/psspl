@@ -1,6 +1,8 @@
 "use client";
 import { FormEvent, useEffect, useRef, useState } from "react";
 import { salesFeaturesApi } from "@/lib/api";
+import { AiResponseFormatter } from "../ai-response-formatter";
+import { VoiceMicButton } from "@/components/common/voice-mic-button";
 
 const QUESTIONS = [
   "Which customers have not ordered recently?",
@@ -34,14 +36,24 @@ export function SalesAskAi() {
     return () => { window.removeEventListener("keydown", onKey); document.body.style.overflow = ""; };
   }, [open]);
 
-  async function ask(event: FormEvent) {
-    event.preventDefault();
-    if (!question.trim()) return;
+  async function runQuery(qToUse?: string) {
+    const q = (qToUse ?? question).trim();
+    if (!q) return;
     setLoading(true);
     setError("");
-    try { setAnswer((await salesFeaturesApi.askAi(question)).answer); }
+    try { setAnswer((await salesFeaturesApi.askAi(q)).answer); }
     catch (cause) { setError(cause instanceof Error ? cause.message : "Unable to answer that right now"); }
     finally { setLoading(false); }
+  }
+
+  async function ask(event: FormEvent) {
+    event.preventDefault();
+    await runQuery();
+  }
+
+  function handleChipClick(q: string) {
+    setQuestion(q);
+    runQuery(q);
   }
 
   return (
@@ -64,8 +76,8 @@ export function SalesAskAi() {
 
             <div className="askai-body">
               <form className="askai-search" onSubmit={ask}>
-                <span className="askai-field">
-                  <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" aria-hidden="true">
+                <div className="askai-field">
+                  <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" aria-hidden="true" className="askai-search-icon">
                     <circle cx="7.2" cy="7.2" r="4.4" /><path d="m10.6 10.6 2.7 2.7" />
                   </svg>
                   <input
@@ -75,28 +87,36 @@ export function SalesAskAi() {
                     placeholder="Ask about your customers, visits or follow-ups…"
                     aria-label="Your question"
                   />
-                </span>
-                <button type="submit" className="askai-ask" disabled={loading || !question.trim()}>
-                  {loading ? "Checking…" : "Ask"}
-                </button>
+                  <VoiceMicButton onTranscript={(text) => setQuestion(text)} />
+                  <button type="submit" className="askai-submit-btn" disabled={loading || !question.trim()}>
+                    <Spark />
+                    <span>{loading ? "Searching…" : "Search"}</span>
+                  </button>
+                </div>
               </form>
 
               <p className="askai-label">Suggested questions</p>
               <div className="askai-chips">
                 {QUESTIONS.map((item) => (
-                  <button type="button" key={item} onClick={() => setQuestion(item)}>{item}</button>
+                  <button type="button" key={item} onClick={() => handleChipClick(item)}>{item}</button>
                 ))}
               </div>
 
               {error && <p className="askai-error" role="alert">{error}</p>}
 
-              {answer ? (
-                <div className="askai-answer">
-                  <p className="askai-answer-label">Answer</p>
-                  <strong>{answer}</strong>
+              {loading && (
+                <div className="askai-loading">
+                  <div className="askai-spinner"></div>
+                  <span>Fetching live intelligence from database...</span>
+                </div>
+              )}
+
+              {answer && !loading ? (
+                <div className="askai-answer-box">
+                  <AiResponseFormatter text={answer} source="PSSPL Sales DB" />
                 </div>
               ) : (
-                !error && <p className="askai-how"><b>How it works:</b> answers come only from your own customers and CRM activity.</p>
+                !loading && !error && <p className="askai-how"><b>How it works:</b> answers come only from your live customer database and CRM activity.</p>
               )}
             </div>
           </div>

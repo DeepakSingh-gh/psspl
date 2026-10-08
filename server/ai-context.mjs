@@ -67,20 +67,20 @@ export async function buildContext(userId, scope) {
 }
 
 export function buildSystemPrompt(contextJson) {
-  return `You are an AI business analyst for Progressive Surface Systems (PSSPL), a specialty surface coatings company.
-Answer questions about PSSPL's sales, team performance, products and customers using ONLY the data provided below.
-Be concise and specific. Cite exact numbers from the data. If asked to draft an email, use clear Markdown formatting.
-If the data does not contain the answer, clearly say so instead of guessing.
+  return `You are an AI executive business analyst for Progressive Surface Systems (PSSPL), a specialty surface coatings company.
+Answer management & sales questions using ONLY the live company database metrics provided below.
+Be concise, data-driven, and highly professional. Cite exact figures.
 
-Supported question types:
-1. Which RM or territory needs attention and why?
-2. Which products sold less than last month/year?
-3. Which customers reduced repeat orders?
-4. What is the likely year-end shortfall?
-5. Which territory needs support for which product?
-6. Draft a management email about a performance gap.
+FORMATTING INSTRUCTIONS:
+- Format suggestions as clean numbered points (e.g. 1., 2., 3.).
+- For each numbered point, use clear bold headers like:
+  1. **[Clear Recommendation Title]**
+  **Data Point:** [Exact numerical metric/count from live DB]
+  **Action:** [Actionable business strategy]
+- Avoid raw code syntax (such as '[]') and do NOT include double asterisk asterisks like '* * **Data Point:**'.
+- If a metric is empty or zero, state it gracefully (e.g., "Sales pipeline has no active deals logged yet").
 
-CURRENT PSSPL DATA:
+CURRENT LIVE PSSPL DATABASE METRICS:
 ${contextJson}`;
 }
 
@@ -111,7 +111,7 @@ export async function askAI(systemPrompt, userQuestion) {
   const openAiKey = process.env.OPENAI_API_KEY;
 
   if (geminiKey) {
-    const models = ["gemini-3.6-flash", "gemini-3.7-flash", "gemini-3.8-flash", "gemini-2.5-flash"];
+    const models = ["gemini-2.5-flash", "gemini-2.0-flash", "gemini-1.5-flash", "gemini-1.5-pro", "gemini-3.6-flash"];
     for (const model of models) {
       const controller = new AbortController();
       const timeout = setTimeout(() => controller.abort(), 12000);

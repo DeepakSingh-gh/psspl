@@ -93,6 +93,8 @@ db.exec(`
     due_date TEXT NOT NULL,
     priority TEXT NOT NULL DEFAULT 'today',
     completed INTEGER NOT NULL DEFAULT 0,
+    follow_up_type TEXT DEFAULT 'call',
+    notes TEXT,
     created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
   );
 
@@ -367,7 +369,10 @@ db.exec(`CREATE INDEX IF NOT EXISTS idx_tally_customers_owner_user_id ON tally_c
 // Gap-fix migrations
 ensureColumn("visits", "visit_tags", "TEXT");
 ensureColumn("visits", "voice_note_path", "TEXT");
+ensureColumn("visits", "priority", "TEXT DEFAULT 'medium'");
 ensureColumn("follow_ups", "assigned_to_user_id", "TEXT REFERENCES users(id)");
+ensureColumn("follow_ups", "follow_up_type", "TEXT DEFAULT 'call'");
+ensureColumn("follow_ups", "notes", "TEXT");
 
 db.exec("PRAGMA optimize;");
 

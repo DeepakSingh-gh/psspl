@@ -38,11 +38,11 @@ salesRouter.get("/movement", (req, res) => {
   res.json({ date, attendance: attendance ?? null, points, count: points.length });
 });
 salesRouter.post("/visits/unplanned", (req, res) => {
-  const { customerId, purpose, scheduledAt } = req.body ?? {};
+  const { customerId, purpose, scheduledAt, priority } = req.body ?? {};
   if (!customerId || !purpose) return res.status(400).json({ error: "Customer and purpose are required" });
   if (!canAccessCustomer(req.user.id, customerId)) return res.status(403).json({ error: "This customer is not assigned to you" });
   const id = randomUUID();
-  db.prepare("INSERT INTO visits (id,user_id,business_date,tally_customer_id,scheduled_at,purpose,status) VALUES (?,?,?,?,?,?,?)").run(id, req.user.id, today(), customerId, scheduledAt || new Date().toISOString(), purpose, "planned");
+  db.prepare("INSERT INTO visits (id,user_id,business_date,tally_customer_id,scheduled_at,purpose,priority,status) VALUES (?,?,?,?,?,?,?,?)").run(id, req.user.id, today(), customerId, scheduledAt || new Date().toISOString(), purpose, priority || "medium", "planned");
   res.status(201).json({ id });
 });
 

@@ -70,7 +70,7 @@ export function AdminTally() {
             </div>
             <div className="tally-connection-actions">
               {data.connector
-                ? <button type="button" className="admin-button ghost" disabled={working} onClick={disconnect}>Disconnect</button>
+                ? <button type="button" className="admin-button" disabled={working} onClick={disconnect}>Disconnect</button>
                 : !pairingCode && <button type="button" className="admin-button" disabled={working} onClick={createPairingCode}>{working ? "Generating…" : "Generate pairing code"}</button>}
             </div>
           </section>

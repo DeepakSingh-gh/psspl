@@ -19,7 +19,7 @@ npm run dev
 ```
 
 ### 2. Local setup for teammates
-Requirements: Node.js 22 or newer and npm. The CRM uses a local SQLite file, so Supabase is not required for local development.
+Requirements: Node.js 22 or newer and npm. The CRM uses a local SQLite file, so external services are not required for local development.
 
 ```bash
 git clone https://github.com/Khushi-Bizgenix/psspl.git
@@ -33,7 +33,7 @@ npm run dev
 
 ---
 
-### 2. Live Application Portals
+### 3. Live Application Portals
 * **Main App & Login:** [http://localhost:3000](http://localhost:3000)
 * **Executive Admin Dashboard:** [http://localhost:3000/admin](http://localhost:3000/admin)
 * **Regional Manager Portal:** [http://localhost:3000/rm](http://localhost:3000/rm)
@@ -57,7 +57,7 @@ All accounts are pre-seeded in the database for local development and testing:
 
 ## 📊 Real Client Dataset & Ingestion
 
-The CRM is loaded with actual client records imported from `<your-data-directory>`:
+The CRM is loaded with actual client records imported from client workbooks:
 
 * **171 Customers & Dealers:** Protec Finish Innovators, Metfin Systems, Schneider Electric, Shree Gurukrupa, Vignesh Enterprises, etc., including city mappings, destination codes, and outstanding balances.
 * **666 PSS Chemical Products:** Complete catalog with packing sizes, UOM (Kgs., Ltrs., Nos.), rates, and historical sales (ACID CU SLT, SILVER POTASSIUM CYANIDE, ULTEC 3005, ANTHRACITE, etc.).
@@ -82,15 +82,17 @@ py -3.11 scripts/import_psspldata.py "<your-data-directory>"
 
 ### 1. Executive Admin Dashboard (`/admin`)
 - **Revenue & Territory Intelligence:** Total sales, collection status, territory breakdown, top-performing chemical products.
-- **Team Performance & Accountability:** Sortable team performance tables prioritizing target achievement ("Poor to Good" and "Good to Poor").
-- **RM Sales Activity & Performance Drill-down (`/admin/team/[id]`):** Clicking any RM or salesperson name opens a comprehensive 7-tab sales activity dashboard featuring:
-  - **KPI Cards:** Completed visits, customers covered, expected orders value, actual Tally sales, FY target achievement %, and open follow-ups.
-  - **7 Scoped Tabs:** *Performance* (Target vs Actual gap & daily activity), *Customer Visits* (detailed visit log with outcomes and notes), *Pipeline* (open expected orders with overdue alerts), *Actual Sales* (Tally invoice drill-down), *Products* (product volume & revenue ranking), *Follow-ups* (due dates & priority levels), and *AI Insight* (automated sales summary).
-  - **Period Controls:** Seamless switching between *Today*, *This Week*, *This Month*, and *FYTD*.
-- **Quotations & Margin Approvals:** Multi-level approval matrix for discounts and sub-margin pricing.
-- **Reports & EOD WhatsApp Summary:** Filterable management reports with one-click **PDF Print** (A4 optimized via `print.css`), **Excel/CSV Export**, and direct **WhatsApp sharing**.
-- **Tally Live Connector:** Pairing codes, rotating HMAC tokens, heartbeat monitoring, and chunked session imports.
-- **Audit Logging & Security:** Detailed tracking of logins, password resets, user creations, and export actions.
+  - **Actionable Team Dashboard & Traffic Light Badging:** RMs auto-sorted by achievement percentage (lowest target achievement first to surface underperforming RMs immediately), featuring a high-definition two-line stacked flex layout with traffic-light-colored pill badges (🔴 Needs Attention <50%, 🟡 Average 50-80%, 🟢 Good >80%) for optimum UI readability, styled without distracting underline link hover artifacts.
+  - **RM Sales Activity & Executive Report Card (`/admin/team/[id]`):** Clicking any RM or salesperson name opens a comprehensive 7-tab sales activity dashboard featuring:
+    - **Dynamic Manager Action Plan:** Top executive summary panel ("What Should the Manager Do?") with actionable directives (target gap analysis, prospecting mandates, dormant customer warnings).
+    - **Top 5 Dealer Revenue Concentration Risk:** Automated portfolio risk analysis highlighting percentage of sales driven by top accounts (>80% triggers alert).
+    - **KPI Cards:** Completed visits, customers covered, expected orders value, actual Tally sales, FY target achievement %, and open follow-ups.
+    - **7 Scoped Tabs:** *Performance* (Target vs Actual gap & daily activity), *Customer Visits* (detailed visit log with outcomes and notes), *Pipeline* (open expected orders with overdue alerts), *Actual Sales* (Tally invoice drill-down), *Products* (product volume & revenue ranking), *Follow-ups* (due dates & priority levels), and *AI Insight* (automated sales summary).
+    - **Period Controls:** Seamless switching between *Today*, *This Week*, *This Month*, and *FYTD*.
+  - **Quotations & Margin Approvals:** Multi-level approval matrix for discounts and sub-margin pricing.
+  - **Reports & EOD WhatsApp Summary:** Filterable management reports with one-click **PDF Print** (A4 optimized via `print.css`), **Excel/CSV Export**, and direct **WhatsApp sharing**.
+  - **Tally Live Connector:** Pairing codes, rotating HMAC tokens, heartbeat monitoring, chunked session imports, and persistent high-contrast Disconnect action button.
+  - **Audit Logging & Security:** Detailed tracking of logins, password resets, user creations, and export actions.
 
 ### 2. Regional Manager Portal (`/rm`)
 - **Manager-Scoped Dashboard:** Automatic scoping to team members and regional customers.
@@ -98,13 +100,21 @@ py -3.11 scripts/import_psspldata.py "<your-data-directory>"
 - **Product Growth Trends:** Multi-year product comparison (FY 2024-25 vs FY 2025-26) to detect lost or growing chemical accounts.
 
 ### 3. Field Sales PWA Workspace (`/field` / `/sales/my-day`)
-- **Day Planner & GPS Attendance:** One-tap GPS check-in and check-out with time and coordinates.
-- **Customer Visits & Voice Notes:** Quick visit logging with operational tags (`Quotation Needed`, `Sample Request`, `Routine Check`) and built-in **audio voice note recording** via browser `MediaRecorder` API.
-- **Lead Management Kanban (`/sales/leads`):** Visual pipeline stages from initial contact to technical demo, sample trial, quotation, and deal closed.
+- **Day Planner & GPS Attendance:** One-tap GPS check-in and check-out with time and route tracking.
+- **Metric Cards & Order Tracking:** Live tracking of daily visits, completion status, **Order Expected** value (in Lakhs), and target achievement.
+- **Dual-Mode Follow-ups System (Visit & Call):** Action list follow-ups supporting channel selection (**🚗 Field Visit** vs **📞 Phone Call**), priority tagging (`High`, `Medium`, `Low`) with color-coded badges, and editable priority dropdowns. Interactive **Discussion Description Boxes** feature premium border styling (`1.5px solid #0284c7`), focus halo ring, and left-accented notes display (`.followup-notes-display`) for RMs and field sales representatives.
+- **Customer Visits & Voice Notes:** Quick visit logging with operational tags (`Quotation Needed`, `Sample Request`, `Technical Support`), date/time selection with UI improvements, priority level tracking (`High`, `Medium`, `Low`), clearly delineated field input borders (`1px solid var(--line)`) on Unplanned Visit dialogs, and built-in **audio voice note recording** via browser `MediaRecorder` API.
+- **Lead Management Kanban (`/sales/leads`):** Visual pipeline stages from initial contact to technical demo, sample trial, quotation, and deal closed. Supports customizable referral sources including **Other** with custom name write-in.
 - **Service & Support Requests:** Track customer complaints, technical trials, and commercial quotation requests.
 
-### 4. AI & Automation Services
-- **Ask AI Assistant:** Context-aware AI business analyst powered by **Google Gemini API** (`gemini-3.6-flash`, `gemini-3.7-flash`, `gemini-3.8-flash`, `gemini-2.5-flash`) via `GEMINI_API_KEY` (with fallback to OpenAI `gpt-4o-mini`). Synthesizes customer outstanding balances, top products, and recent visits into grounded insights.
+### 4. AI Executive Intelligence & Copilot
+- **Global Header AI Ask Copilot:** Accessible on every page header (`topbar`) with a glowing search bar, shortcut `[Ctrl + K]`, and a prominent gradient **Search AI** button.
+- **Executive Card Formatting (`AiResponseFormatter`):** Converts raw LLM output into structured **Executive Action Cards** with blue **Data Point** badges, green **Recommended Action** boxes, and inline currency/count metric pills (`askai-metric-pill`).
+- **Instant Query Execution:** Clicking suggested prompt chips immediately fills the input and triggers live database intelligence retrieval.
+- **One-Click Copy & Data Provenance:** Integrated **Copy** button with instant state feedback and live SQL data provenance details.
+- **Grounded SQL Data Engine:** Context synthesized directly from real-time database tables (`tally_invoices`, `tally_products`, `tally_customers`, `leads`, `follow_ups`, `salesperson_profiles`).
+- **Resilient AI Model Engine:** Connected via **Google Gemini API** (`gemini-2.5-flash`, `gemini-2.0-flash`, `gemini-1.5-flash`, `gemini-1.5-pro`, `gemini-3.6-flash`) via `GEMINI_API_KEY` (with fallback to OpenAI `gpt-4o-mini`).
+- **Voice Speech-to-Text Search (`<VoiceMicButton>`):** Reusable voice recording mic button integrated on all search boxes across Sales Hub, Ask AI, RM Directory, Admin Customers, and Admin Products. Supports instant free browser Web Speech API with backend OpenAI Whisper API (`POST /api/stt`) fallback.
 - **Automated 5:00 PM EOD Cron:** Built with `node-cron` in `server/app.mjs`, compiling daily visits, order booking, and attendance into a WhatsApp digest sent via Meta WhatsApp Cloud API.
 
 ---

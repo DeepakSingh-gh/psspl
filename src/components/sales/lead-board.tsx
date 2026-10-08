@@ -129,11 +129,14 @@ export function LeadBoard({ products }: Props) {
 function LeadForm({ products, onCreated, onCancel }: { products: { id: string; name: string }[]; onCreated: () => void; onCancel: () => void; }) {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  const [selectedSource, setSelectedSource] = useState("");
+  const [customSource, setCustomSource] = useState("");
 
   async function handleSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     const form = new FormData(e.currentTarget);
-    const payload: Record<string, unknown> = { name: form.get("name"), company: form.get("company"), phone: form.get("phone"), email: form.get("email"), city: form.get("city"), source: form.get("source"), interestedProductId: form.get("interestedProductId"), expectedValue: Number(form.get("expectedValue") || 0), nextActionDate: form.get("nextActionDate"), notes: form.get("notes") };
+    const finalSource = selectedSource === "Other" ? (customSource.trim() ? `Other: ${customSource.trim()}` : "Other") : selectedSource;
+    const payload: Record<string, unknown> = { name: form.get("name"), company: form.get("company"), phone: form.get("phone"), email: form.get("email"), city: form.get("city"), source: finalSource, interestedProductId: form.get("interestedProductId"), expectedValue: Number(form.get("expectedValue") || 0), nextActionDate: form.get("nextActionDate"), notes: form.get("notes") };
     setSaving(true); setError("");
     try { await salesFeaturesApi.addLead(payload); onCreated(); }
     catch (err: any) { setError(err.message ?? "Failed to save lead"); }
@@ -151,11 +154,23 @@ function LeadForm({ products, onCreated, onCancel }: { products: { id: string; n
         <label><span style={{ fontSize: "0.8rem", display: "block", marginBottom: "0.25rem" }}>Email</span><input name="email" type="email" placeholder="email@example.com" style={{ width: "100%", padding: "0.5rem", borderRadius: "6px", border: "1px solid var(--color-border)", background: "var(--color-surface)", color: "inherit" }} /></label>
         <label><span style={{ fontSize: "0.8rem", display: "block", marginBottom: "0.25rem" }}>City</span><input name="city" placeholder="City" style={{ width: "100%", padding: "0.5rem", borderRadius: "6px", border: "1px solid var(--color-border)", background: "var(--color-surface)", color: "inherit" }} /></label>
         <label><span style={{ fontSize: "0.8rem", display: "block", marginBottom: "0.25rem" }}>Source</span>
-          <select name="source" style={{ width: "100%", padding: "0.5rem", borderRadius: "6px", border: "1px solid var(--color-border)", background: "var(--color-surface)", color: "inherit" }}>
+          <select name="source" value={selectedSource} onChange={(e) => setSelectedSource(e.target.value)} style={{ width: "100%", padding: "0.5rem", borderRadius: "6px", border: "1px solid var(--color-border)", background: "var(--color-surface)", color: "inherit" }}>
             <option value="">Select source</option>
-            {["Exhibition", "Referral", "Walk-in", "Cold call", "Website", "Other"].map((s) => <option key={s} value={s}>{s}</option>)}
+            {["Referral", "Exhibition", "Website", "Field enquiry", "Walk-in", "Cold call", "Other"].map((s) => <option key={s} value={s}>{s}</option>)}
           </select>
         </label>
+        {selectedSource === "Other" && (
+          <label style={{ gridColumn: "1/-1" }}>
+            <span style={{ fontSize: "0.8rem", display: "block", marginBottom: "0.25rem" }}>Specify Source Details *</span>
+            <input
+              value={customSource}
+              onChange={(e) => setCustomSource(e.target.value)}
+              required
+              placeholder="Specify where enquiry came from (e.g. Instagram, Trade Fair, Print Ad)"
+              style={{ width: "100%", padding: "0.5rem", borderRadius: "6px", border: "1px solid var(--color-border)", background: "var(--color-surface)", color: "inherit" }}
+            />
+          </label>
+        )}
         <label><span style={{ fontSize: "0.8rem", display: "block", marginBottom: "0.25rem" }}>Interested Product</span>
           <select name="interestedProductId" style={{ width: "100%", padding: "0.5rem", borderRadius: "6px", border: "1px solid var(--color-border)", background: "var(--color-surface)", color: "inherit" }}>
             <option value="">Select product</option>
