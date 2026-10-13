@@ -610,35 +610,73 @@ const tabStyle = (t: Tab): React.CSSProperties => ({
           </article>
 ))}
 
-          <article className="workspace-card" id="performance">
-            <div className="card-title">
-              <div>
-                <p>MY PERFORMANCE</p>
-                <h3>Monthly target</h3>
-              </div>
-              <strong>{data.performance.achievement ? `${data.performance.achievement}%` : achievement === null ? "No target" : `${achievement}%`}</strong>
-            </div>
-            <div className="progress">
-              <i style={{ width: `${Math.min(data.performance.achievement ?? achievement ?? 0, 100)}%` }} />
-            </div>
-            <div className="performance-values">
-              <div>
-                <span>Actual from Tally</span>
-                <b>{data.performance.actualRupees ? formatRupees(data.performance.actualRupees) : `₹${data.performance.actual} Cr`}</b>
-              </div>
-              <div>
-                <span>Target</span>
-                <b>{data.performance.targetRupees ? formatRupees(data.performance.targetRupees) : data.performance.target > 0 ? `₹${data.performance.target} Cr` : "Not set"}</b>
-              </div>
-              <div>
-                <span>Gap</span>
-                <b>{data.performance.targetRupees && data.performance.actualRupees
-                  ? formatRupees(Math.max(data.performance.targetRupees - data.performance.actualRupees, 0))
-                  : `₹${Math.max(data.performance.target - data.performance.actual, 0).toFixed(2)} Cr`}</b>
-              </div>
-            </div>
-            <p className="insight">Sales actuals are read from Tally; visits, discussions and expected orders are captured in the CRM.</p>
-          </article>
+          {(() => {
+            const ach = data.performance.achievement ?? achievement ?? 0;
+            const isSurplus = Boolean(
+              data.performance.actualRupees &&
+              data.performance.targetRupees &&
+              data.performance.actualRupees >= data.performance.targetRupees
+            );
+            const surplusRupees = isSurplus ? (data.performance.actualRupees! - data.performance.targetRupees!) : 0;
+            const gapRupees = !isSurplus && data.performance.targetRupees && data.performance.actualRupees
+              ? (data.performance.targetRupees - data.performance.actualRupees)
+              : 0;
+
+            return (
+              <article className="workspace-card" id="performance">
+                <div className="card-title">
+                  <div>
+                    <p>MY PERFORMANCE</p>
+                    <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap", marginTop: "2px" }}>
+                      <h3 style={{ margin: 0 }}>Monthly target</h3>
+                      {data.performance.periodLabel && (
+                        <span style={{ fontSize: "11px", fontWeight: 600, color: "var(--honolulu-blue, #007CBA)", background: "rgba(0, 124, 186, 0.08)", padding: "2px 8px", borderRadius: "12px", border: "1px solid rgba(0, 124, 186, 0.2)" }}>
+                          📅 {data.performance.periodLabel}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                  <div style={{ textAlign: "right" }}>
+                    <strong style={{ display: "block" }}>{data.performance.achievement ? `${data.performance.achievement}%` : achievement === null ? "No target" : `${achievement}%`}</strong>
+                    {ach >= 100 && (
+                      <span style={{ fontSize: "11px", fontWeight: 700, color: "#16a34a", display: "inline-flex", alignItems: "center", gap: "3px" }}>
+                        ✓ Target Achieved
+                      </span>
+                    )}
+                  </div>
+                </div>
+                <div className="progress">
+                  <i style={{
+                    width: `${Math.min(ach, 100)}%`,
+                    background: ach >= 100 ? "linear-gradient(90deg, #15803d, #16a34a, #22c55e)" : undefined,
+                  }} />
+                </div>
+                <div className="performance-values">
+                  <div>
+                    <span>Actual from Tally</span>
+                    <b>{data.performance.actualRupees ? formatRupees(data.performance.actualRupees) : `₹${data.performance.actual} Cr`}</b>
+                  </div>
+                  <div>
+                    <span>Target</span>
+                    <b>{data.performance.targetRupees ? formatRupees(data.performance.targetRupees) : data.performance.target > 0 ? `₹${data.performance.target} Cr` : "Not set"}</b>
+                  </div>
+                  <div style={isSurplus ? { background: "linear-gradient(135deg, #f0fdf4, #dcfce7)", borderColor: "#86efac" } : {}}>
+                    <span>{isSurplus ? `Surplus (+${Math.max(ach - 100, 0)}%)` : "Gap"}</span>
+                    <b style={isSurplus ? { color: "#15803d" } : {}}>
+                      {isSurplus
+                        ? `+${formatRupees(surplusRupees)}`
+                        : data.performance.targetRupees && data.performance.actualRupees
+                        ? formatRupees(gapRupees)
+                        : data.performance.target > 0
+                        ? `₹${Math.max(data.performance.target - data.performance.actual, 0).toFixed(2)} Cr`
+                        : "₹0"}
+                    </b>
+                  </div>
+                </div>
+                <p className="insight">Sales actuals are read from Tally; visits, discussions and expected orders are captured in the CRM.</p>
+              </article>
+            );
+          })()}
         </section>
 
       {selectedVisit && <div className="modal-backdrop" onMouseDown={() => setSelectedVisit(null)}><section className="visit-modal" role="dialog" aria-modal="true" onMouseDown={(e) => e.stopPropagation()}><button className="close" onClick={() => setSelectedVisit(null)}>×</button><p>CUSTOMER VISIT</p><h2>{selectedVisit.customer}</h2><form onSubmit={handleVisitSubmit}>
