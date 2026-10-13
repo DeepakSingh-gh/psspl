@@ -221,3 +221,12 @@ Open the mobile view `/sales/my-day`. Select "Phone Call". Record a voice note, 
 - [x] **Ask AI Engine Upgrade**: Upgraded `server/ai-context.mjs` from deprecated Gemini models to active `gemini-3.8-flash` (primary) and `gemini-3.6-flash` (fallback).
 - [x] **Sub-4-Second Response Optimization**: Added `thinkingBudget: 0` to Gemini generation config, reducing query turnaround time to ~3 seconds with robust thought-token stripping.
 
+---
+
+### Task 14: Sales Workspace Monthly Performance Card Realignment
+
+**Tasks Completed:**
+- [x] **Active Ledger Period Badge**: Linked `data.performance.periodLabel` to the header of the Monthly Performance card in `/sales/my-day`, displaying `📅 This Month (2026-09 active ledger)` for unambiguous temporal context.
+- [x] **Dynamic Surplus vs Gap Indicator**: Replaced flat `Gap: ₹0` with dynamic calculation. When actual exceeds target, displays positive green `Surplus (+35%)` with value `+₹16.22 L`.
+- [x] **Target Achieved Milestone Status & Green Progress Bar**: Added green `✓ Target Achieved` pill when achievement >= 100% and dynamic green gradient progress bar fill.
+

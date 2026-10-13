@@ -17,5 +17,6 @@ Task 15: complete (Performance optimization: SQLite composite indexes on invoice
 Task 16: complete (RM unplanned visit planning fix: multi-tier access control in canAccessCustomer matching RM territory and team accounts, full visit and pipeline reflection across all linked RM accounts in Admin panel /admin/team/:id -> pass)
 Task 17: complete (Unified follow-up creation button in Sales Workspace /sales/my-day, resilient check-in with geolocation graceful fallback for desktop/non-GPS devices, inline follow-up modal error handling and saving states -> pass)
 Task 18: complete (Cleared hardcoded milestone data in Special Achievements & Milestones keeping field blank, removed Key Insights & Next Actions from report cards, upgraded Ask AI to gemini-3.8-flash and gemini-3.6-flash with thinkingBudget 0 for 3s response time -> pass)
+Task 19: complete (Sales Workspace monthly performance card realignment: added active ledger period badge, dynamic surplus (+35%) vs gap calculation, and Target Achieved badge -> pass)
 Final review: complete
 
