@@ -8,6 +8,8 @@ export interface Visit {
   customer: string;
   location: string;
   time: string;
+  dateLabel?: string;
+  nextFollowUpDate?: string;
   productId: string | null;
   product: string;
   purpose: string;
@@ -22,6 +24,7 @@ export interface FollowUp {
   title: string;
   customer: string;
   dueLabel: string;
+  dueDate?: string;
   priority: "high" | "medium" | "low" | "today" | "overdue" | string;
   completed: boolean;
   followUpType?: FollowUpType;
@@ -29,10 +32,30 @@ export interface FollowUp {
 }
 
 export interface SalesDay {
-  salesperson: { id: string; email: string; name: string; region: string; territory: string; checkedInAt: string | null; checkedOutAt: string | null; trackingActive: boolean };
+  salesperson: {
+    id: string;
+    email: string;
+    name: string;
+    region: string;
+    territory: string;
+    rmCode?: string;
+    operatingFrom?: string;
+    teamExecutiveCities?: string[];
+    checkedInAt: string | null;
+    checkedOutAt: string | null;
+    trackingActive: boolean;
+  };
   visits: Visit[];
   followUps: FollowUp[];
-  performance: { actual: number; target: number; currencyLabel: string };
+  performance: {
+    actual: number;
+    target: number;
+    currencyLabel: string;
+    achievement?: number;
+    periodLabel?: string;
+    actualRupees?: number;
+    targetRupees?: number;
+  };
   summary: { expectedOrderValue: number; expectedOrderCount: number; followUpsCreated: number; productsDiscussed: number };
   tally: { mode: string; connected: boolean; lastSyncAt: string | null; message?: string };
   referenceData: { customers: TallyCustomer[]; products: TallyProduct[] };

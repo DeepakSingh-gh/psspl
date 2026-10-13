@@ -5,6 +5,7 @@ import multer from "multer";
 import { authenticate } from "./auth.mjs";
 import { db } from "./db.mjs";
 import { tally } from "./tally/connector.mjs";
+import { buildRmDirectory, resolveRmId } from "./rm-directory.mjs";
 
 mkdirSync("data/voice-notes", { recursive: true });
 const voiceUpload = multer({ dest: "data/voice-notes/", limits: { fileSize: 25 * 1024 * 1024 }, fileFilter: (_req, file, cb) => cb(null, file.mimetype.startsWith("audio/") || file.originalname.endsWith(".webm") || file.originalname.endsWith(".ogg")) });
@@ -12,10 +13,25 @@ const voiceUpload = multer({ dest: "data/voice-notes/", limits: { fileSize: 25 *
 export const salesRouter = Router();
 salesRouter.use(authenticate);
 const today = () => new Date().toISOString().slice(0, 10);
-const canAccessCustomer = (userId, customerId) => Boolean(db.prepare(`
-  SELECT 1 FROM tally_customers c LEFT JOIN salesperson_profiles self ON self.user_id=?
-  WHERE c.id=? AND (c.owner_user_id=? OR c.owner_user_id IN (SELECT user_id FROM salesperson_profiles WHERE manager_user_id=?) OR (c.owner_user_id IS NULL AND lower(replace(COALESCE(c.rm_name,''),' ',''))=lower(replace(COALESCE(self.full_name,''),' ',''))))
-`).get(userId, customerId, userId, userId));
+
+const canAccessCustomer = (userId, customerId) => {
+  const profile = db.prepare("SELECT full_name FROM salesperson_profiles WHERE user_id=?").get(userId);
+  const directory = buildRmDirectory();
+  const rm = directory.find((entry) => entry.id === userId || (entry.keys && entry.keys.includes(userId)) || resolveRmId(directory, profile?.full_name || "") === entry.id);
+  const allNames = rm ? [rm.name, ...rm.aliases] : [profile?.full_name].filter(Boolean);
+  const nameList = allNames.length ? allNames.map(() => "?").join(",") : "";
+
+  return Boolean(db.prepare(`
+    SELECT 1 FROM tally_customers c
+    WHERE c.id=? AND (
+      c.owner_user_id=?
+      OR c.owner_user_id IN (SELECT user_id FROM salesperson_profiles WHERE manager_user_id=? OR user_id=?)
+      OR (c.owner_user_id IN (SELECT u.id FROM users u JOIN salesperson_profiles p ON p.user_id=u.id WHERE p.manager_user_id=(SELECT manager_user_id FROM salesperson_profiles WHERE user_id=?)))
+      ${nameList ? `OR (c.rm_name IN (${nameList}))` : ""}
+      OR (c.owner_user_id IS NULL AND lower(replace(COALESCE(c.rm_name,''),' ',''))=lower(replace(?,' ','')))
+    )
+  `).get(customerId, userId, userId, userId, userId, ...(allNames.length ? allNames : []), profile?.full_name ?? ""));
+};
 
 salesRouter.post("/attendance/check-out", (req, res) => {
   const { latitude, longitude, accuracy } = req.body ?? {};
@@ -85,6 +101,12 @@ salesRouter.patch("/leads/:id", (req, res) => {
   const { name, company, phone, email, city, source, interestedProductId, expectedValue, nextActionDate, notes } = req.body ?? {};
   db.prepare("UPDATE leads SET name=COALESCE(?,name),company=?,phone=?,email=?,city=?,source=?,interested_product_id=?,expected_value=COALESCE(?,expected_value),next_action_date=?,notes=? WHERE id=? AND user_id=?")
     .run(name||null, company||null, phone||null, email||null, city||null, source||null, interestedProductId||null, expectedValue!=null?Number(expectedValue):null, nextActionDate||null, notes||null, req.params.id, req.user.id);
+  res.json({ ok: true });
+});
+salesRouter.delete("/leads/:id", (req, res) => {
+  db.prepare("DELETE FROM customer_activities WHERE lead_id=?").run(req.params.id);
+  db.prepare("DELETE FROM service_requests WHERE lead_id=?").run(req.params.id);
+  db.prepare("DELETE FROM leads WHERE id=? AND user_id=?").run(req.params.id, req.user.id);
   res.json({ ok: true });
 });
 salesRouter.get("/leads/:id", (req, res) => {

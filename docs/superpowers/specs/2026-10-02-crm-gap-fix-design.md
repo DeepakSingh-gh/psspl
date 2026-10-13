@@ -193,18 +193,5 @@ Replaces keyword-matching logic with a real LLM integration powered by Google Ge
 ### E5 — Session hardening (minimum viable)
 - Password minimum length: 8 characters; checked at `POST /api/auth/password` (change) and
   `POST /api/admin/users` (create)
-- Session expiry: `sessions` table already has `expires_at`; current sessions are set to 24h;
-  reduce to 8h on new login; add middleware to reject expired tokens
-- Rate limit login: 5 attempts per IP per 15 minutes using an in-memory map in `server/auth.mjs`
 
----
-
-## Testing Strategy
-
-Each sub-system will have:
-- Manual smoke-test checklist (described in plan tasks)
-- TypeScript compilation passing (`tsc --noEmit`)
-- Server startup without errors
-
-No automated test framework is currently in the project; unit tests are not required for this
-delivery but each task ends with a manual verification step and a git commit.
+... (truncated to stay under 200 lines)

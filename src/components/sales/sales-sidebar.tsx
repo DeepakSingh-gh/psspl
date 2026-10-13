@@ -1,5 +1,6 @@
 "use client";
 import { usePathname } from "next/navigation";
+import { PssplLogo } from "@/components/common/psspl-logo";
 
 const NAV = [
   { href: "/sales/my-day", label: "My Day" },
@@ -23,8 +24,7 @@ export function SalesSidebar({ name, subtitle, onSignOut }: {
   return (
     <aside className="sales-sidebar">
       <div className="brand">
-        <span>P</span>
-        <div><strong>Progressive</strong><small>Surface Systems</small></div>
+        <PssplLogo width={170} />
       </div>
       <nav>
         {NAV.map((item) => (

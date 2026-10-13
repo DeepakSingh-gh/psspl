@@ -74,13 +74,6 @@ export function RmReportCard() {
   /* product share */
   const productTotal = allProducts.reduce((s: number, p: any) => s + p.salesValue, 0) || 1;
 
-  /* AI-style insights */
-  const insights: { color: string; icon: string; title: string; body: string }[] = [];
-  if (pct < 50) insights.push({ color: "#e07c2d", icon: "📈", title: "Sales are low", body: `Only ${pct}% of target achieved. Increase focus on pending follow-ups and pipeline customers.` });
-  if (dormantDealers.length >= 2) insights.push({ color: "#c44a4a", icon: "👥", title: `${dormantDealers.length} dealers are dormant`, body: `${dormantDealers.slice(0, 2).map((d: any) => d.dealerName).join(" and ")} have not purchased recently. Schedule a visit.` });
-  if (topProducts.length > 0) insights.push({ color: "#1f7a55", icon: "📦", title: `${topProducts[0].productName} is top product`, body: `${Math.round((topProducts[0].salesValue / productTotal) * 100)}% of total sales. Introduce it to more customers in your region.` });
-  if (fa.followUpsOverdue > 0) insights.push({ color: "#0663a0", icon: "🎯", title: `${fa.followUpsOpen} follow-ups pending`, body: `${fa.followUpsOverdue} follow-up${fa.followUpsOverdue !== 1 ? "s" : ""} are overdue. Contact them this week to improve conversion.` });
-
   return (
     <div className="admin-shell rm-shell" style={{ fontFamily: "'Inter', 'Segoe UI', sans-serif" }}>
       {/* ── Sidebar ── */}
@@ -234,101 +227,6 @@ export function RmReportCard() {
                   </div>
                 </div>
               </div>
-
-              {/* ── Key Insights & Next Actions (Top AI Suggestions) ── */}
-              {insights.length > 0 && (
-                <div
-                  style={{
-                    background: "linear-gradient(135deg, #fffcf0 0%, #fefce8 40%, #f5f3ff 100%)",
-                    border: "1.5px solid #fde047",
-                    borderRadius: 16,
-                    padding: "18px 22px",
-                    marginBottom: 20,
-                    boxShadow: "0 4px 20px -2px rgba(245, 158, 11, 0.12), 0 2px 6px -1px rgba(0, 0, 0, 0.03)",
-                  }}
-                >
-                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14 }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                      <div
-                        style={{
-                          width: 32,
-                          height: 32,
-                          borderRadius: 10,
-                          background: "linear-gradient(135deg, #f59e0b, #d97706)",
-                          display: "grid",
-                          placeItems: "center",
-                          fontSize: 16,
-                          color: "#fff",
-                          boxShadow: "0 3px 8px rgba(217, 119, 6, 0.3)",
-                        }}
-                      >
-                        💡
-                      </div>
-                      <div>
-                        <h3 style={{ margin: 0, fontSize: 15, fontWeight: 800, color: "#0f172a", letterSpacing: "-0.01em" }}>
-                          Key Insights &amp; Next Actions
-                        </h3>
-                        <p style={{ margin: "2px 0 0", fontSize: 11.5, color: "#64748b", fontWeight: 500 }}>
-                          Automated AI-driven performance recommendations
-                        </p>
-                      </div>
-                    </div>
-                    <span
-                      style={{
-                        fontSize: 11,
-                        fontWeight: 700,
-                        background: "linear-gradient(135deg, #fef08a 0%, #fde047 100%)",
-                        border: "1px solid #facc15",
-                        borderRadius: 20,
-                        padding: "4px 12px",
-                        color: "#854d0e",
-                        display: "inline-flex",
-                        alignItems: "center",
-                        gap: 5,
-                        boxShadow: "0 2px 6px rgba(234, 179, 8, 0.2)",
-                      }}
-                    >
-                      ✨ AI Executive Summary
-                    </span>
-                  </div>
-
-                  <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: 14 }}>
-                    {insights.map((ins, i) => (
-                      <div
-                        key={i}
-                        style={{
-                          background: "#ffffff",
-                          border: `1px solid ${ins.color}33`,
-                          borderLeft: `4px solid ${ins.color}`,
-                          borderRadius: 12,
-                          padding: "14px 16px",
-                          boxShadow: "0 2px 8px rgba(0, 0, 0, 0.04)",
-                          transition: "all 0.2s ease-in-out",
-                        }}
-                      >
-                        <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 8 }}>
-                          <span
-                            style={{
-                              width: 28,
-                              height: 28,
-                              borderRadius: 8,
-                              background: `${ins.color}15`,
-                              display: "grid",
-                              placeItems: "center",
-                              fontSize: 15,
-                              flexShrink: 0,
-                            }}
-                          >
-                            {ins.icon}
-                          </span>
-                          <strong style={{ fontSize: 13, color: "#0f172a", fontWeight: 800 }}>{ins.title}</strong>
-                        </div>
-                        <p style={{ margin: 0, fontSize: 12, color: "#475569", lineHeight: 1.55, fontWeight: 500 }}>{ins.body}</p>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
 
               {/* ── 6 KPI cards ── */}
               <div style={{ display: "grid", gridTemplateColumns: "repeat(6, 1fr)", gap: 12, marginBottom: 20 }}>

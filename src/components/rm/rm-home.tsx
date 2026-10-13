@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { authApi, clearSession, rmApi } from "@/lib/api";
+import { PssplLogo } from "@/components/common/psspl-logo";
 import { formatRupees, formatNumber } from "@/lib/format";
 
 const STAGE_LABELS: Record<string, string> = {
@@ -13,7 +14,6 @@ const STAGE_ORDER = ["lead", "technical_discussion", "sample", "quotation", "fol
 
 const NAV_ITEMS = [
   { href: "/rm", label: "Home" },
-  { href: "/rm/report-card", label: "Report Card" },
   { href: "/rm/team", label: "My Team" },
   { href: "/rm/customers", label: "Customers" },
   { href: "/rm/products", label: "Product Trends" },
@@ -49,8 +49,7 @@ export function RmHome() {
     <div className="admin-shell rm-shell">
       <aside className="admin-sidebar">
         <div className="admin-brand">
-          <span className="admin-brand-mark" aria-hidden="true">P</span>
-          <span className="admin-brand-name"><strong>Progressive</strong><small>Surface Systems</small></span>
+          <PssplLogo />
         </div>
         <p className="admin-workspace">Regional manager workspace</p>
         <nav>
@@ -89,6 +88,176 @@ export function RmHome() {
               <div className="admin-placeholder">Loading your dashboard…</div>
             ) : data && (
               <>
+                {/* ── RM Executive Identity Banner ── */}
+                <div
+                  style={{
+                    background: "#ffffff",
+                    border: "1.5px solid #cbd5e1",
+                    borderRadius: 16,
+                    padding: "18px 22px",
+                    marginBottom: 20,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    flexWrap: "wrap",
+                    gap: 16,
+                    boxShadow: "0 2px 10px rgba(15,23,42,.06)",
+                  }}
+                >
+                  <div style={{ display: "flex", alignItems: "flex-start", gap: 16 }}>
+                    <div
+                      style={{
+                        width: 52,
+                        height: 52,
+                        borderRadius: "50%",
+                        background: "linear-gradient(135deg, #0b2a5b 0%, #087cc1 100%)",
+                        display: "grid",
+                        placeItems: "center",
+                        color: "#fff",
+                        fontSize: 20,
+                        fontWeight: 800,
+                        flexShrink: 0,
+                        boxShadow: "0 4px 10px rgba(11,42,91,.2)",
+                      }}
+                    >
+                      {data.manager?.fullName?.slice(0, 1) ?? "R"}
+                    </div>
+                    <div>
+                      <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                        <h2 style={{ margin: 0, fontSize: 20, fontWeight: 800, color: "#0f172a", letterSpacing: "-0.01em" }}>
+                          {data.manager?.fullName ?? "Regional Manager"}
+                        </h2>
+                        {data.manager?.rmCode && (
+                          <span
+                            style={{
+                              display: "inline-flex",
+                              alignItems: "center",
+                              gap: 4,
+                              background: "#eff6ff",
+                              border: "1px solid #bfdbfe",
+                              color: "#1d4ed8",
+                              padding: "2px 8px",
+                              borderRadius: 6,
+                              fontSize: 11.5,
+                              fontWeight: 750,
+                            }}
+                          >
+                            🏷️ RM Code: <strong style={{ color: "#1e40af" }}>{data.manager?.rmCode}</strong>
+                          </span>
+                        )}
+                        <span
+                          style={{
+                            background: "#f1f5f9",
+                            border: "1px solid #cbd5e1",
+                            color: "#334155",
+                            padding: "2px 8px",
+                            borderRadius: 6,
+                            fontSize: 11.5,
+                            fontWeight: 600,
+                          }}
+                        >
+                          Region: {data.manager?.region ?? "North Region"}
+                        </span>
+                        <span
+                          style={{
+                            background: "#eff6ff",
+                            border: "1px solid #bfdbfe",
+                            color: "#1d4ed8",
+                            padding: "2px 8px",
+                            borderRadius: 6,
+                            fontSize: 11.5,
+                            fontWeight: 700,
+                          }}
+                        >
+                          📍 Operating from: {data.manager?.operatingFrom || "Gurugram"}
+                        </span>
+                      </div>
+
+                      {/* Team Executive Cities */}
+                      <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap", marginTop: 8 }}>
+                        <span style={{ fontSize: 11.5, fontWeight: 700, color: "#64748b", display: "inline-flex", alignItems: "center", gap: 4 }}>
+                          👥 Team Executive Cities:
+                        </span>
+                        {(data.manager?.teamExecutiveCities || ["Gurgaon", "Delhi", "Ghaziabad", "Faridabad", "Noida", "Sonepat", "Bahadurgarh", "Sahibabad", "Rudrapur"]).map((city: string, i: number) => (
+                          <span
+                            key={i}
+                            style={{
+                              background: "#f8fafc",
+                              border: "1px solid #e2e8f0",
+                              color: "#0f172a",
+                              padding: "1px 8px",
+                              borderRadius: 12,
+                              fontSize: 11,
+                              fontWeight: 600,
+                            }}
+                          >
+                            {city}
+                          </span>
+                        ))}
+                      </div>
+
+                      {/* RM Clock-in / Clock-out Badge */}
+                      <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 10, flexWrap: "wrap" }}>
+                        <span style={{
+                          display: "inline-flex",
+                          alignItems: "center",
+                          gap: 5,
+                          padding: "3px 10px",
+                          borderRadius: 16,
+                          fontSize: 11.5,
+                          fontWeight: 700,
+                          background: data.manager?.attendance?.checkOutAt
+                            ? "#f0fdf4"
+                            : data.manager?.attendance?.checkInAt
+                            ? "#eff6ff"
+                            : "#f8fafc",
+                          color: data.manager?.attendance?.checkOutAt
+                            ? "#166534"
+                            : data.manager?.attendance?.checkInAt
+                            ? "#1d4ed8"
+                            : "#64748b",
+                          border: `1px solid ${
+                            data.manager?.attendance?.checkOutAt
+                              ? "#bbf7d0"
+                              : data.manager?.attendance?.checkInAt
+                              ? "#bfdbfe"
+                              : "#e2e8f0"
+                          }`,
+                        }}>
+                          <span style={{
+                            width: 7,
+                            height: 7,
+                            borderRadius: "50%",
+                            background: data.manager?.attendance?.checkOutAt
+                              ? "#16a34a"
+                              : data.manager?.attendance?.checkInAt
+                              ? "#2563eb"
+                              : "#94a3b8",
+                          }} />
+                          {data.manager?.attendance?.checkOutAt
+                            ? `Clocked Out: ${new Date(data.manager.attendance.checkOutAt).toLocaleTimeString("en-IN", { hour: "numeric", minute: "2-digit" })}`
+                            : data.manager?.attendance?.checkInAt
+                            ? `Clocked In: ${new Date(data.manager.attendance.checkInAt).toLocaleTimeString("en-IN", { hour: "numeric", minute: "2-digit" })}`
+                            : "Not Clocked In Today"}
+                        </span>
+                        {data.manager?.attendance?.checkInAt && data.manager?.attendance?.checkOutAt && (
+                          <span style={{
+                            fontSize: 11,
+                            color: "#64748b",
+                            fontWeight: 600,
+                            background: "#f1f5f9",
+                            padding: "2px 7px",
+                            borderRadius: 6,
+                          }}>
+                            In: {new Date(data.manager.attendance.checkInAt).toLocaleTimeString("en-IN", { hour: "numeric", minute: "2-digit" })}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                </div>
+
                 <div className="admin-stats">
                   <article className="admin-stat">
                     <span className="admin-stat-label">Team Sales</span>
@@ -143,9 +312,21 @@ export function RmHome() {
                             <small>{m.email}</small>
                           </td>
                           <td>{m.territory}</td>
-                          <td>{m.attendance
-                            ? <><span className={`admin-pill ${m.attendance.checkOutAt ? "positive" : "neutral"}`}>{m.attendance.checkOutAt ? "Checked out" : "In field"}</span></>
-                            : <span className="admin-muted">Not checked in</span>}
+                          <td>{m.attendance ? (
+                            <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+                              <span className={`admin-pill ${m.attendance.checkOutAt ? "positive" : "neutral"}`} style={{ width: "fit-content" }}>
+                                {m.attendance.checkOutAt ? "Checked out" : "In field"}
+                              </span>
+                              <small style={{ fontSize: 10.5, color: "#64748b" }}>
+                                In: <strong>{new Date(m.attendance.checkInAt).toLocaleTimeString("en-IN", { hour: "numeric", minute: "2-digit" })}</strong>
+                                {m.attendance.checkOutAt && (
+                                  <> · Out: <strong>{new Date(m.attendance.checkOutAt).toLocaleTimeString("en-IN", { hour: "numeric", minute: "2-digit" })}</strong></>
+                                )}
+                              </small>
+                            </div>
+                          ) : (
+                            <span className="admin-muted">Not checked in</span>
+                          )}
                           </td>
                           <td>{formatNumber(m.visitsCompleted)} of {formatNumber(m.visitsTotal)}</td>
                           <td>{formatNumber(m.followUpsOpen)}</td>

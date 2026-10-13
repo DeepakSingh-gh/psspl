@@ -132,15 +132,15 @@ export function VoiceMicButton({ onTranscript, title = "Click to speak & search"
         display: "inline-flex",
         alignItems: "center",
         justifyContent: "center",
-        background: isRecording ? "#ef4444" : "transparent",
-        color: isRecording ? "#ffffff" : "var(--color-text-muted, #64748b)",
+        background: isRecording ? "#CC1818" : "transparent",
+        color: isRecording ? "#ffffff" : "#7A00DF",
         border: "none",
         borderRadius: "50%",
         width: "32px",
         height: "32px",
         cursor: "pointer",
         transition: "all 0.2s ease-in-out",
-        boxShadow: isRecording ? "0 0 0 4px rgba(239, 68, 68, 0.3)" : "none",
+        boxShadow: isRecording ? "0 0 0 4px rgba(204, 24, 24, 0.3)" : "none",
         animation: isRecording ? "voicePulse 1.2s infinite ease-in-out" : "none",
         padding: 0,
         margin: "0 4px",
@@ -178,15 +178,15 @@ export function VoiceMicButton({ onTranscript, title = "Click to speak & search"
         @keyframes voicePulse {
           0% {
             transform: scale(1);
-            box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.5);
+            box-shadow: 0 0 0 0 rgba(204, 24, 24, 0.5);
           }
           70% {
             transform: scale(1.08);
-            box-shadow: 0 0 0 8px rgba(239, 68, 68, 0);
+            box-shadow: 0 0 0 8px rgba(204, 24, 24, 0);
           }
           100% {
             transform: scale(1);
-            box-shadow: 0 0 0 0 rgba(239, 68, 68, 0);
+            box-shadow: 0 0 0 0 rgba(204, 24, 24, 0);
           }
         }
         @keyframes spin {

@@ -16,7 +16,7 @@ function getTrafficLightStatus(percent: number | null) {
 export function AdminTeam() {
   const [financialYear, setFinancialYear] = useState<string>("");
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
-  const { data, loading, error, reload } = useAdminData(() => adminApi.team(financialYear || undefined), [financialYear]);
+  const { data, loading, error, reload } = useAdminData(() => adminApi.team(financialYear || undefined), [financialYear], `admin-team-${financialYear || "default"}`);
 
   const sortedMembers = data ? [...data.members].sort((a, b) => {
     const aVal = a.achievementPercent !== null ? a.achievementPercent : a.salesValue;
@@ -67,12 +67,160 @@ export function AdminTeam() {
 
             <p className="admin-note subtle">Click on any RM or salesperson name to view their detailed sales activity — visits, pipeline, and actual sales.</p>
 
+            {/* ── Thrust Products Leaderboard Widget ── */}
+            {data.thrustLeaderboard && data.thrustLeaderboard.length > 0 && (
+              <div
+                style={{
+                  background: "linear-gradient(135deg, #f0fdf4 0%, #ecfeff 50%, #f8fafc 100%)",
+                  border: "1.5px solid #86efac",
+                  borderRadius: 16,
+                  padding: "20px 22px",
+                  marginBottom: 24,
+                  boxShadow: "0 4px 16px -2px rgba(22, 101, 52, 0.08)",
+                }}
+              >
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    flexWrap: "wrap",
+                    gap: 12,
+                    marginBottom: 16,
+                    paddingBottom: 12,
+                    borderBottom: "1px solid rgba(134, 239, 172, 0.4)",
+                  }}
+                >
+                  <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                    <div
+                      style={{
+                        width: 36,
+                        height: 36,
+                        borderRadius: 10,
+                        background: "linear-gradient(135deg, #16a34a 0%, #15803d 100%)",
+                        display: "grid",
+                        placeItems: "center",
+                        fontSize: 18,
+                        color: "#fff",
+                        boxShadow: "0 3px 8px rgba(22, 163, 74, 0.3)",
+                      }}
+                    >
+                      🚀
+                    </div>
+                    <div>
+                      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                        <h3 style={{ margin: 0, fontSize: 16, fontWeight: 800, color: "#0f172a" }}>
+                          Strategic Thrust Products — RM Leaderboard
+                        </h3>
+                        <span
+                          style={{
+                            fontSize: 11,
+                            fontWeight: 700,
+                            padding: "2px 8px",
+                            borderRadius: 12,
+                            background: "#dcfce7",
+                            color: "#166534",
+                            border: "1px solid #bbf7d0",
+                          }}
+                        >
+                          9 Key Thrust Products
+                        </span>
+                      </div>
+                      <p style={{ margin: "2px 0 0", fontSize: 12, color: "#64748b" }}>
+                        Tracking actual sales till date against the annual thrust portfolio (Rs. Lac)
+                      </p>
+                    </div>
+                  </div>
+
+                  <div
+                    style={{
+                      background: "#ffffff",
+                      border: "1px solid #bbf7d0",
+                      borderRadius: 10,
+                      padding: "6px 14px",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 12,
+                    }}
+                  >
+                    <div>
+                      <div style={{ fontSize: 10, fontWeight: 700, color: "#64748b", textTransform: "uppercase" }}>Total Thrust Revenue</div>
+                      <div style={{ fontSize: 16, fontWeight: 800, color: "#166534" }}>
+                        ₹{data.thrustLeaderboard.reduce((s, m) => s + m.thrustSalesLakh, 0).toFixed(2)} Lac
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Top RM Cards */}
+                <div
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+                    gap: 12,
+                  }}
+                >
+                  {data.thrustLeaderboard.slice(0, 4).map((item, idx) => {
+                    const medals = ["🥇", "🥈", "🥉", "🎖️"];
+                    return (
+                      <Link
+                        key={item.id}
+                        href={`/admin/team/${encodeURIComponent(item.id)}`}
+                        style={{
+                          textDecoration: "none",
+                          background: "#ffffff",
+                          border: idx === 0 ? "1.5px solid #facc15" : "1px solid #e2e8f0",
+                          borderRadius: 12,
+                          padding: "12px 14px",
+                          display: "flex",
+                          flexDirection: "column",
+                          gap: 6,
+                          boxShadow: idx === 0 ? "0 4px 12px rgba(234, 179, 8, 0.15)" : "0 2px 6px rgba(0,0,0,0.03)",
+                          transition: "transform 0.15s ease",
+                        }}
+                      >
+                        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                          <span style={{ fontSize: 12, fontWeight: 800, color: "#0f172a", display: "flex", alignItems: "center", gap: 5 }}>
+                            <span>{medals[idx]}</span>
+                            <span>{item.name}</span>
+                          </span>
+                          <span
+                            style={{
+                              fontSize: 10,
+                              fontWeight: 700,
+                              padding: "2px 6px",
+                              borderRadius: 6,
+                              background: "#f0fdf4",
+                              color: "#166534",
+                            }}
+                          >
+                            {item.thrustActiveCount} products
+                          </span>
+                        </div>
+                        <div>
+                          <div style={{ fontSize: 18, fontWeight: 900, color: "#16a34a" }}>
+                            {item.thrustSalesLakh.toFixed(2)} <span style={{ fontSize: 11, fontWeight: 700 }}>Lac</span>
+                          </div>
+                          {item.thrustTopProduct && (
+                            <div style={{ fontSize: 11, color: "#64748b", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", marginTop: 2 }}>
+                              Top: <strong style={{ color: "#334155" }}>{item.thrustTopProduct}</strong>
+                            </div>
+                          )}
+                        </div>
+                      </Link>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
             <div className="admin-table-wrap">
               <table className="admin-table">
                 <thead>
                   <tr>
                     <th>Salesperson / RM</th>
                     <th className="numeric">Sales</th>
+                    <th className="numeric" style={{ color: "#15803d" }}>🎯 Thrust Sales</th>
                     <th className="numeric">Target</th>
                     <th className="numeric">Achieved</th>
                     <th className="numeric">Vs last year</th>
@@ -143,6 +291,20 @@ export function AdminTeam() {
                         </small>
                       </td>
                       <td className="numeric">{formatRupees(member.salesValue)}</td>
+                      <td className="numeric">
+                        {member.thrustSalesLakh && member.thrustSalesLakh > 0 ? (
+                          <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end" }}>
+                            <span style={{ fontWeight: 800, color: "#166534" }}>
+                              {member.thrustSalesLakh.toFixed(2)} L
+                            </span>
+                            <small style={{ color: "#64748b", fontSize: 10.5 }}>
+                              {member.thrustActiveCount} product{member.thrustActiveCount !== 1 ? "s" : ""}
+                            </small>
+                          </div>
+                        ) : (
+                          <span className="admin-muted">—</span>
+                        )}
+                      </td>
                       <td className="numeric">{member.targetValue > 0 ? <>{formatRupees(member.targetValue)}<small>{formatRupees(member.monthlyTargetValue)} / month · {data.targetMonths} months</small></> : <span className="admin-muted">Not set</span>}</td>
                       <td className="numeric">
                         {member.achievementPercent === null
@@ -159,7 +321,22 @@ export function AdminTeam() {
                       <td>{member.topProduct ? <><strong className="admin-cell-title">{member.topProduct.name}</strong><small>{formatRupees(member.topProduct.salesValue)}</small></> : <span className="admin-muted">—</span>}</td>
                       <td>
                         <strong className="admin-cell-title">{member.visitsCompleted}/{member.visitsTotal} visits</strong>
-                        <small>{member.followUpsOpen} open follow-ups · {member.checkedInToday ? "Checked in today" : "Not checked in today"}</small>
+                        <small>
+                          {member.followUpsOpen} open follow-ups ·{" "}
+                          {member.checkOutAt ? (
+                            <span style={{ color: "#166534", fontWeight: 700 }}>
+                              Out: {new Date(member.checkOutAt).toLocaleTimeString("en-IN", { hour: "numeric", minute: "2-digit" })}
+                            </span>
+                          ) : member.checkInAt ? (
+                            <span style={{ color: "#1d4ed8", fontWeight: 700 }}>
+                              In: {new Date(member.checkInAt).toLocaleTimeString("en-IN", { hour: "numeric", minute: "2-digit" })}
+                            </span>
+                          ) : member.checkedInToday ? (
+                            <span style={{ color: "#1d4ed8" }}>Checked in today</span>
+                          ) : (
+                            "Not checked in today"
+                          )}
+                        </small>
                       </td>
                       <td>
                         {member.crmUser

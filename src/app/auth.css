@@ -3,14 +3,14 @@
    Brand tokens are scoped to .login-page so the rest of the CRM is untouched.
 --------------------------------------------------------------------------- */
 .login-page {
-  --auth-navy: #0b2857;
-  --auth-blue: #0e6fae;
-  --auth-blue-dark: #0a568a;
-  --auth-bright: #16a5e0;
-  --auth-soft: #73c8f2;
-  --auth-ink: #0b2857;
-  --auth-muted: #607a96;
-  --auth-line: #dde6ef;
+  --auth-navy: #004D73;
+  --auth-blue: #007CBA;
+  --auth-blue-dark: #005b8a;
+  --auth-bright: #33a3dd;
+  --auth-soft: #7cc6ed;
+  --auth-ink: #000000;
+  --auth-muted: #555555;
+  --auth-line: #DDDDDD;
   --auth-field: #fff;
 
   min-height: 100vh;
@@ -44,44 +44,7 @@
 .login-brand {
   display: flex;
   align-items: center;
-  gap: 12px;
   margin-bottom: 48px;
-}
-
-.login-brand-mark {
-  width: 40px;
-  height: 40px;
-  flex: none;
-  display: grid;
-  place-items: center;
-  border-radius: 11px;
-  background: linear-gradient(160deg, var(--auth-blue) 0%, var(--auth-navy) 100%);
-  color: #fff;
-  font-size: 19px;
-  font-weight: 700;
-  letter-spacing: .01em;
-  box-shadow: 0 6px 16px rgba(11, 40, 87, .22);
-}
-
-.login-brand-name {
-  display: grid;
-  line-height: 1.1;
-}
-
-.login-brand-name strong {
-  font-size: 16px;
-  font-weight: 700;
-  letter-spacing: -.01em;
-  color: var(--auth-navy);
-}
-
-.login-brand-name small {
-  margin-top: 3px;
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: .1em;
-  text-transform: uppercase;
-  color: var(--auth-muted);
 }
 
 .login-eyebrow {

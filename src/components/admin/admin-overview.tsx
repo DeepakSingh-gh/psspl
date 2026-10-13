@@ -108,13 +108,19 @@ export function AdminOverview() {
   const data = overview.data;
 
   const summaryLine = (() => {
-    if (!data) return "Loading the latest synced figures…";
+    if (!data || !data.sales) return "Loading the latest synced figures…";
     const bits: string[] = [];
-    const achieved = data.sales.target > 0 ? Math.round(data.sales.actual / data.sales.target * 100) : null;
-    bits.push(`${formatRupees(data.sales.actual)} billed this year`);
+    const target = data.sales.target ?? 0;
+    const actual = data.sales.actual ?? 0;
+    const achieved = target > 0 ? Math.round((actual / target) * 100) : null;
+    bits.push(`${formatRupees(actual)} billed this year`);
     if (achieved !== null) bits.push(`${achieved}% of target`);
-    bits.push(`${formatRupees(data.customers.outstanding)} outstanding`);
-    bits.push(`${data.fieldActivity.checkedInToday} of ${data.charts.salespersonLocations.length} reps checked in`);
+    if (data.customers?.outstanding !== undefined) {
+      bits.push(`${formatRupees(data.customers.outstanding)} outstanding`);
+    }
+    if (data.fieldActivity && data.charts?.salespersonLocations) {
+      bits.push(`${data.fieldActivity.checkedInToday} of ${data.charts.salespersonLocations.length} reps checked in`);
+    }
     return bits.join(" · ");
   })();
 
@@ -163,6 +169,39 @@ export function AdminOverview() {
           <div className="command-revenue"><header><div><p>Revenue performance</p><h2>How the business is moving</h2></div><Link href="/admin/reports">Detailed report →</Link></header><RevenueHero rows={months} target={data.sales.target} /></div>
           <aside className="command-glance"><p>At a glance</p><div><span>Revenue<small>{achievement === null ? "Target not set" : achievement >= 100 ? "Ahead of target" : "Below target"}</small></span><strong>{formatRupees(data.sales.actual)}</strong></div><div><span>Collections<small className="warn">Attention required</small></span><strong>{formatRupees(data.customers.outstanding)}</strong></div><div><span>Field<small className="warn">{notCheckedIn ? `${notCheckedIn} without check-in` : "Team checked in"}</small></span><strong>{formatPercent(coverage)}</strong></div><div><span>Customers<small>Tracked in CRM</small></span><strong>{formatNumber(data.customers.count)}</strong></div><footer>Synced {formatDateTime(data.tally.lastSyncAt)}</footer></aside>
         </section>
+
+        {/* Quarter-wise Trend Analysis */}
+        {(() => {
+          const quarters = months.reduce((acc: any[], row) => {
+            const month = parseInt(row.period.slice(5));
+            const qIndex = month >= 4 ? Math.floor((month - 4) / 3) : Math.floor((month + 8) / 3);
+            const qNames = ["Q1 (Apr-Jun)", "Q2 (Jul-Sep)", "Q3 (Oct-Dec)", "Q4 (Jan-Mar)"];
+            const qName = qNames[qIndex];
+            const existing = acc.find(q => q.name === qName);
+            if (existing) {
+              existing.salesValue += row.salesValue;
+            } else {
+              acc.push({ name: qName, salesValue: row.salesValue, qIndex });
+            }
+            return acc;
+          }, []).sort((a, b) => a.qIndex - b.qIndex);
+          return quarters.length > 0 && (
+            <section style={{ margin: "2rem 0" }}>
+              <header style={{ marginBottom: "1rem" }}><p style={{ fontSize: "0.85rem", textTransform: "uppercase", fontWeight: "600", color: "var(--color-text-2)" }}>Quarterly Analysis</p><h2>Quarter-wise Trend</h2></header>
+              <div style={{ display: "flex", gap: "1rem" }}>
+                {quarters.map((q) => (
+                  <div key={q.name} style={{ flex: 1, padding: "1rem", background: "var(--color-surface)", border: "1px solid var(--color-border)", borderRadius: "8px" }}>
+                    <div style={{ fontSize: "0.85rem", color: "var(--color-text-2)", marginBottom: "0.5rem" }}>{q.name}</div>
+                    <div style={{ fontSize: "1.25rem", fontWeight: "bold" }}>{formatRupees(q.salesValue)}</div>
+                    <div style={{ width: "100%", height: "4px", background: "var(--color-surface-2)", marginTop: "0.5rem", borderRadius: "2px" }}>
+                      <div style={{ width: `${Math.min((q.salesValue / Math.max(...quarters.map(qx => qx.salesValue))) * 100, 100)}%`, height: "100%", background: "var(--color-primary)", borderRadius: "2px" }} />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </section>
+          );
+        })()}
 
         <section className="command-money-field">
           <article className="command-collections"><header><div><p>Money</p><h2>Collections</h2></div><Link href="/admin/customers">View receivables →</Link></header><div className="command-money-number"><strong>{formatRupees(data.customers.outstanding)}</strong><span>Outstanding</span><small>{outstandingShare === null ? "Outstanding balance from Tally" : `${outstandingShare.toFixed(1)}% of total billed`}</small></div><div className="command-collection-bar"><span style={{ width: `${Math.min(Math.max(outstandingShare ?? 0, 1), 100)}%` }} /></div><div className="command-collection-meta"><span>{formatNumber(data.customers.count)} customers</span><span>{formatRupees(data.customers.lifetimeSales)} billed</span></div>

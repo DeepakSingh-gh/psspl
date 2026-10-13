@@ -109,11 +109,15 @@ export const salesApi = {
   getMyDay: () => request<SalesDay>("/salespeople/me/my-day"),
   checkIn: (position?: { latitude: number; longitude: number }) => request<SalesDay>("/salespeople/me/check-in", { method: "POST", body: JSON.stringify(position ?? {}) }),
   startVisit: (visitId: string) => request<SalesDay>(`/visits/${visitId}/start`, { method: "POST" }),
+  deleteVisit: (visitId: string) => request<SalesDay>(`/visits/${visitId}`, { method: "DELETE" }),
+  updateVisit: (visitId: string, payload: { purpose?: string; priority?: string; scheduledAt?: string }) => request<SalesDay>(`/visits/${visitId}`, { method: "PATCH", body: JSON.stringify(payload) }),
   completeVisit: (visitId: string, payload: CompleteVisitPayload) =>
     request<SalesDay>(`/visits/${visitId}/complete`, { method: "POST", body: JSON.stringify(payload) }),
   toggleFollowUp: (id: string) =>
     request<SalesDay>(`/follow-ups/${id}/toggle`, { method: "PATCH" }),
-  updateFollowUp: (id: string, payload: { notes?: string; followUpType?: "call" | "visit"; completed?: boolean; priority?: string }) =>
+  deleteFollowUp: (id: string) =>
+    request<SalesDay>(`/follow-ups/${id}`, { method: "DELETE" }),
+  updateFollowUp: (id: string, payload: { notes?: string; followUpType?: "call" | "visit"; completed?: boolean; priority?: string; dueDate?: string }) =>
     request<SalesDay>(`/follow-ups/${id}`, { method: "PATCH", body: JSON.stringify(payload) }),
   addFollowUp: (payload: { customerId: string; title: string; dueDate: string; priority?: string; followUpType?: "call" | "visit"; notes?: string }) =>
     request<SalesDay>("/follow-ups", { method: "POST", body: JSON.stringify(payload) }),
@@ -122,8 +126,10 @@ export const salesApi = {
 export const rmApi = {
   dashboard: (from?: string, to?: string) => request<any>(`/rm/dashboard${query({ from, to })}`),
   reportCard: () => request<any>("/rm/report-card"),
+  printReport: () => request<any>("/rm/print-report"),
   customers: (q = "", page = 0) => request<{ total: number; items: any[] }>(`/rm/customers${query({ q, page })}`),
   customerDetail: (id: string) => request<any>(`/rm/customers/${encodeURIComponent(id)}`),
+  saveDormantReason: (id: string, reason: string) => request<any>(`/rm/customers/${encodeURIComponent(id)}/dormant-reason`, { method: "POST", body: JSON.stringify({ reason }) }),
   productTrends: () => request<any>("/rm/product-trends"),
   alerts: () => request<any>("/rm/alerts"),
   askAi: (question: string) => request<any>("/rm/ask-ai", { method: "POST", body: JSON.stringify({ question }) }),
@@ -136,6 +142,7 @@ export const salesFeaturesApi = {
   leads: () => request<any[]>("/sales/leads"),
   leadDetail: (id: string) => request<any>(`/sales/leads/${id}`),
   addLead: (payload: any) => request<any>("/sales/leads", { method: "POST", body: JSON.stringify(payload) }),
+  deleteLead: (id: string) => request<any>(`/sales/leads/${id}`, { method: "DELETE" }),
   setLeadStage: (id: string, stage: string) => request<any>(`/sales/leads/${id}/stage`, { method: "PATCH", body: JSON.stringify({ stage }) }),
   requests: () => request<any[]>("/sales/requests"),
   addRequest: (payload: any) => request<any>("/sales/requests", { method: "POST", body: JSON.stringify(payload) }),

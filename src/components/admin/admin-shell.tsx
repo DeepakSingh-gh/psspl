@@ -6,6 +6,7 @@ import { ApiError, authApi, clearSession, hasSession } from "@/lib/api";
 import { initialsOf } from "@/lib/format";
 import type { SessionUser } from "@/types/admin";
 import { HeaderAiAsk } from "./admin-ask-ai";
+import { PssplLogo } from "@/components/common/psspl-logo";
 
 /** One line-glyph vocabulary for the whole rail — same weight, same 16px box. */
 const ICONS: Record<string, ReactNode> = {
@@ -115,11 +116,7 @@ export function AdminShell({ children }: { children: ReactNode }) {
     <div className={`admin-shell${navOpen ? " nav-open" : ""}`}>
       <aside className="admin-sidebar">
         <div className="admin-brand">
-          <span className="admin-brand-mark" aria-hidden="true">P</span>
-          <span className="admin-brand-name">
-            <strong>Progressive</strong>
-            <small>Surface Systems</small>
-          </span>
+          <PssplLogo />
         </div>
         <p className="admin-workspace">Tally + CRM intelligence</p>
         <nav>

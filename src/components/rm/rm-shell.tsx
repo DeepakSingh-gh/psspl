@@ -2,10 +2,10 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { authApi, clearSession, rmApi } from "@/lib/api";
+import { PssplLogo } from "@/components/common/psspl-logo";
 
 const NAV_ITEMS = [
   { href: "/rm", label: "Home" },
-  { href: "/rm/report-card", label: "Report Card" },
   { href: "/rm/team", label: "My Team" },
   { href: "/rm/customers", label: "Customers" },
   { href: "/rm/products", label: "Product Trends" },
@@ -32,8 +32,7 @@ export function RmShell({ children, activeHref }: Props) {
     <div className="admin-shell rm-shell">
       <aside className="admin-sidebar">
         <div className="admin-brand">
-          <span className="admin-brand-mark" aria-hidden="true">P</span>
-          <span className="admin-brand-name"><strong>Progressive</strong><small>Surface Systems</small></span>
+          <PssplLogo />
         </div>
         <p className="admin-workspace">Regional manager workspace</p>
         <nav>

@@ -91,6 +91,203 @@ function targetMonthsFor(financialYear) {
 
 /* ------------------------------ team reporting ----------------------------- */
 
+export function calculateAllThrustProductsBatch() {
+  const thrustList = db.prepare("SELECT id, name, alias_keywords, sort_order FROM thrust_products WHERE active = 1 ORDER BY sort_order ASC").all();
+
+  function makeSqlLikeRegex(pattern) {
+    const p = pattern.trim();
+    const rx = "^" + p.replace(/[.+^${}()|[\]\\]/g, "\\$&").replace(/\%/g, ".*").replace(/_/g, ".") + "$";
+    return new RegExp(rx, "i");
+  }
+
+  const thrustMatchers = thrustList.map((tp) => ({
+    tp,
+    regexes: tp.alias_keywords.split("|").map((p) => makeSqlLikeRegex(p)),
+  }));
+
+  const invoiceLines = db.prepare(`
+    SELECT c.rm_name, l.product_name, SUM(l.amount) as amount, SUM(l.quantity) as qty
+    FROM tally_invoice_lines l
+    JOIN tally_invoices i ON i.id = l.invoice_id
+    JOIN tally_customers c ON c.id = i.customer_id
+    WHERE i.ingest_session_id IS NULL AND c.rm_name IS NOT NULL
+    GROUP BY c.rm_name, l.product_name
+  `).all();
+
+  const rmProductSales = db.prepare(`
+    SELECT rm_name, product_name, SUM(sales_value) as amount, SUM(quantity) as qty
+    FROM tally_rm_product_sales
+    WHERE rm_name IS NOT NULL
+    GROUP BY rm_name, product_name
+  `).all();
+
+  const productToThrust = new Map();
+  function classify(p) {
+    if (!p) return [];
+    if (productToThrust.has(p)) return productToThrust.get(p);
+    const matched = [];
+    for (const { tp, regexes } of thrustMatchers) {
+      if (regexes.some((r) => r.test(p))) matched.push(tp.id);
+    }
+    productToThrust.set(p, matched);
+    return matched;
+  }
+
+  const invThrustByRm = new Map();
+  for (const r of invoiceLines) {
+    const tIds = classify(r.product_name);
+    if (!tIds.length) continue;
+    if (!invThrustByRm.has(r.rm_name)) invThrustByRm.set(r.rm_name, new Map());
+    const rmMap = invThrustByRm.get(r.rm_name);
+    for (const tid of tIds) {
+      if (!rmMap.has(tid)) rmMap.set(tid, { sales: 0, qty: 0 });
+      const cur = rmMap.get(tid);
+      cur.sales += r.amount || 0;
+      cur.qty += r.qty || 0;
+    }
+  }
+
+  const salesThrustByRm = new Map();
+  for (const r of rmProductSales) {
+    const tIds = classify(r.product_name);
+    if (!tIds.length) continue;
+    if (!salesThrustByRm.has(r.rm_name)) salesThrustByRm.set(r.rm_name, new Map());
+    const rmMap = salesThrustByRm.get(r.rm_name);
+    for (const tid of tIds) {
+      if (!rmMap.has(tid)) rmMap.set(tid, { sales: 0, qty: 0 });
+      const cur = rmMap.get(tid);
+      cur.sales += r.amount || 0;
+      cur.qty += r.qty || 0;
+    }
+  }
+
+  return {
+    getForNames: (allNames) => {
+      let totalSalesRupees = 0;
+      const products = thrustList.map((tp) => {
+        let salesVal = 0;
+        let qtyVal = 0;
+
+        for (const name of allNames) {
+          const invM = invThrustByRm.get(name);
+          if (invM && invM.has(tp.id)) {
+            salesVal += invM.get(tp.id).sales;
+            qtyVal += invM.get(tp.id).qty;
+          }
+        }
+
+        if (salesVal === 0) {
+          for (const name of allNames) {
+            const salesM = salesThrustByRm.get(name);
+            if (salesM && salesM.has(tp.id)) {
+              salesVal += salesM.get(tp.id).sales;
+              qtyVal += salesM.get(tp.id).qty;
+            }
+          }
+        }
+
+        const ytdSalesLakh = Number((salesVal / 100000).toFixed(2));
+        totalSalesRupees += salesVal;
+
+        return {
+          id: tp.id,
+          name: tp.name,
+          ytdSalesLakh,
+          salesRupees: salesVal,
+          quantitySold: qtyVal,
+          isSold: salesVal > 0,
+        };
+      });
+
+      const totalYtdLakh = Number((totalSalesRupees / 100000).toFixed(2));
+      const activeCount = products.filter((p) => p.isSold).length;
+
+      return {
+        products,
+        totalYtdLakh,
+        totalSalesRupees,
+        activeCount,
+        totalCount: products.length,
+      };
+    },
+  };
+}
+
+export function calculateThrustProductsForNames(allNames, from, to) {
+  const thrustList = db.prepare("SELECT id, name, alias_keywords FROM thrust_products WHERE active = 1 ORDER BY sort_order ASC").all();
+  const namePlaceholders = allNames.map(() => "?").join(",");
+
+  let totalSalesRupees = 0;
+  const products = thrustList.map((tp) => {
+    const patterns = tp.alias_keywords.split("|").map((p) => p.trim());
+    const likeClauses = patterns.map(() => "l.product_name LIKE ?").join(" OR ");
+    
+    let lineRow = null;
+    if (from && to) {
+      lineRow = db.prepare(`
+        SELECT COALESCE(SUM(l.amount), 0) amount, COALESCE(SUM(l.quantity), 0) qty
+        FROM tally_invoice_lines l
+        JOIN tally_invoices i ON i.id = l.invoice_id
+        JOIN tally_customers c ON c.id = i.customer_id
+        WHERE i.ingest_session_id IS NULL
+          AND c.rm_name IN (${namePlaceholders})
+          AND (${likeClauses})
+          AND (i.invoice_date BETWEEN ? AND ?)
+      `).get(...allNames, ...patterns, from, to);
+    } else {
+      lineRow = db.prepare(`
+        SELECT COALESCE(SUM(l.amount), 0) amount, COALESCE(SUM(l.quantity), 0) qty
+        FROM tally_invoice_lines l
+        JOIN tally_invoices i ON i.id = l.invoice_id
+        JOIN tally_customers c ON c.id = i.customer_id
+        WHERE i.ingest_session_id IS NULL
+          AND c.rm_name IN (${namePlaceholders})
+          AND (${likeClauses})
+      `).get(...allNames, ...patterns);
+    }
+
+    let salesVal = lineRow?.amount || 0;
+    let qtyVal = lineRow?.qty || 0;
+
+    if (salesVal === 0) {
+      const rmLikeClauses = patterns.map(() => "product_name LIKE ?").join(" OR ");
+      const rmSalesRow = db.prepare(`
+        SELECT COALESCE(SUM(sales_value), 0) amount, COALESCE(SUM(quantity), 0) qty
+        FROM tally_rm_product_sales
+        WHERE rm_name IN (${namePlaceholders})
+          AND (${rmLikeClauses})
+      `).get(...allNames, ...patterns);
+      if (rmSalesRow && rmSalesRow.amount > 0) {
+        salesVal = rmSalesRow.amount;
+        qtyVal = rmSalesRow.qty;
+      }
+    }
+
+    const ytdSalesLakh = Number((salesVal / 100000).toFixed(2));
+    totalSalesRupees += salesVal;
+
+    return {
+      id: tp.id,
+      name: tp.name,
+      ytdSalesLakh,
+      salesRupees: salesVal,
+      quantitySold: qtyVal,
+      isSold: salesVal > 0,
+    };
+  });
+
+  const totalYtdLakh = Number((totalSalesRupees / 100000).toFixed(2));
+  const activeCount = products.filter((p) => p.isSold).length;
+
+  return {
+    products,
+    totalYtdLakh,
+    totalSalesRupees,
+    activeCount,
+    totalCount: products.length,
+  };
+}
+
 function buildTeam(financialYear) {
   const targetMonths = targetMonthsFor(financialYear);
   const directory = buildRmDirectory();
@@ -193,14 +390,34 @@ function buildTeam(financialYear) {
       (SELECT COUNT(*) FROM visits v WHERE v.user_id=u.id) visits_total,
       (SELECT COUNT(*) FROM visits v WHERE v.user_id=u.id AND v.status='completed') visits_completed,
       (SELECT COUNT(*) FROM follow_ups f WHERE f.user_id=u.id AND f.completed=0) follow_ups_open,
-      EXISTS(SELECT 1 FROM attendance a WHERE a.user_id=u.id AND a.business_date=?) checked_in_today
+      EXISTS(SELECT 1 FROM attendance a WHERE a.user_id=u.id AND a.business_date=?) checked_in_today,
+      (SELECT a.check_in_at FROM attendance a WHERE a.user_id=u.id AND a.business_date=? ORDER BY a.check_in_at DESC LIMIT 1) check_in_at,
+      (SELECT a.check_out_at FROM attendance a WHERE a.user_id=u.id AND a.business_date=? ORDER BY a.check_in_at DESC LIMIT 1) check_out_at
     FROM users u
-  `).all(today()).map((row) => [row.id, row]));
+  `).all(today(), today(), today()).map((row) => [row.id, row]));
+
+  const thrustBatch = calculateAllThrustProductsBatch();
+
   const members = [...index.values()].map((entry) => {
-    const linked = crmUsers.find((user) => user.full_name && resolveRmId(directory, user.full_name) === entry.id);
-    const monthlyTargetValue = (linked?.monthly_target ?? 0) * CRORE;
-    if (monthlyTargetValue > 0) entry.targetValue = monthlyTargetValue * targetMonths;
+    const rmUser = crmUsers.find((user) => user.role === "rm" && user.full_name && resolveRmId(directory, user.full_name) === entry.id);
+    const linked = rmUser || crmUsers.find((user) => user.full_name && resolveRmId(directory, user.full_name) === entry.id);
+    const rawTarget = linked?.monthly_target ?? 0;
+    const baseMonthlyRupees = rawTarget > 0 ? Math.round(rawTarget * LAKH) : 0;
+    if (entry.targetValue === 0 && baseMonthlyRupees > 0) {
+      entry.targetValue = baseMonthlyRupees * targetMonths;
+    }
+    const monthlyTargetValue = entry.targetValue > 0
+      ? Math.round(entry.targetValue / Math.max(1, targetMonths))
+      : baseMonthlyRupees;
     const activity = linked ? activityByUser.get(linked.id) : null;
+
+    // Compute thrust product sales for this RM
+    const thrustData = thrustBatch.getForNames([entry.name, ...entry.aliases]);
+    const thrustSalesValue = thrustData.totalSalesRupees;
+    const thrustSalesLakh = thrustData.totalYtdLakh;
+    const thrustActiveCount = thrustData.activeCount;
+    const thrustTopProduct = thrustData.products.find((p) => p.isSold)?.name || null;
+
     return {
       ...entry,
       monthlyTargetValue,
@@ -208,13 +425,32 @@ function buildTeam(financialYear) {
       visitsCompleted: activity?.visits_completed ?? 0,
       followUpsOpen: activity?.follow_ups_open ?? 0,
       checkedInToday: Boolean(activity?.checked_in_today),
+      checkInAt: activity?.check_in_at ?? null,
+      checkOutAt: activity?.check_out_at ?? null,
       achievementPercent: entry.targetValue > 0 ? Math.round((entry.salesValue / entry.targetValue) * 100) : null,
       growthPercent: entry.previousSalesValue > 0 ? Math.round(((entry.salesValue - entry.previousSalesValue) / entry.previousSalesValue) * 100) : null,
       crmUser: linked ? { id: linked.id, email: linked.email, role: linked.role, active: Boolean(linked.active) } : null,
+      thrustSalesValue,
+      thrustSalesLakh,
+      thrustActiveCount,
+      thrustTopProduct,
     };
   }).sort((a, b) => b.salesValue - a.salesValue);
 
-  return { financialYear, targetMonths, members, unassignedCustomers, unassignedSalesValue, liveInvoiceCount, hasTargets: members.some((member) => member.targetValue > 0) };
+  const thrustLeaderboard = [...members]
+    .filter((m) => m.thrustSalesValue > 0 || m.thrustActiveCount > 0)
+    .sort((a, b) => b.thrustSalesValue - a.thrustSalesValue)
+    .map((m) => ({
+      id: m.id,
+      name: m.name,
+      region: m.region,
+      thrustSalesLakh: m.thrustSalesLakh,
+      thrustSalesValue: m.thrustSalesValue,
+      thrustActiveCount: m.thrustActiveCount,
+      thrustTopProduct: m.thrustTopProduct,
+    }));
+
+  return { financialYear, targetMonths, members, thrustLeaderboard, unassignedCustomers, unassignedSalesValue, liveInvoiceCount, hasTargets: members.some((member) => member.targetValue > 0) };
 }
 
 /* ---------------------------------- routes --------------------------------- */
@@ -261,7 +497,7 @@ adminRouter.get("/overview", async (req, res, next) => {
     const monthlySales = db.prepare(`SELECT substr(invoice_date,1,7) period,COALESCE(SUM(amount),0) salesValue,COUNT(*) invoiceCount FROM tally_invoices WHERE ingest_session_id IS NULL AND invoice_date BETWEEN ? AND ? GROUP BY substr(invoice_date,1,7) ORDER BY period`).all(periodStart, periodEnd);
     const productSales = db.prepare(`SELECT l.product_name name,COALESCE(SUM(l.amount),0) salesValue,COALESCE(SUM(l.quantity),0) quantity FROM tally_invoice_lines l JOIN tally_invoices i ON i.id=l.invoice_id WHERE i.ingest_session_id IS NULL AND i.invoice_date BETWEEN ? AND ? GROUP BY l.product_name ORDER BY salesValue DESC LIMIT 6`).all(periodStart, periodEnd);
     const territorySales = db.prepare(`SELECT COALESCE(NULLIF(p.region,''),NULLIF(c.rm_name,''),'Unassigned') name,COALESCE(SUM(i.amount),0) salesValue,COUNT(DISTINCT i.customer_id) customerCount FROM tally_invoices i LEFT JOIN tally_customers c ON c.id=i.customer_id LEFT JOIN salesperson_profiles p ON p.user_id=c.owner_user_id WHERE i.ingest_session_id IS NULL AND i.invoice_date BETWEEN ? AND ? GROUP BY COALESCE(NULLIF(p.region,''),NULLIF(c.rm_name,''),'Unassigned') ORDER BY salesValue DESC LIMIT 6`).all(periodStart, periodEnd);
-    const salespersonLocations = db.prepare(`SELECT u.id userId,u.email,COALESCE(p.full_name,u.email) fullName,p.region,p.territory,a.check_in_at checkInAt,a.check_out_at checkOutAt,COALESCE((SELECT lp.latitude FROM location_pings lp WHERE lp.user_id=u.id AND date(lp.captured_at)=? ORDER BY lp.captured_at DESC LIMIT 1),a.latitude) latitude,COALESCE((SELECT lp.longitude FROM location_pings lp WHERE lp.user_id=u.id AND date(lp.captured_at)=? ORDER BY lp.captured_at DESC LIMIT 1),a.longitude) longitude,COALESCE((SELECT lp.captured_at FROM location_pings lp WHERE lp.user_id=u.id AND date(lp.captured_at)=? ORDER BY lp.captured_at DESC LIMIT 1),a.check_in_at) lastLocationAt FROM users u LEFT JOIN salesperson_profiles p ON p.user_id=u.id LEFT JOIN attendance a ON a.user_id=u.id AND a.business_date=? WHERE u.active=1 AND u.role='salesperson' ORDER BY p.full_name,u.email`).all(today(), today(), today(), today());
+    const salespersonLocations = db.prepare(`SELECT u.id userId,u.email,COALESCE(p.full_name,u.email) fullName,p.region,p.territory,a.check_in_at checkInAt,a.check_out_at checkOutAt,COALESCE((SELECT lp.latitude FROM location_pings lp WHERE lp.user_id=u.id AND date(lp.captured_at)=? ORDER BY lp.captured_at DESC LIMIT 1),a.latitude) latitude,COALESCE((SELECT lp.longitude FROM location_pings lp WHERE lp.user_id=u.id AND date(lp.captured_at)=? ORDER BY lp.captured_at DESC LIMIT 1),a.longitude) longitude,COALESCE((SELECT lp.captured_at FROM location_pings lp WHERE lp.user_id=u.id AND date(lp.captured_at)=? ORDER BY lp.captured_at DESC LIMIT 1),a.check_in_at) lastLocationAt FROM users u LEFT JOIN salesperson_profiles p ON p.user_id=u.id LEFT JOIN attendance a ON a.user_id=u.id AND a.business_date=? WHERE u.active=1 AND u.role IN ('salesperson', 'rm') ORDER BY p.full_name,u.email`).all(today(), today(), today(), today());
 
     res.json({
       financialYear,
@@ -314,33 +550,54 @@ adminRouter.get("/team/:id", (req, res, next) => {
 
     // Resolve RM from directory
     const directory = buildRmDirectory();
-    const rm = directory.find((entry) => entry.id === rmId);
+    const rm = directory.find((entry) => entry.id === rmId || (entry.keys && entry.keys.includes(rmId)));
     if (!rm) return res.status(404).json({ error: "RM not found" });
 
     // All name aliases for Tally customer matching
     const allNames = [rm.name, ...rm.aliases];
     const nameList = allNames.map(() => "?").join(",");
 
-    // Find linked CRM user (salesperson/rm account)
+    // Find all linked CRM users (salesperson/rm accounts and subordinates)
+    const canonicalRmId = rm.id;
     const crmUsers = db.prepare(`
-      SELECT u.id, u.email, u.role, p.full_name, p.region, p.territory, p.monthly_target
+      SELECT u.id, u.email, u.role, p.employee_code, p.full_name, p.region, p.territory, p.operating_city, p.monthly_target, p.manager_user_id
       FROM users u JOIN salesperson_profiles p ON p.user_id = u.id
       WHERE u.active = 1
       ORDER BY p.full_name
     `).all();
-    const crmUser = crmUsers.find((user) => user.full_name && resolveRmId(directory, user.full_name) === rmId) ?? null;
-    const userId = crmUser?.id ?? null;
+    const crmUser = crmUsers.find((user) => user.full_name && (resolveRmId(directory, user.full_name) === canonicalRmId || resolveRmId(directory, user.full_name) === rmId)) ?? null;
+    const matchedUsers = crmUsers.filter((user) => user.full_name && (resolveRmId(directory, user.full_name) === canonicalRmId || resolveRmId(directory, user.full_name) === rmId));
+    const linkedUserIds = Array.from(new Set([
+      ...matchedUsers.map((u) => u.id),
+      rm.id,
+      ...(crmUser ? crmUsers.filter((u) => u.manager_user_id === crmUser.id).map((u) => u.id) : []),
+    ])).filter(Boolean);
+    const userPlaceholders = linkedUserIds.length ? linkedUserIds.map(() => "?").join(",") : "''";
 
-    // KPI: visits (match by RM customers or CRM user)
+    // Detect latest active invoice date in database for this RM
+    const maxDateRow = db.prepare(`
+      SELECT MAX(i.invoice_date) maxDate
+      FROM tally_invoices i
+      JOIN tally_customers c ON c.id = i.customer_id
+      WHERE i.ingest_session_id IS NULL AND c.rm_name IN (${nameList})
+    `).get(...allNames);
+    const latestActiveDate = maxDateRow?.maxDate || todayStr;
+    const latestActiveMonth = latestActiveDate.slice(0, 7);
+
+    let effectiveFrom = from;
+    let effectiveTo = to;
+    let isAnchoredToLatestCycle = false;
+
+    // KPI: visits (match by RM customers or any linked RM/salesperson user)
     const visitsKpi = db.prepare(`
       SELECT
         COUNT(*) visitsTotal,
         SUM(CASE WHEN v.status='completed' THEN 1 ELSE 0 END) visitsCompleted,
         COUNT(DISTINCT CASE WHEN v.status='completed' THEN v.tally_customer_id END) customersCovered
       FROM visits v
-      WHERE (v.tally_customer_id IN (SELECT id FROM tally_customers WHERE rm_name IN (${nameList})) OR v.user_id = ?)
+      WHERE (v.tally_customer_id IN (SELECT id FROM tally_customers WHERE rm_name IN (${nameList})) OR v.user_id IN (${userPlaceholders}))
         AND v.business_date BETWEEN ? AND ?
-    `).get(...allNames, userId ?? "", from, to);
+    `).get(...allNames, ...linkedUserIds, from, to);
 
     // KPI: expected orders (open)
     const pipelineKpi = db.prepare(`
@@ -348,9 +605,9 @@ adminRouter.get("/team/:id", (req, res, next) => {
         COALESCE(SUM(expected_value),0) expectedValue,
         SUM(CASE WHEN expected_date IS NOT NULL AND expected_date < ? THEN 1 ELSE 0 END) overdue
       FROM expected_orders
-      WHERE (tally_customer_id IN (SELECT id FROM tally_customers WHERE rm_name IN (${nameList})) OR user_id = ?)
+      WHERE (tally_customer_id IN (SELECT id FROM tally_customers WHERE rm_name IN (${nameList})) OR user_id IN (${userPlaceholders}))
         AND status = 'open'
-    `).get(...allNames, userId ?? "", todayStr);
+    `).get(...allNames, ...linkedUserIds, todayStr);
 
     // KPI: follow-ups
     const followUpKpi = db.prepare(`
@@ -358,8 +615,8 @@ adminRouter.get("/team/:id", (req, res, next) => {
         SUM(CASE WHEN completed=0 THEN 1 ELSE 0 END) open,
         SUM(CASE WHEN completed=0 AND due_date IS NOT NULL AND due_date < ? THEN 1 ELSE 0 END) overdue
       FROM follow_ups
-      WHERE (tally_customer_id IN (SELECT id FROM tally_customers WHERE rm_name IN (${nameList})) OR user_id = ?)
-    `).get(...allNames, userId ?? "", todayStr);
+      WHERE (tally_customer_id IN (SELECT id FROM tally_customers WHERE rm_name IN (${nameList})) OR user_id IN (${userPlaceholders}))
+    `).get(...allNames, ...linkedUserIds, todayStr);
 
     // KPI: actual Tally sales
     let actualSalesVal = db.prepare(`
@@ -369,23 +626,67 @@ adminRouter.get("/team/:id", (req, res, next) => {
       WHERE i.ingest_session_id IS NULL
         AND i.invoice_date BETWEEN ? AND ?
         AND c.rm_name IN (${nameList})
-    `).get(from, to, ...allNames).salesValue;
+    `).get(effectiveFrom, effectiveTo, ...allNames).salesValue;
 
-    if (actualSalesVal === 0) {
-      const targetFy = requestedFy || "2025-26";
+    // If requested window has 0 sales because it's looking into an open/empty future calendar month
+    // (e.g. October 2026 when ledger was synced up to September 2026), anchor to the latest active month
+    if (actualSalesVal === 0 && from.slice(0, 7) > latestActiveMonth) {
+      effectiveFrom = `${latestActiveMonth}-01`;
+      effectiveTo = latestActiveDate;
+      isAnchoredToLatestCycle = true;
+      actualSalesVal = db.prepare(`
+        SELECT COALESCE(SUM(i.amount),0) salesValue
+        FROM tally_invoices i
+        JOIN tally_customers c ON c.id = i.customer_id
+        WHERE i.ingest_session_id IS NULL
+          AND i.invoice_date BETWEEN ? AND ?
+          AND c.rm_name IN (${nameList})
+      `).get(effectiveFrom, effectiveTo, ...allNames).salesValue;
+    } else if (actualSalesVal === 0 && requestedFy) {
       const fySalesRow = db.prepare(`
         SELECT COALESCE(SUM(sales_value),0) salesValue
         FROM tally_rm_product_sales
         WHERE financial_year = ? AND rm_name IN (${nameList})
-      `).get(targetFy, ...allNames);
+      `).get(requestedFy, ...allNames);
       actualSalesVal = fySalesRow?.salesValue ?? 0;
     }
 
-    // KPI: target (monthly target × months in period)
-    const monthlyTarget = (crmUser?.monthly_target ?? 0) * CRORE;
-    const monthsInPeriod = Math.max(1, Math.round((new Date(to) - new Date(from)) / (30 * 24 * 3600 * 1000)));
-    const targetValue = monthlyTarget * (requestedFy ? 12 : monthsInPeriod);
-    const achievementPercent = targetValue > 0 ? Math.round((actualSalesVal / targetValue) * 100) : null;
+    // Target calculation: check tally_rm_targets first for the period
+    const fromMonth = effectiveFrom.slice(0, 7);
+    const toMonth = effectiveTo.slice(0, 7);
+    const rmTargetRow = db.prepare(`
+      SELECT COALESCE(SUM(target_lakh * 100000), 0) totalTarget
+      FROM tally_rm_targets
+      WHERE rm_name IN (${nameList})
+        AND period >= ? AND period <= ?
+    `).get(...allNames, fromMonth, toMonth);
+
+    let targetValue = rmTargetRow?.totalTarget || 0;
+    const rawTarget = crmUser?.monthly_target ?? 0;
+    const baseMonthly = rawTarget > 10 ? Math.round(rawTarget * 100000) : Math.round(rawTarget * CRORE);
+
+    const fromDate = new Date(effectiveFrom);
+    const toDate = new Date(effectiveTo);
+    const diffDays = Math.max(1, Math.round((toDate.getTime() - fromDate.getTime()) / (24 * 3600 * 1000)) + 1);
+
+    if (!targetValue || targetValue === 0) {
+
+      if (requestedFy) {
+        targetValue = baseMonthly * 12;
+      } else if (diffDays <= 1) {
+        targetValue = Math.round(baseMonthly / 30);
+      } else if (diffDays <= 7) {
+        targetValue = Math.round((baseMonthly / 30) * diffDays);
+      } else if (diffDays <= 35) {
+        targetValue = baseMonthly;
+      } else {
+        const months = Math.max(1, Math.round(diffDays / 30.4));
+        targetValue = baseMonthly * months;
+      }
+    }
+
+    const monthlyTarget = (rmTargetRow?.totalTarget > 0 ? rmTargetRow.totalTarget : null) || baseMonthly || 4593000;
+    const achievementPercent = targetValue > 0 ? Math.round((actualSalesVal / targetValue) * 100) : 0;
 
     // Daily activity breakdown
     const dailyActivity = db.prepare(`
@@ -401,9 +702,9 @@ adminRouter.get("/team/:id", (req, res, next) => {
         SELECT user_id, tally_customer_id, date(created_at) created_date, COUNT(*) cnt
         FROM follow_ups GROUP BY user_id, tally_customer_id, created_date
       ) f ON (f.user_id = v.user_id OR f.tally_customer_id = v.tally_customer_id) AND f.created_date = v.business_date
-      WHERE (v.tally_customer_id IN (SELECT id FROM tally_customers WHERE rm_name IN (${nameList})) OR v.user_id = ?)
+      WHERE (v.tally_customer_id IN (SELECT id FROM tally_customers WHERE rm_name IN (${nameList})) OR v.user_id IN (${userPlaceholders}))
       GROUP BY v.business_date ORDER BY v.business_date DESC LIMIT 31
-    `).all(...allNames, userId ?? "").map((row) => {
+    `).all(...allNames, ...linkedUserIds).map((row) => {
       const daySales = db.prepare(`
         SELECT COALESCE(SUM(i.amount),0) val FROM tally_invoices i
         JOIN tally_customers c ON c.id=i.customer_id
@@ -421,10 +722,10 @@ adminRouter.get("/team/:id", (req, res, next) => {
       FROM visits v
       LEFT JOIN tally_customers c ON c.id = v.tally_customer_id
       LEFT JOIN expected_orders e ON (e.user_id=v.user_id OR e.tally_customer_id=v.tally_customer_id) AND date(e.created_at)=v.business_date AND e.status='open'
-      WHERE (v.tally_customer_id IN (SELECT id FROM tally_customers WHERE rm_name IN (${nameList})) OR v.user_id = ?)
+      WHERE (v.tally_customer_id IN (SELECT id FROM tally_customers WHERE rm_name IN (${nameList})) OR v.user_id IN (${userPlaceholders}))
         AND v.business_date BETWEEN ? AND ?
       ORDER BY v.business_date DESC, v.id DESC LIMIT 50
-    `).all(...allNames, userId ?? "", from, to);
+    `).all(...allNames, ...linkedUserIds, from, to);
 
     // Pipeline (expected orders)
     const pipeline = db.prepare(`
@@ -437,12 +738,12 @@ adminRouter.get("/team/:id", (req, res, next) => {
       FROM expected_orders e
       LEFT JOIN tally_customers c ON c.id = e.tally_customer_id
       LEFT JOIN tally_products tp ON tp.id = e.tally_product_id
-      WHERE (e.tally_customer_id IN (SELECT id FROM tally_customers WHERE rm_name IN (${nameList})) OR e.user_id = ?)
+      WHERE (e.tally_customer_id IN (SELECT id FROM tally_customers WHERE rm_name IN (${nameList})) OR e.user_id IN (${userPlaceholders}))
         AND e.status = 'open'
       ORDER BY isOverdue DESC, e.expected_date ASC LIMIT 50
-    `).all(...allNames, userId ?? "", todayStr).map((row) => ({ ...row, isOverdue: Boolean(row.isOverdue) }));
+    `).all(...allNames, ...linkedUserIds, todayStr).map((row) => ({ ...row, isOverdue: Boolean(row.isOverdue) }));
 
-    // Actual sales invoices
+    // Actual sales invoices (consistently using effective dates)
     let actualSales = db.prepare(`
       SELECT i.id, i.invoice_date invoiceDate, i.voucher_number invoiceNumber,
              COALESCE(c.name, i.customer_name) customerName, i.amount
@@ -451,9 +752,9 @@ adminRouter.get("/team/:id", (req, res, next) => {
       WHERE i.ingest_session_id IS NULL AND i.invoice_date BETWEEN ? AND ?
         AND c.rm_name IN (${nameList})
       ORDER BY i.invoice_date DESC LIMIT 50
-    `).all(from, to, ...allNames);
+    `).all(effectiveFrom, effectiveTo, ...allNames);
 
-    if (actualSales.length === 0) {
+    if (actualSales.length === 0 && !isAnchoredToLatestCycle) {
       actualSales = db.prepare(`
         SELECT i.id, i.invoice_date invoiceDate, i.voucher_number invoiceNumber,
                COALESCE(c.name, i.customer_name) customerName, i.amount
@@ -504,6 +805,8 @@ adminRouter.get("/team/:id", (req, res, next) => {
       return { ...row, previousSalesValue: prev, growthPercent: prev > 0 ? Math.round(((row.salesValue - prev) / prev) * 100) : null };
     });
 
+    const userId = crmUser?.id ?? linkedUserIds[0] ?? null;
+
     // Follow-ups
     const followUps = db.prepare(`
       SELECT f.id, f.title, f.due_date dueDate, f.priority,
@@ -511,10 +814,10 @@ adminRouter.get("/team/:id", (req, res, next) => {
              CASE WHEN f.due_date IS NOT NULL AND f.due_date < ? AND f.completed=0 THEN 1 ELSE 0 END isOverdue
       FROM follow_ups f
       LEFT JOIN tally_customers c ON c.id = f.tally_customer_id
-      WHERE (f.tally_customer_id IN (SELECT id FROM tally_customers WHERE rm_name IN (${nameList})) OR f.user_id = ?)
+      WHERE (f.tally_customer_id IN (SELECT id FROM tally_customers WHERE rm_name IN (${nameList})) OR f.user_id IN (${userPlaceholders}))
         AND f.completed = 0
       ORDER BY isOverdue DESC, f.due_date ASC LIMIT 50
-    `).all(...allNames, userId ?? "", todayStr).map((row) => ({ ...row, isOverdue: Boolean(row.isOverdue) }));
+    `).all(todayStr, ...allNames, ...linkedUserIds).map((row) => ({ ...row, isOverdue: Boolean(row.isOverdue) }));
 
     // Today activity feed
     const todayActivity = db.prepare(`
@@ -525,17 +828,113 @@ adminRouter.get("/team/:id", (req, res, next) => {
       FROM visits v
       LEFT JOIN tally_customers c ON c.id = v.tally_customer_id
       LEFT JOIN expected_orders e ON (e.user_id=v.user_id OR e.tally_customer_id=v.tally_customer_id) AND date(e.created_at)=? AND e.status='open'
-      WHERE (v.tally_customer_id IN (SELECT id FROM tally_customers WHERE rm_name IN (${nameList})) OR v.user_id = ?)
+      WHERE (v.tally_customer_id IN (SELECT id FROM tally_customers WHERE rm_name IN (${nameList})) OR v.user_id IN (${userPlaceholders}))
         AND v.business_date = ?
       ORDER BY v.started_at DESC LIMIT 10
-    `).all(...allNames, userId ?? "", todayStr, todayStr);
+    `).all(todayStr, ...allNames, ...linkedUserIds, todayStr);
+
+    // RM Code
+    const spRow = db.prepare(`SELECT code, city FROM tally_salespeople WHERE name IN (${nameList}) AND code IS NOT NULL AND code <> '' LIMIT 1`).get(...allNames);
+    const rmCode = crmUser?.employee_code || spRow?.code || `RM-${rmId.toUpperCase()}`;
+
+    // Operating city from RM master profile (e.g. Gurugram from PDF)
+    const baseOperatingCity = crmUser?.operating_city?.trim() || spRow?.city?.trim() || crmUser?.territory?.trim() || "Gurugram";
+    
+    // Dealer territory coverage cities
+    const cityRows = db.prepare(`
+      SELECT city, COUNT(*) cnt
+      FROM tally_customers
+      WHERE rm_name IN (${nameList}) AND city IS NOT NULL AND TRIM(city) <> ''
+      GROUP BY city
+      ORDER BY cnt DESC
+      LIMIT 8
+    `).all(...allNames);
+    const dealerCities = cityRows.map((r) => r.city.trim());
+
+    const operatingCity = baseOperatingCity;
+    const operatingCities = [baseOperatingCity];
+
+    // Attendance (clock-in / clock-out) for RM
+    const attendanceRow = userId ? db.prepare(`
+      SELECT a.check_in_at checkInAt, a.check_out_at checkOutAt, a.business_date businessDate
+      FROM attendance a
+      WHERE a.user_id = ? AND a.business_date = ?
+    `).get(userId, todayStr) : null;
+    const fallbackAttendance = !attendanceRow && allNames.length ? db.prepare(`
+      SELECT a.check_in_at checkInAt, a.check_out_at checkOutAt, a.business_date businessDate
+      FROM attendance a
+      JOIN users u ON u.id = a.user_id
+      JOIN salesperson_profiles p ON p.user_id = u.id
+      WHERE (p.full_name IN (${nameList}) OR u.id IN (${nameList}))
+        AND a.business_date = ?
+      ORDER BY a.check_in_at DESC LIMIT 1
+    `).get(...allNames, ...allNames, todayStr) : null;
+    const rmAttendance = attendanceRow || fallbackAttendance || null;
+
+    // Monthly Target vs Actual (Last 12 months with activity)
+    const monthlySalesRows = db.prepare(`
+      SELECT substr(i.invoice_date, 1, 7) month, COALESCE(SUM(i.amount), 0) actualSales
+      FROM tally_invoices i
+      JOIN tally_customers c ON c.id = i.customer_id
+      WHERE i.ingest_session_id IS NULL AND c.rm_name IN (${nameList})
+      GROUP BY month
+      ORDER BY month DESC
+      LIMIT 12
+    `).all(...allNames).reverse();
+
+    const monthlyTargetRows = db.prepare(`
+      SELECT period month, COALESCE(target_lakh * 100000, 0) targetValue
+      FROM tally_rm_targets
+      WHERE rm_name IN (${nameList})
+      ORDER BY period ASC
+    `).all(...allNames);
+    const targetMap = new Map(monthlyTargetRows.map((r) => [r.month, r.targetValue]));
+
+    const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+    const monthlyTargetVsActual = monthlySalesRows.map((row) => {
+      const [yr, mo] = row.month.split("-");
+      const label = `${monthNames[parseInt(mo, 10) - 1]} '${yr.slice(2)}`;
+      let targetVal = targetMap.get(row.month);
+      if (targetVal === undefined || targetVal === null) {
+        targetVal = targetMap.get(`2024-${mo}`);
+      }
+      if (!targetVal || targetVal === 0) {
+        targetVal = monthlyTarget > 0 ? monthlyTarget : 5000000;
+      }
+      const actualVal = row.actualSales;
+      const pct = targetVal > 0 ? Math.round((actualVal / targetVal) * 100) : 0;
+      return {
+        month: row.month,
+        label,
+        target: targetVal,
+        actual: actualVal,
+        achievementPercent: pct,
+      };
+    });
+
+    // Special Achievements calculation (cleared / blank)
+    const specialAchievements = [];
+
+    // Thrust products analysis
+    const thrustProducts = calculateThrustProductsForNames(allNames, from, to);
 
     res.json({
       id: rmId,
       name: rm.name,
       region: crmUser?.region ?? null,
+      rmCode,
+      operatingFrom: operatingCity,
+      operatingCities,
+      dealerCities,
+      specialAchievements,
+      monthlyTargetVsActual,
+      thrustProducts,
       from,
       to,
+      effectiveFrom,
+      effectiveTo,
+      latestActiveMonth,
+      isAnchoredToLatestCycle,
       kpi: {
         visitsPlanned: visitsKpi.visitsTotal ?? 0,
         visitsCompleted: visitsKpi.visitsCompleted ?? 0,
@@ -543,6 +942,8 @@ adminRouter.get("/team/:id", (req, res, next) => {
         expectedOrdersValue: pipelineKpi.expectedValue ?? 0,
         actualSalesValue: actualSalesVal,
         targetValue,
+        monthlyTarget,
+        periodDays: diffDays,
         achievementPercent,
         followUpsOpen: followUpKpi.open ?? 0,
         followUpsOverdue: followUpKpi.overdue ?? 0,
@@ -554,6 +955,12 @@ adminRouter.get("/team/:id", (req, res, next) => {
       topProducts,
       followUps,
       todayActivity,
+      attendance: rmAttendance ? {
+        checkInAt: rmAttendance.checkInAt,
+        checkOutAt: rmAttendance.checkOutAt,
+        businessDate: rmAttendance.businessDate,
+        status: rmAttendance.checkOutAt ? "checked_out" : rmAttendance.checkInAt ? "in_field" : "not_checked_in"
+      } : null,
     });
   } catch (error) { next(error); }
 });

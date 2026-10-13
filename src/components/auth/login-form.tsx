@@ -2,6 +2,7 @@
 import { FormEvent, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { authApi, getSessionUser, hasSession, homePathFor, saveSession, saveSessionUser } from "@/lib/api";
+import { PssplLogo } from "@/components/common/psspl-logo";
 
 export function LoginForm() {
   const router = useRouter();
@@ -24,11 +25,7 @@ export function LoginForm() {
       <section className="login-panel">
         <div className="login-panel-inner">
           <div className="login-brand">
-            <span className="login-brand-mark" aria-hidden="true">P</span>
-            <span className="login-brand-name">
-              <strong>Progressive</strong>
-              <small>Surface Systems</small>
-            </span>
+            <PssplLogo width={200} />
           </div>
 
           <div className="login-copy">

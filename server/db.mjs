@@ -297,6 +297,15 @@ db.exec(`
     created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
   );
 
+  CREATE TABLE IF NOT EXISTS thrust_products (
+    id TEXT PRIMARY KEY,
+    name TEXT NOT NULL UNIQUE,
+    alias_keywords TEXT NOT NULL,
+    sort_order INTEGER NOT NULL DEFAULT 0,
+    active INTEGER NOT NULL DEFAULT 1,
+    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+  );
+
   CREATE INDEX IF NOT EXISTS idx_tally_pairing_codes_active
     ON tally_connector_pairing_codes(expires_at, used_at, revoked_at);
   CREATE INDEX IF NOT EXISTS idx_tally_connectors_status
@@ -324,6 +333,10 @@ db.exec(`
   CREATE INDEX IF NOT EXISTS idx_tally_payments_customer_id ON tally_payments_live(customer_id);
   CREATE INDEX IF NOT EXISTS idx_visits_user_id ON visits(user_id);
   CREATE INDEX IF NOT EXISTS idx_follow_ups_user_id ON follow_ups(user_id);
+  CREATE INDEX IF NOT EXISTS idx_tally_customers_rm_name ON tally_customers(rm_name);
+  CREATE INDEX IF NOT EXISTS idx_tally_invoices_session_date ON tally_invoices(ingest_session_id, invoice_date);
+  CREATE INDEX IF NOT EXISTS idx_tally_invoice_lines_inv_prod ON tally_invoice_lines(invoice_id, product_name);
+  CREATE INDEX IF NOT EXISTS idx_tally_rm_product_sales_rm ON tally_rm_product_sales(rm_name);
 `);
 
 function ensureColumn(table, column, definition) {
@@ -373,6 +386,30 @@ ensureColumn("visits", "priority", "TEXT DEFAULT 'medium'");
 ensureColumn("follow_ups", "assigned_to_user_id", "TEXT REFERENCES users(id)");
 ensureColumn("follow_ups", "follow_up_type", "TEXT DEFAULT 'call'");
 ensureColumn("follow_ups", "notes", "TEXT");
+
+// Seed default thrust products from company schedule if empty
+try {
+  const tpCount = db.prepare("SELECT COUNT(*) count FROM thrust_products").get()?.count || 0;
+  if (tpCount === 0) {
+    const defaultThrust = [
+      { id: "tp-1", name: "Zpn Blue 15", alias: "%ZPN%BLUE%", sort: 1 },
+      { id: "tp-2", name: "Zpn 200", alias: "%ZPN%200%", sort: 2 },
+      { id: "tp-3", name: "Zpn Black", alias: "%ZPN%BLACK%", sort: 3 },
+      { id: "tp-4", name: "Shimaclad Peony", alias: "%SHIMACLAD%PEONY%", sort: 4 },
+      { id: "tp-5", name: "Clearclad Lcbh", alias: "%CLEARCLAD%LC%", sort: 5 },
+      { id: "tp-6", name: "Enilex Chrome Catalyst", alias: "%ENILEX%|%CHROMECAT%|%CHROME%CAT%", sort: 6 },
+      { id: "tp-7", name: "POP", alias: "%POP%", sort: 7 },
+      { id: "tp-8", name: "Uviclad 612", alias: "%UVICLAD%", sort: 8 },
+      { id: "tp-9", name: "Patinas", alias: "%PATINA%", sort: 9 },
+    ];
+    const insStmt = db.prepare("INSERT OR IGNORE INTO thrust_products (id, name, alias_keywords, sort_order) VALUES (?, ?, ?, ?)");
+    for (const item of defaultThrust) {
+      insStmt.run(item.id, item.name, item.alias, item.sort);
+    }
+  }
+} catch (e) {
+  console.warn("Could not seed thrust products:", e.message);
+}
 
 db.exec("PRAGMA optimize;");
 

@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { authApi, clearSession, rmApi } from "@/lib/api";
 import { formatDateTime, formatNumber, formatRupees } from "@/lib/format";
+import { PssplLogo } from "@/components/common/psspl-logo";
 
 interface Member {
   id: string; email: string; active: number; fullName: string; region: string; territory: string;
@@ -69,8 +70,7 @@ export function RmDashboard() {
     <div className="admin-shell rm-shell">
       <aside className="admin-sidebar">
         <div className="admin-brand">
-          <span className="admin-brand-mark" aria-hidden="true">P</span>
-          <span className="admin-brand-name"><strong>Progressive</strong><small>Surface Systems</small></span>
+          <PssplLogo />
         </div>
         <p className="admin-workspace">Regional manager workspace</p>
         <nav>
@@ -168,9 +168,21 @@ export function RmDashboard() {
                             <small>{formatNumber(member.followUpsOpen)} open follow-ups</small>
                           </td>
                           <td>
-                            {member.attendance
-                              ? <><span className={`admin-pill ${member.attendance.checkOutAt ? "positive" : "neutral"}`}>{member.attendance.checkOutAt ? "Checked out" : "In field"}</span><small>{formatDateTime(member.attendance.checkInAt)}</small></>
-                              : <span className="admin-muted">Not checked in</span>}
+                            {member.attendance ? (
+                              <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+                                <span className={`admin-pill ${member.attendance.checkOutAt ? "positive" : "neutral"}`} style={{ width: "fit-content" }}>
+                                  {member.attendance.checkOutAt ? "Checked out" : "In field"}
+                                </span>
+                                <small style={{ fontSize: 10.5, color: "#64748b" }}>
+                                  In: <strong>{new Date(member.attendance.checkInAt).toLocaleTimeString("en-IN", { hour: "numeric", minute: "2-digit" })}</strong>
+                                  {member.attendance.checkOutAt && (
+                                    <> · Out: <strong>{new Date(member.attendance.checkOutAt).toLocaleTimeString("en-IN", { hour: "numeric", minute: "2-digit" })}</strong></>
+                                  )}
+                                </small>
+                              </div>
+                            ) : (
+                              <span className="admin-muted">Not checked in</span>
+                            )}
                           </td>
                         </tr>
                       ))}

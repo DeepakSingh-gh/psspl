@@ -60,7 +60,23 @@ export interface TeamMember {
   visitsCompleted: number;
   followUpsOpen: number;
   checkedInToday: boolean;
+  checkInAt?: string | null;
+  checkOutAt?: string | null;
   crmUser: { id: string; email: string; role: UserRole; active: boolean } | null;
+  thrustSalesValue?: number;
+  thrustSalesLakh?: number;
+  thrustActiveCount?: number;
+  thrustTopProduct?: string | null;
+}
+
+export interface ThrustLeaderboardItem {
+  id: string;
+  name: string;
+  region: string | null;
+  thrustSalesLakh: number;
+  thrustSalesValue: number;
+  thrustActiveCount: number;
+  thrustTopProduct: string | null;
 }
 
 export interface TeamResponse {
@@ -68,6 +84,7 @@ export interface TeamResponse {
   financialYears: string[];
   targetMonths: number;
   members: TeamMember[];
+  thrustLeaderboard?: ThrustLeaderboardItem[];
   unassignedCustomers: number;
   unassignedSalesValue: number;
   liveInvoiceCount: number;

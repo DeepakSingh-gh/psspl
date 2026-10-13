@@ -87,6 +87,53 @@ All core high-priority gaps from the initial concept analysis have been implemen
 * **Customer Dependency & Portfolio Risk:** Automated calculation and display of Top 5 Dealer Revenue Concentration metrics (alerting when >80% revenue depends on top accounts).
 * **Voice-to-Text Dictation & Phone Call Activity Logging:** Enhanced mobile sales workspace (`/sales/my-day`) with 🚗 Field Visit vs 📞 Phone Call activity toggles and voice note transcription (`transcribeSpeech`).
 
+### 14. PSSPL Vector Brand Logo Integration (`<PssplLogo />`)
+✅ **Implemented & Verified.**
+* **Transparent SVG Integration:** Built reusable `<PssplLogo />` component (`src/components/common/psspl-logo.tsx`) with scalable vector artwork (hexagonal laboratory flask symbol + chemical fluid + crisp corporate typography).
+* **Seamless Background Blending:** Rendered with a transparent background fill to naturally blend with dark navy (`#142742`) sidebars, executive report headers, and authentication portals.
+* **Widespread Component Integration:** Replaced obsolete text span tags and hardcoded CSS letterforms across `admin-shell.tsx`, `rm-shell.tsx`, `rm-report-card.tsx`, `rm-home.tsx`, `rm-dashboard.tsx`, `sales-sidebar.tsx`, and `login-form.tsx`.
+
+### 15. Supabase Cloud Sync Engine (Tally -> Postgres Replica)
+✅ **Implemented & Verified.**
+* **Automatic Upsert Mechanism:** Built `server/supabase-sync.mjs` using `INSERT INTO ... ON CONFLICT (...) DO UPDATE` to mirror Tally SQLite data precisely to an external Supabase Postgres database.
+* **Instant Background Trigger:** Hooked the sync script directly into `server/connector-api.mjs`, instantly spawning a background process immediately after the local Tally GI connector finishes writing its chunks, ensuring the cloud is always perfectly synced without overlapping data.
+
+### 16. RM Sales Target Feedback Support Report & Real-Time PDF Sync
+✅ **Implemented & Verified.**
+* **Real-Time Data Integration:** Ingested exact feedback support schedule for RM Anil Jena (RM Code: `075709`, operating headquarters `Gurugram`, registration codes: `2111C126`, `2111S126`).
+* **9 Sales Executives & Cities Mapping:** Accurately linked 9 Sales Executives to Anil Jena with designated cities (*Ghaziabad, Delhi, Sonepat, Bahadurgarh, Sahibabad, Rudrapur, Gurgaon, Faridabad, Noida*) plus Tech Serv Center (*Gurugram*) and Tech Serv Executive (*Girand Kumar*).
+* **Target & Achievement Precision:** Synchronized exact FY 2026-27 targets (501.00 Lakh total / 254.68 Lakh till September) and actuals (114.24 Lakh / 45% achievement).
+* **Weekly Purchases Matrix:** Created `rm_weekly_purchases` table supporting Wk 1 to Wk 4 target vs actual breakdown.
+* **Thrust Products & Territory Expansion:** Real-time tracking of new dealer appointments (*Chem X Enterprises*, *S.B. Refractory*) and 12 thrust products (*Zpn Blue 15, Zpn 200, Zpn Black, Shimaclad Peony, Clearclad Lcbh, Enilex Chorme Catalyst, POP, Uviclad 612, Patinas* with 0.09 L recorded actual).
+* **1:1 Printable PDF Layout (`/rm/print-report`):** Exact layout match with WPS Office PDF schedule with A4 landscape print styling.
+
+### 17. Lead Pipeline Inline Deletion
+✅ **Implemented & Verified.**
+* **Pipeline Trash Action:** Added trash delete button (`🗑️`) to lead cards in Kanban view (`src/components/sales/lead-board.tsx`).
+* **Safety Confirmation & Cascade Cleanup:** Modal confirmation safeguarding against accidental clicks and backend cleanup (`DELETE /api/sales/leads/:id`) cascading across associated activities and requests.
+
+### 16. Quarter-wise Trend Analysis
+✅ **Implemented & Verified.**
+* **Executive Summary Addition:** Created a dynamic Quarter-wise (Q1-Q4) revenue comparison dashboard in `admin-overview.tsx` that processes live invoice data to render a progress-bar visual for each financial quarter.
+
+### 17. Dormant Dealer Tracking (90-Day Disengagement Alert)
+✅ **Implemented & Verified.**
+* **AI & SQL Detection:** Added dynamic alerts for accounts that haven't purchased any products in over 3 months (90 days).
+* **RM Justification Feedback:** Implemented a backend `dormant_reasons` table and a corresponding UI in `rm-customers.tsx` allowing Regional Managers to directly document and submit reasons for a dealer's dormancy.
+
+### 18. RM Report Generation Gap Analysis
+✅ **Generated & Documented.**
+* **Gap Analysis Artifact:** Created `rm_report_gap_analysis.md` outlining missing specifications between the current dynamic `print-report/page.tsx` and the client's static format expectations. Key missing elements identified: Weekly Purchases breakdown, Previous Year YoY Comparison, Territory Expansion compliance tracking, and Special Targets.
+
+### 19. RM Performance Status & Active Ledger Synchronization
+✅ **Implemented & Verified.**
+* **Canonical RM ID Resolution:** Fixed lookup mismatch where requested URL ID `aniljenafield` was evaluated directly against canonical `aniljena`, which previously caused RM salesperson profile resolution to return `null` and freeze target evaluation at 0%. Canonical lookup now resolves both primary and alias directory keys seamlessly.
+* **Active Ledger Cycle Synchronization:** Synchronized monthly reporting with the active Tally ERP ledger cutoff (September 2026 / `2026-09`). When calendar dates advance into future or unbilled months (e.g. October 2026 with 0 invoices), the system anchors to the latest closed cycle, ensuring 100% agreement between:
+  - **Performance Status Badge:** `On Track (135% of target achieved)`
+  - **Current Period Milestone:** `₹62.15 L Total Revenue Generated (41 validated billing invoices)`
+  - **12-Month Target vs Actual Bar Chart:** September 2026 bar matches `₹62.15 L / ₹45.93 L (135%)` and FY pace `310% achieved / ₹17.02 Cr`.
+* **Period-Aware Target Proration:** Enhanced target evaluation for *Today* (Daily quota = Monthly target ÷ 30) and *This Week* with informative status states (`Daily Invoicing Open`, `Daily Quota Met`, `Daily Billing Active`) to prevent misleading false-alarm underperformance banners on single days.
+
 ---
 
 ## 2. Real Client Data Ingestion

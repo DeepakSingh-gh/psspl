@@ -32,12 +32,17 @@ function editDistance(a, b) {
   return previous[b.length];
 }
 
+const stripSuffix = (s) => s.replace(/(field|rep|salesperson)$/, "");
+
 /** Two workbook spellings of the same person differ by at most two characters. */
 function isSamePerson(a, b) {
   if (a === b) return true;
-  if (a.length < 5 || b.length < 5) return false;
-  if (Math.abs(a.length - b.length) > 2) return false;
-  return editDistance(a, b) <= 2;
+  const sa = stripSuffix(a);
+  const sb = stripSuffix(b);
+  if (sa === sb && sa.length >= 4) return true;
+  if (sa.length < 5 || sb.length < 5) return false;
+  if (Math.abs(sa.length - sb.length) > 2) return false;
+  return editDistance(sa, sb) <= 2;
 }
 
 export function isNonPersonRm(name) {

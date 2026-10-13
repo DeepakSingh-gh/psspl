@@ -17,6 +17,7 @@ graph TD
         Backend -->|Meta Graph API| WhatsApp[WhatsApp Cloud API]
         Backend -->|Cron 17:00 IST| EODService[EOD Daily Summary Cron]
         TallyAgent[Tally Windows Agent] -->|Chunked HMAC Sync| Backend
+        Backend -->|supabase-sync.mjs (UPSERT)| Supabase[(Supabase Postgres Cloud Replica)]
         ExcelWorkbooks[PSSPL Client Excel Workbooks] -->|import_psspldata.py| DB
     end
 ```
@@ -26,12 +27,13 @@ graph TD
 ## 2. Technology Stack
 
 * **Frontend Framework:** Next.js 15.5 (React 19, TypeScript 5.9) with App Router.
-* **Styling & Presentation:** Vanilla CSS Design Tokens, high-contrast Report Card container borders (`1.5px solid #cbd5e1`), custom follow-up description box styles (`.followup-textarea` with `1.5px solid #0284c7` border & focus ring + `.followup-notes-display` left accent container), media query print stylesheet (`print.css`), and global header AI bar (`.topbar-ai-search`).
+* **Corporate Brand Identity:** Vector `<PssplLogo />` component (`src/components/common/psspl-logo.tsx`) with transparent background blending, precision hexagonal flask symbol, and crisp PSSPL typography integrated across Admin, RM, Sales sidebars, report headers, and authentication portals.
+* **Styling & Presentation:** Progressive Surface Systems (PSS) Vanilla CSS Design Tokens (`--honolulu-blue: #007CBA`, `--voluptuous-violet: #7A00DF`, `--love-goddess: #CC1818`, `--exhilarating-green: #7CC68D`, `--steam: #DDDDDD`, `--black: #000000`), custom follow-up description box styles (`.followup-textarea` with `1.5px solid #007CBA` border & focus ring + `.followup-notes-display` left accent container), media query print stylesheet (`print.css`), and global header AI bar (`.topbar-ai-search`).
 * **Modal Overlay & Executive Formatting:** React `createPortal` (`document.body`) for `AskAi` overlays + `AiResponseFormatter` component for parsing LLM Markdown into structured **Executive Insight Cards** with data point badges, action boxes, and metric pills.
 * **Integrated Search Controls & Voice STT:** `<VoiceMicButton>` component integrated on all search inputs with dual-engine Speech-to-Text (browser Web Speech API for free instant transcription + backend OpenAI Whisper API `POST /api/stt` endpoint in `server/stt.mjs`).
 * **Backend Runtime:** Node.js native ES Modules (`server/app.mjs`), Express 5.1.
 * **Authentication Security:** Asynchronous non-blocking `crypto.scrypt` password verification (`promisify`), malformed hash guards, strict `Bearer` token validation, and background session cleanup.
-* **AI Engine:** Google Gemini API (`gemini-2.5-flash`, `gemini-2.0-flash`, `gemini-1.5-flash`, `gemini-1.5-pro`, `gemini-3.6-flash`) via `GEMINI_API_KEY` with live SQL context window synthesis (`server/ai-context.mjs`).
+* **AI Engine:** Google Gemini API (`gemini-3.8-flash`, `gemini-3.6-flash`) via `GEMINI_API_KEY` with live SQL context window synthesis (`server/ai-context.mjs`) and zero-thinking budget (`thinkingBudget: 0`) optimization for sub-4-second conversational analytics.
 * **Scheduler & Automation:** `node-cron` running daily at 5:00 PM IST (EOD WhatsApp digest).
 * **Media & Voice Recording:** HTML5 `MediaRecorder` API + Web Speech API + `multer` backend audio storage and OpenAI Whisper `whisper-1` transcription.
 
@@ -63,6 +65,12 @@ All application state resides in `data/crm.sqlite` across three primary domains:
 * `tally_rm_product_sales`: 1,896 product performance comparisons across all 12 Regional Managers.
 * `tally_rm_targets`: Monthly sales targets in Lakhs for all RMs.
 * `tally_invoices` & `tally_invoice_lines`: 868 real invoices and 1,730 product line items representing Rs 35.47 Cr in billing.
+* `rm_weekly_purchases`: 4-week monthly breakdown matrix of actual purchases vs weekly quotas.
+* `rm_historical_monthly_performance`: Multi-year monthly target vs actual ledger storing previous financial year comparisons.
+
+### D. Strategic & Thrust Products Tracking
+* `thrust_products`: High-margin, strategically vital chemical products established at the start of the financial year (`id`, `product_name`, `target_qty`, `unit`, `active`, `created_at`). Pre-seeded with priority lines: *Zpn Blue 15, Zpn 200, Zpn Black, Shimaclad Peony, Clearclad Lcbh, Enilex Chrome Catalyst, POP, Uviclad 612, Patinas*.
+* `dormant_reasons`: Structured customer dormancy explanations and recovery action logs submitted by RMs.
 
 ---
 
@@ -85,13 +93,18 @@ All application state resides in `data/crm.sqlite` across three primary domains:
 
 ### Route Structure
 * `/admin/*`: Admin dashboard, quotation approvals, user directory, management reports, Tally sync.
-* `/admin/team/[id]`: RM Sales Activity & Performance Drill-down Dashboard (7-tab breakdown of visits, pipeline, actual sales, products, follow-ups, and AI insights).
-* `/rm/*`: RM home, team accountability, regional customer 360, product comparisons, overdue alerts.
-* `/sales/*` & `/field`: Salesperson Day-Planner, GPS check-in, visit execution, voice note recording, Kanban pipeline.
+* `/admin/team`: Executive Team Performance Dashboard with traffic-light achievement pill badges, RM sorting, dedicated **Strategic Thrust Products — RM Leaderboard**, and **Sticky Table Column Headers on Scroll** (headers remain pinned at `top: 0` with `z-index: 10` inside a scrollable container). Features corrected target scaling (Lakhs-to-Rupees) with exact achievement percentages.
+* `/admin/team/[id]`: Comprehensive Executive RM Report Card (8-tab breakdown: *Performance*, *Customer Visits*, *Pipeline*, *Actual Sales*, *Products*, *Follow-ups*, *Manager Action Plan*, and *AI Insight*). Features canonical RM ID resolution (`aniljenafield` ↔ `aniljena`), active ledger cycle synchronization (anchors to latest active reporting month like September 2026 to ensure zero metric discrepancies across badges, milestones, and graphs), period-aware target proration, RM Code (`075709`), Operating headquarters (`Gurugram`), Team Executive Cities tags, clock-in/out timestamps, Special Achievements & Milestones (Vacant Box Architecture, 4 slots), Monthly Sales Target vs Actual Bar Chart, and Thrust Product Sales Breakdown.
+* `/rm/*`: Regional Manager portal with clean, focused home dashboard, team accountability, regional customer 360, product comparisons, overdue alerts, live clock-in / clock-out attendance tracking, and streamlined top banner (redundant region tabs removed for optimal aesthetic clarity).
+* `/rm/print-report`: High-definition 1:1 reproduction of the official **PSSPL Regional Manager Sales Target Feedback Support Report** with A4 print and PDF download capabilities.
+* `/sales/*` & `/sales/my-day`: Salesperson Day-Planner with RM Executive identity header pills (RM Code, Operating from, Region, Coverage cities), live rupee formatted monthly quota metrics (`Actual from Tally`, `Target`, `Gap` in Lakhs/Rupees), GPS check-in/out tracking, visit execution, voice note recording, Kanban pipeline with instant lead deletion, and modern `AnimatedSelect` dropdowns with smooth cubic-bezier transitions for customer visit scheduling.
 
 ### API Services
-* `GET /api/admin/team`: Aggregates team performance, sales values, targets, and unassigned sales across all Regional Managers for the selected Financial Year.
-* `GET /api/admin/team/:id`: Fetches detailed RM sales activity metrics, visits log, expected order pipeline, actual Tally invoices, product movement ranking, and open follow-ups. Uses subquery matching `c.rm_name IN (allNames)` and `v.user_id` to attribute field operations and invoices across all team customers and sales representatives.
+* `GET /api/admin/team`: Aggregates team performance, sales values, period-accurate targets from `tally_rm_targets` and profiles (scaled with `LAKH`), unassigned sales, individual RM thrust metrics (`thrustSalesValue`, `thrustSalesLakh`, `thrustActiveCount`, `thrustTopProduct`), and cross-team `thrustLeaderboard` ranking across all Regional Managers for the selected Financial Year.
+* `GET /api/admin/team/:id`: Fetches detailed RM sales activity metrics, visits log, expected order pipeline, actual Tally invoices, product movement ranking, open follow-ups, `rmCode`, `operatingFrom`, `dealerCities`, `specialAchievements`, 12-month `monthlyTargetVsActual` chart series, and RM-specific `thrustProducts` analytics. Scoped to capture visits, pipeline, and follow-ups across all linked RM accounts (`sp-101`, `rm-anil-jena`), subordinate sales reps, and regional dealer accounts.
+* `POST /api/sales/visits/unplanned`: Creates an unplanned customer visit with multi-tier access authorization (`canAccessCustomer`), enabling RMs and field sales representatives to plan visits across all customers in their territory, assigned portfolios, and managed team members.
+* `GET /api/rm/print-report`: Powers the printable PDF report with basic details, executive team mapping, annual summary, 12-month metrics, 4-week matrix, previous year benchmarks, territory expansion, and thrust line actuals.
+* `DELETE /api/sales/leads/:id`: Removes a lead from the salesperson pipeline along with associated activities and service requests.
 * `POST /api/stt`: Receives recorded speech audio blobs (`multipart/form-data`) and transcribes speech to text using OpenAI Whisper API (`whisper-1`).
 
 ---
@@ -110,11 +123,36 @@ Located in `server/app.mjs`:
 * Features integrated gradient search button and instant chip execution.
 * Automatic model failover across `gemini-2.5-flash`, `gemini-2.0-flash`, `gemini-1.5-flash`, `gemini-1.5-pro`, and `gemini-3.6-flash`.
 
-### 3. Excel Workbook Importer (`scripts/import_psspldata.py`)
-* Automatically parses workbooks from client workbooks:
-  - `6) Dealer Summary Apr, 2023 to May, 2024.xlsx`
-  - `8) PSS Product Analysis I 2022-23 (005).xlsx`
-  - `10) COMPARISON OF PRODUCT WITH QTY.xlsx`
-  - `9) PSS Sales Incentive Calculations-24-25.xlsx`
-  - `2) All Party wise Payments.xlsx`
-* Generates synchronized user accounts, product lines, and real invoices for immediate operational testing.
+### 3. Supabase Cloud Sync Engine (GI Connector)
+Located in `server/supabase-sync.mjs` and `server/connector-api.mjs`:
+* Asynchronously spawned by the Express server immediately after a Tally GI chunk upload is finalized (`action === "finalize"`).
+* Leverages advanced Postgres `INSERT INTO ... ON CONFLICT (...) DO UPDATE` commands.
+* Syncs local `crm.sqlite` schema and data to Supabase Postgres (acting as a Cloud Replica) without overlap or duplication, enabling external cloud analytics.
+
+### 4. Modern Sales & Analytics Dashboards
+* Features a premium glassmorphic Kanban pipeline and Optimistic UI Drag-and-Drop.
+* **Quarter-wise Trend Analysis:** Automated aggregation and progress-bar tracking of Q1-Q4 revenue directly on the admin overview.
+* **Dormant Dealer Reporting:** AI-driven flagging of accounts with no purchase activity in >3 months (90 days), with built-in RM feedback forms mapped to the `dormant_reasons` schema.
+
+### 5. Strategic Thrust Products & RM Report Card Engine
+Located in `server/admin.mjs` and `src/components/admin/`:
+* **Thrust Product Aggregation & Intelligence:** Annual strategic chemical focus items defined in `thrust_products` are evaluated across all billed line items (`tally_invoice_lines` joined with `tally_invoices`). Flexible case-insensitive matching attributes volume, rupee value, Lakhs, and dealer reach per Regional Manager.
+* **Admin Thrust Leaderboard:** Computes cross-team rankings (`thrustLeaderboard`) comparing every RM's thrust product contribution, active thrust lines sold, and top volume product, displayed directly on `/admin/team`.
+* **Monthly Target vs Actual Graph Engine:** Synthesizes 12-month financial year performance (Apr-Mar) by pairing `tally_rm_targets` with monthly invoice totals (`tally_invoices`). Renders interactive comparative dual-bar charts (`TargetVsActualMonthlyChart`) with surplus/shortfall badges.
+* **Dedicated Manager Action Plan Tab:** Extracted from AI insights into its own dedicated executive tab (`📋 Manager Action Plan`), consolidating immediate directives, territory gap assessments, concentration risks, and scrollable recent visit transcripts.
+* **RM Executive Identification & Accolades:** Dynamically derives RM code identifier (`rmCode`), regional operating cities (`operatingCities`), and achievement milestone container (`Special Achievements & Milestones`) in the report card header.
+* **Friendly Executive UI Architecture:** Replaced complex/stacked tags with a streamlined executive card hierarchy: clean identity row (Avatar, RM code, Region, Operating city, real-time clock-in/out pill, performance status chip), compact horizontal territory coverage pill group, unified follow-up scheduler, and resilient check-in location fallback.
+
+### 6. High-Performance Data & Caching Architecture
+* **Composite SQLite Indexes:**
+  - `idx_tally_customers_rm_name`: Accelerates RM customer lookups and outstanding joins.
+  - `idx_tally_invoices_session_date`: Optimizes date-range invoice filtering while ignoring raw ingestion sessions.
+  - `idx_tally_invoice_lines_inv_prod`: Eliminates full scans on product-line item lookups across 27,000+ line items.
+  - `idx_tally_rm_product_sales_rm`: Speeds up previous-year RM performance comparisons.
+* **Single-Pass In-Memory Thrust Aggregation (`calculateAllThrustProductsBatch`):**
+  - Replaced 330+ repetitive nested SQL queries with an in-memory aggregation map, cutting `/api/admin/team` latency from 3,630ms to ~450ms (8× speedup).
+* **Client-Side SWR (Stale-While-Revalidate) Cache Layer (`src/lib/use-admin-data.ts`):**
+  - Client hook provides instant zero-latency rendering of cached records with background API revalidation.
+  - Namespaced composite cache keys (`${loaderSource}::${JSON.stringify(deps)}`) prevent cross-endpoint data pollution.
+  - Defensive null-safe accessors in `AdminOverview` ensure resilient runtime behavior during state transitions.
+

@@ -426,6 +426,19 @@ connectorRouter.post("/ingest/tally/chunks", connectorAuth, (req, res, next) => 
           db.prepare("INSERT INTO tally_import_metadata (key,value) VALUES ('last_import_at',?) ON CONFLICT(key) DO UPDATE SET value=excluded.value").run(completed);
           db.prepare("INSERT INTO tally_import_metadata (key,value) VALUES ('source',?) ON CONFLICT(key) DO UPDATE SET value=excluded.value").run(`Live Tally connector · ${session.company_name}`);
         });
+        
+        // --- TRIGGER SUPABASE SYNC ---
+        // Asynchronously spawn the Supabase sync script to mirror new data to the cloud
+        // This ensures Supabase receives only new data (preventing overlap) instantly after GI completes.
+        import("child_process").then(cp => {
+          const syncProcess = cp.spawn("node", ["server/supabase-sync.mjs"], {
+            cwd: process.cwd(),
+            detached: true,
+            stdio: "ignore"
+          });
+          syncProcess.unref();
+        }).catch(err => console.error("Failed to trigger Supabase sync:", err));
+        
         return res.json({ ok: true, sessionId: session.id, uploadMode: "resumable", counts });
       } catch (error) {
         db.prepare("UPDATE tally_chunk_sessions SET status='failed',completed_at=?,error_message=? WHERE id=?").run(iso(), error.message, session.id);

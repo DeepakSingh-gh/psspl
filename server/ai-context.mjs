@@ -37,6 +37,21 @@ export async function buildContext(userId, scope) {
     ? db.prepare(`SELECT stage, COUNT(*) count, COALESCE(SUM(expected_value),0) value FROM leads WHERE user_id IN (${ph}) GROUP BY stage`).all(...userIds)
     : [];
 
+  // Stagnant leads: generated but not converted (>30 days open)
+  const stagnantLeadsCount = userIds.length
+    ? db.prepare(`SELECT COUNT(*) count FROM leads WHERE user_id IN (${ph}) AND stage NOT IN ('won', 'lost') AND created_at < date('now', '-30 days')`).get(...userIds).count
+    : 0;
+
+  // Thrust products: designated top products for the year (derived from previous year's best sellers)
+  const prevFyStart = (() => { const y = new Date(fyStart).getFullYear() - 1; return `${y}-04-01`; })();
+  const thrustProducts = db.prepare(`
+    SELECT p.name, COALESCE(SUM(l.amount),0) salesValue
+    FROM tally_products p
+    LEFT JOIN tally_invoice_lines l ON l.product_id=p.id
+    LEFT JOIN tally_invoices i ON i.id=l.invoice_id AND i.invoice_date BETWEEN ? AND ?
+    GROUP BY p.id ORDER BY salesValue DESC LIMIT 3
+  `).all(prevFyStart, fyStart);
+
   // Inactive customers (no invoice in last 90 days), admin only
   let inactiveCount = 0;
   if (scope === "admin") {
@@ -56,8 +71,10 @@ export async function buildContext(userId, scope) {
     scope,
     date: today,
     financialYearFrom: fyStart,
+    thrustProducts: thrustProducts.map((p) => p.name),
     topProducts: topProducts.map((p) => ({ name: p.name, salesValue: `₹${(p.salesValue / 100000).toFixed(2)}L` })),
     overdueFollowUps: overdueFollowUps.count,
+    stagnantLeads: stagnantLeadsCount,
     pipeline: pipeline.map((p) => ({ stage: p.stage, count: p.count, value: `₹${(p.value / 100000).toFixed(2)}L` })),
     ...(inactiveCount > 0 ? { inactiveCustomers: inactiveCount } : {}),
     ...(performanceSummary ? { performance: performanceSummary } : {}),
@@ -71,14 +88,16 @@ export function buildSystemPrompt(contextJson) {
 Answer management & sales questions using ONLY the live company database metrics provided below.
 Be concise, data-driven, and highly professional. Cite exact figures.
 
-FORMATTING INSTRUCTIONS:
+CRITICAL INSTRUCTIONS:
+- If there are 'stagnantLeads' (>0), firmly flag them as leads that are generated but failing to convert into clients.
+- The 'thrustProducts' are the designated focus products for the year (most historically sold). If any thrust product is not performing well or missing from the current topProducts, you MUST flag this and provide a brief analytical reason why it might not be selling.
 - Format suggestions as clean numbered points (e.g. 1., 2., 3.).
 - For each numbered point, use clear bold headers like:
   1. **[Clear Recommendation Title]**
   **Data Point:** [Exact numerical metric/count from live DB]
   **Action:** [Actionable business strategy]
 - Avoid raw code syntax (such as '[]') and do NOT include double asterisk asterisks like '* * **Data Point:**'.
-- If a metric is empty or zero, state it gracefully (e.g., "Sales pipeline has no active deals logged yet").
+- If a metric is empty or zero, state it gracefully.
 
 CURRENT LIVE PSSPL DATABASE METRICS:
 ${contextJson}`;
@@ -88,8 +107,8 @@ import fs from "node:fs";
 import path from "node:path";
 
 function getGeminiKey() {
-  if (process.env.GEMINI_API_KEY) return process.env.GEMINI_API_KEY;
-  if (process.env["gemini api key"]) return process.env["gemini api key"];
+  if (process.env.GEMINI_API_KEY) return process.env.GEMINI_API_KEY.trim().replace(/^["']|["']$/g, "");
+  if (process.env["gemini api key"]) return process.env["gemini api key"].trim().replace(/^["']|["']$/g, "");
   try {
     const envPath = path.resolve(process.cwd(), ".env");
     if (fs.existsSync(envPath)) {
@@ -98,7 +117,7 @@ function getGeminiKey() {
         const trimmed = line.trim();
         if (trimmed.startsWith("GEMINI_API_KEY=") || trimmed.toLowerCase().startsWith("gemini api key=")) {
           const parts = trimmed.split("=");
-          if (parts.length >= 2) return parts.slice(1).join("=").trim();
+          if (parts.length >= 2) return parts.slice(1).join("=").trim().replace(/^["']|["']$/g, "");
         }
       }
     }
@@ -111,10 +130,10 @@ export async function askAI(systemPrompt, userQuestion) {
   const openAiKey = process.env.OPENAI_API_KEY;
 
   if (geminiKey) {
-    const models = ["gemini-2.5-flash", "gemini-2.0-flash", "gemini-1.5-flash", "gemini-1.5-pro", "gemini-3.6-flash"];
+    const models = ["gemini-3.8-flash", "gemini-3.6-flash"];
     for (const model of models) {
       const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), 12000);
+      const timeout = setTimeout(() => controller.abort(), 20000);
       try {
         const resp = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${geminiKey}`, {
           method: "POST",
@@ -129,19 +148,27 @@ export async function askAI(systemPrompt, userQuestion) {
             ],
             generationConfig: {
               temperature: 0.3,
-              maxOutputTokens: 800
+              maxOutputTokens: 800,
+              thinkingConfig: { thinkingBudget: 0 }
             }
           })
         });
 
         if (resp.ok) {
           const json = await resp.json();
-          const text = json.candidates?.[0]?.content?.parts?.[0]?.text;
-          if (text) return text;
+          const parts = json.candidates?.[0]?.content?.parts ?? [];
+          const textPart = parts.find((p) => p.text && !p.thought) || parts[0];
+          if (textPart?.text) return textPart.text;
+        } else {
+          const errData = await resp.json().catch(() => ({}));
+          console.warn(`[AI] Gemini ${model} returned ${resp.status}:`, errData.error?.message || resp.statusText);
         }
       } catch (e) {
-        if (e.name === "AbortError") return "Ask AI timed out after 30 seconds. Please try again.";
-        console.error(`[AI] Gemini ${model} error:`, e);
+        if (e.name === "AbortError") {
+          console.warn(`[AI] Gemini ${model} timed out`);
+        } else {
+          console.error(`[AI] Gemini ${model} error:`, e);
+        }
       } finally {
         clearTimeout(timeout);
       }
@@ -150,7 +177,7 @@ export async function askAI(systemPrompt, userQuestion) {
 
   if (openAiKey) {
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 30000);
+    const timeout = setTimeout(() => controller.abort(), 20000);
     try {
       const resp = await fetch("https://api.openai.com/v1/chat/completions", {
         method: "POST",
@@ -166,12 +193,19 @@ export async function askAI(systemPrompt, userQuestion) {
       if (resp.ok) {
         const json = await resp.json();
         return json.choices?.[0]?.message?.content ?? "No response received from AI.";
+      } else {
+        const errData = await resp.json().catch(() => ({}));
+        console.warn(`[AI] OpenAI returned ${resp.status}:`, errData.error?.message || resp.statusText);
       }
     } catch (e) {
       console.error("[AI] OpenAI error:", e);
     } finally {
       clearTimeout(timeout);
     }
+  }
+
+  if (geminiKey || openAiKey) {
+    return "AI service is currently busy or experiencing high traffic. Please try your question again in a moment.";
   }
 
   return "Ask AI is not configured. Please verify GEMINI_API_KEY in `.env`.";

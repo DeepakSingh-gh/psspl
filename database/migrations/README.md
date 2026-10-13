@@ -7,4 +7,13 @@ Migration files are applied in filename order and recorded in the `schema_migrat
 - Never add client, Tally, production, password or personal data to migrations.
 - Test migrations against a new temporary database before committing them.
 
-Run migrations with `npm run db:migrate`.
+### Core Schema Migrations & Tables
+- `001_initial_schema.sql`: Core users, salesperson profiles, visits, leads, tally integration, and billing tables.
+- `thrust_products` (applied via `server/db.mjs` migration): Strategic annual priority chemical products tracking table (`id`, `product_name`, `target_qty`, `unit`, `active`, `created_at`).
+- `dormant_reasons` (applied via `server/db.mjs` migration): Customer disengagement logging and justification records.
+- `rm_weekly_purchases` (applied via `server/db.mjs` & `scripts/seed_anil_jena_realtime.mjs`): 4-week monthly purchase achievement storage per RM.
+- `rm_historical_monthly_performance` (applied via `server/db.mjs` & seeder): Multi-year historical targets and actual sales per month per RM.
+- `salesperson_profiles` additions: `operating_city`, `reg_code_1`, `reg_code_2` for formal registration and operating base tracking.
+
+Run migrations with `npm run db:migrate` or initialize with `npm run db:setup`.
+

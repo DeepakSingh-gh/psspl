@@ -79,6 +79,40 @@ export function RmCustomers() {
                                   {a.activity_type} — {a.subject}
                                 </div>
                               ))}
+                              
+                              {/* Dormant Check */}
+                              {(() => {
+                                const last = detail.customer?.lastInvoiceDate ? new Date(detail.customer.lastInvoiceDate).getTime() : 0;
+                                const isDormant = last > 0 && (Date.now() - last) > 90 * 24 * 3600 * 1000;
+                                return (isDormant || (!last && detail.customer)) && (
+                                  <div style={{ marginTop: "1rem", padding: "1rem", background: "var(--color-surface)", border: "1px solid var(--color-border)", borderRadius: "8px" }}>
+                                    <h4 style={{ margin: "0 0 0.5rem 0", color: "var(--color-error, #ef4444)" }}>⚠️ Dormant Dealer (No purchase in 3 months)</h4>
+                                    <form onSubmit={(e) => {
+                                      e.preventDefault();
+                                      const formData = new FormData(e.currentTarget);
+                                      const reason = formData.get("reason") as string;
+                                      if (reason) {
+                                        rmApi.saveDormantReason(c.id, reason).then(() => {
+                                          rmApi.customerDetail(c.id).then(setDetail);
+                                        });
+                                      }
+                                    }} style={{ display: "flex", gap: "0.5rem" }}>
+                                      <input name="reason" placeholder="Enter reason for no purchase..." required style={{ flex: 1, padding: "0.5rem", borderRadius: "4px", border: "1px solid var(--color-border)" }} />
+                                      <button type="submit" className="admin-button">Save Report</button>
+                                    </form>
+                                    {detail.dormantReasons?.length > 0 && (
+                                      <div style={{ marginTop: "0.75rem" }}>
+                                        <strong>Past Reports:</strong>
+                                        {detail.dormantReasons.map((r: any) => (
+                                          <div key={r.id} style={{ fontSize: "0.85rem", padding: "0.25rem 0", borderBottom: "1px dashed var(--color-border)" }}>
+                                            <em>{new Date(r.created_at).toLocaleDateString()}</em> - {r.reason}
+                                          </div>
+                                        ))}
+                                      </div>
+                                    )}
+                                  </div>
+                                );
+                              })()}
                             </div>
                           )}
                         </td>
