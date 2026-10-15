@@ -4,23 +4,28 @@ This document outlines the complete technical architecture of the PSSPL CRM, spa
 
 ---
 
-## 1. High-Level Architecture
+## 1. High-Level Architecture & Production Topology
 
 ```mermaid
 graph TD
-    ClientBrowser[Desktop & Mobile Browser / PWA] -->|Next.js App Router :3000| Frontend[Next.js 15 UI Layer]
-    Frontend -->|REST API :4000| Backend[Express.js 5 API Server]
-    Backend -->|Native WAL| DB[(SQLite: data/crm.sqlite)]
+    ClientBrowser[Desktop & Mobile Browser / PWA] -->|HTTPS / Edge CDN| VercelFrontend[Vercel Serverless: psspl-crm.vercel.app]
+    VercelFrontend -->|Reverse Proxy / Direct API| RenderBackend[Render Node.js 22: psspl-crm-backend.onrender.com]
+    RenderBackend -->|Native WAL| DB[(SQLite: data/crm.sqlite + Auto-restore gzip)]
     
     subgraph Data Flow & Integrations
-        Backend -->|Context Injection| Gemini[Google Gemini API gemini-2.5-flash / gemini-2.0-flash]
-        Backend -->|Meta Graph API| WhatsApp[WhatsApp Cloud API]
-        Backend -->|Cron 17:00 IST| EODService[EOD Daily Summary Cron]
-        TallyAgent[Tally Windows Agent] -->|Chunked HMAC Sync| Backend
-        Backend -->|supabase-sync.mjs (UPSERT)| Supabase[(Supabase Postgres Cloud Replica)]
-        ExcelWorkbooks[PSSPL Client Excel Workbooks] -->|import_psspldata.py| DB
+        RenderBackend -->|Context Injection| Gemini[Google Gemini API gemini-2.5-flash / gemini-2.0-flash]
+        RenderBackend -->|Meta Graph API| WhatsApp[WhatsApp Cloud API]
+        RenderBackend -->|Cron 17:00 IST| EODService[EOD Daily Summary Cron]
+        TallyAgent[Tally Windows Agent] -->|Chunked HMAC Sync| RenderBackend
+        RenderBackend -->|supabase-sync.mjs (UPSERT)| Supabase[(Supabase Postgres Cloud Replica)]
+        GitHubRepo[GitHub: DeepakSingh-gh/psspl] -->|CI/CD Git Triggers| VercelFrontend
     end
 ```
+
+### Production Deployment Topology
+* **Frontend Web Application:** Hosted on **Vercel** (`https://psspl-crm.vercel.app`), configured with Next.js 15 App Router, static page optimization across 27 routes, and `.env.production` pointing to the live Render API.
+* **Backend API Server:** Hosted on **Render** (`https://psspl-crm-backend.onrender.com`), running Node.js 22 with Express 5.1, SQLite WAL mode, and automated decompression of `data/crm-baseline.sqlite.gz` (57 MB uncompressed) on startup if the database file is absent.
+* **Source Control:** Synchronized on GitHub at [https://github.com/DeepakSingh-gh/psspl](https://github.com/DeepakSingh-gh/psspl).
 
 ---
 
@@ -29,11 +34,16 @@ graph TD
 * **Frontend Framework:** Next.js 15.5 (React 19, TypeScript 5.9) with App Router.
 * **Corporate Brand Identity:** Vector `<PssplLogo />` component (`src/components/common/psspl-logo.tsx`) with transparent background blending, precision hexagonal flask symbol, and crisp PSSPL typography integrated across Admin, RM, Sales sidebars, report headers, and authentication portals.
 * **Styling & Presentation:** Progressive Surface Systems (PSS) Vanilla CSS Design Tokens (`--honolulu-blue: #007CBA`, `--voluptuous-violet: #7A00DF`, `--love-goddess: #CC1818`, `--exhilarating-green: #7CC68D`, `--steam: #DDDDDD`, `--black: #000000`), custom follow-up description box styles (`.followup-textarea` with `1.5px solid #007CBA` border & focus ring + `.followup-notes-display` left accent container), media query print stylesheet (`print.css`), and global header AI bar (`.topbar-ai-search`).
-* **Modal Overlay & Executive Formatting:** React `createPortal` (`document.body`) for `AskAi` overlays + `AiResponseFormatter` component for parsing LLM Markdown into structured **Executive Insight Cards** with data point badges, action boxes, and metric pills.
+* **Ask AI Command Center & Formatting:** React `createPortal` (`document.body`) for modal overlay, quick date presets (*FY 2026-27*, *Last 30 Days*, *All Data*), clear button (`✕`), categorized prompt chips with icons, and `AiResponseFormatter` for parsing LLM Markdown into structured **Executive Insight Cards** with data point badges, action boxes, and metric pills.
+* **Mobile-First Responsive Layout:**
+  - Sliding off-canvas navigation drawer with backdrop tap-to-dismiss (`.admin-sidebar-backdrop`) and animated vector hamburger button.
+  - Responsive multi-breakpoint design (`< 1200px`, `< 1000px`, `< 768px`, `< 480px`).
+  - Fluid grid system (`.rm-kpi-grid`, `.rm-3col-grid`, `.rm-2col-grid`, `.rm-thrust-grid`, `.rm-stat-3col`) with `min-width: 0` constraints to eliminate table blowout on 360px-480px viewports.
+  - Global `overflow-x: hidden` and `max-width: 100vw` protection on root HTML/body.
 * **Integrated Search Controls & Voice STT:** `<VoiceMicButton>` component integrated on all search inputs with dual-engine Speech-to-Text (browser Web Speech API for free instant transcription + backend OpenAI Whisper API `POST /api/stt` endpoint in `server/stt.mjs`).
 * **Backend Runtime:** Node.js native ES Modules (`server/app.mjs`), Express 5.1.
 * **Authentication Security:** Asynchronous non-blocking `crypto.scrypt` password verification (`promisify`), malformed hash guards, strict `Bearer` token validation, and background session cleanup.
-* **AI Engine:** Google Gemini API (`gemini-3.8-flash`, `gemini-3.6-flash`) via `GEMINI_API_KEY` with live SQL context window synthesis (`server/ai-context.mjs`) and zero-thinking budget (`thinkingBudget: 0`) optimization for sub-4-second conversational analytics.
+* **AI Engine:** Google Gemini API (`gemini-2.5-flash`, `gemini-2.0-flash`, `gemini-1.5-flash`, `gemini-3.8-flash`) via `GEMINI_API_KEY` with live SQL context window synthesis (`server/ai-context.mjs`) and zero-thinking budget (`thinkingBudget: 0`) optimization for sub-4-second conversational analytics.
 * **Scheduler & Automation:** `node-cron` running daily at 5:00 PM IST (EOD WhatsApp digest).
 * **Media & Voice Recording:** HTML5 `MediaRecorder` API + Web Speech API + `multer` backend audio storage and OpenAI Whisper `whisper-1` transcription.
 

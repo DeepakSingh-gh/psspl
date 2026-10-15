@@ -229,7 +229,7 @@ export function RmReportCard() {
               </div>
 
               {/* ── 6 KPI cards ── */}
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(6, 1fr)", gap: 12, marginBottom: 20 }}>
+              <div className="rm-kpi-grid">
                 <KpiCard icon="🎯" iconBg="#eaf5fc" label="Monthly Target" value={formatRupees(target)} />
                 <KpiCard icon="📊" iconBg="#e8f7ee" label="Actual Sales" value={formatRupees(actual)} />
                 {/* Achievement */}
@@ -265,7 +265,7 @@ export function RmReportCard() {
               </div>
 
               {/* ── Row 2: Sales chart + Field Activity + Pipeline ── */}
-              <div style={{ display: "grid", gridTemplateColumns: "1.1fr 1fr 1fr", gap: 16, marginBottom: 20 }}>
+              <div className="rm-3col-grid">
                 {/* Sales vs Target */}
                 <div style={cardStyle}>
                   <p style={cardTitleStyle}>📈 Sales vs Target (This Month)</p>
@@ -317,7 +317,7 @@ export function RmReportCard() {
                 {/* Field Activity */}
                 <div style={cardStyle}>
                   <p style={cardTitleStyle}>🚶 Field Activity (This Month)</p>
-                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8, marginTop: 12 }}>
+                  <div className="rm-stat-3col">
                     <FieldStat
                       icon="🚶"
                       value={formatNumber(fa.visitsCompleted)}
@@ -350,7 +350,7 @@ export function RmReportCard() {
               </div>
 
               {/* ── Row 3: Tables ── */}
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 16, marginBottom: 20 }}>
+              <div className="rm-3col-grid rm-tables-row">
                 {/* Top 5 Dealers */}
                 <div style={cardStyle}>
                   <p style={cardTitleStyle}>👤 Top 5 Dealers by Revenue (This Month)</p>
@@ -498,6 +498,7 @@ function PipelineBadge({ label, count, color, textColor }: { label: string; coun
 const cardStyle: React.CSSProperties = {
   background: "#ffffff", border: "1.5px solid #cbd5e1", borderRadius: 14, padding: "18px",
   boxShadow: "0 2px 8px rgba(15,23,42,.06)",
+  minWidth: 0, overflowX: "auto",
 };
 const cardTitleStyle: React.CSSProperties = {
   margin: 0, fontSize: 13.5, fontWeight: 750, color: "#0f172a",

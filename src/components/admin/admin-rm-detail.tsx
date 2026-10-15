@@ -437,13 +437,7 @@ function ThrustProductsCard({
       </div>
 
       {/* Grid of 9 Thrust Products Matching User's Sheet */}
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(auto-fit, minmax(170px, 1fr))",
-          gap: 10,
-        }}
-      >
+      <div className="rm-thrust-grid">
         {thrust.products.map((p, idx) => {
           const isSold = p.isSold;
           return (
@@ -945,7 +939,7 @@ function ReportCardTab({ data, kpi, period, onSelectTab }: { data: any; kpi: any
       <ThrustProductsCard thrust={data.thrustProducts} />
 
       {/* ── Customer Health & Dependency ── */}
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 20 }}>
+      <div className="rm-2col-grid">
         <div style={{ background: dependencyPct > 80 ? "#fff1f2" : "#f8fafc", border: `1.5px solid ${dependencyPct > 80 ? "#fda4af" : "#cbd5e1"}`, borderRadius: 12, padding: "16px" }}>
           <h4 style={{ margin: "0 0 4px", fontSize: 13, color: dependencyPct > 80 ? "#9f1239" : "#334155", textTransform: "uppercase", fontWeight: 800 }}>Revenue Dependency Risk</h4>
           <p style={{ margin: 0, fontSize: 14, fontWeight: 600, color: "#0f172a" }}>
@@ -961,7 +955,7 @@ function ReportCardTab({ data, kpi, period, onSelectTab }: { data: any; kpi: any
       </div>
 
       {/* ── 6 KPI cards ── */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(6, 1fr)", gap: 14, marginBottom: 20 }}>
+      <div className="rm-kpi-grid">
         <KpiCard icon="🎯" iconBg="#e0f2fe" label="Monthly Target" value={target > 0 ? formatRupees(target) : "Not set"} />
         <KpiCard icon="📊" iconBg="#dcfce7" label="Actual Sales" value={formatRupees(actual)} />
         {/* Achievement */}
@@ -997,7 +991,7 @@ function ReportCardTab({ data, kpi, period, onSelectTab }: { data: any; kpi: any
       </div>
 
       {/* ── Row 2: Sales chart + Field Activity + Pipeline ── */}
-      <div style={{ display: "grid", gridTemplateColumns: "1.1fr 1fr 1fr", gap: 16, marginBottom: 20 }}>
+      <div className="rm-3col-grid">
         {/* Sales vs Target */}
         <div style={cardStyle}>
           <p style={cardTitleStyle}>📈 Sales vs Target ({periodLabel})</p>
@@ -1049,7 +1043,7 @@ function ReportCardTab({ data, kpi, period, onSelectTab }: { data: any; kpi: any
         {/* Field Activity */}
         <div style={cardStyle}>
           <p style={cardTitleStyle}>🚶 Field Activity ({periodLabel})</p>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10, marginTop: 14 }}>
+          <div className="rm-stat-3col">
             <FieldStat
               icon="🚶"
               value={formatNumber(kpi.visitsCompleted)}
@@ -1086,7 +1080,7 @@ function ReportCardTab({ data, kpi, period, onSelectTab }: { data: any; kpi: any
       </div>
 
       {/* ── Row 3: Top dealers + Dormant + Product performance ── */}
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 16, marginBottom: 20, alignItems: "stretch" }}>
+      <div className="rm-3col-grid rm-tables-row">
         {/* Top 5 Dealers */}
         <div style={cardStyle}>
           <p style={cardTitleStyle}>👤 Top 5 Dealers by Revenue ({periodLabel})</p>
@@ -1899,6 +1893,7 @@ const avatarStyle: React.CSSProperties = {
 const cardStyle: React.CSSProperties = {
   background: "#ffffff", border: "1.5px solid #cbd5e1", borderRadius: 14,
   padding: "18px", boxShadow: "0 2px 8px rgba(15,23,42,.06)",
+  minWidth: 0, overflowX: "auto",
 };
 const cardTitleStyle: React.CSSProperties = {
   margin: 0, fontSize: 13.5, fontWeight: 750, color: "#0f172a",

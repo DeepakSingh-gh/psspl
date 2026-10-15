@@ -6,12 +6,13 @@ import { adminApi } from "@/lib/api";
 import { AiResponseFormatter } from "../ai-response-formatter";
 
 const QUESTIONS = [
-  "Which products sold the least?",
-  "Which product gets attention in each region?",
-  "Who are the top salespeople?",
-  "What is the total outstanding?",
-  "How many repeat customers do we have?",
-  "How is field activity progressing?",
+  { icon: "📉", text: "Which products sold the least?" },
+  { icon: "🌍", text: "Which product gets attention in each region?" },
+  { icon: "🏆", text: "Who are the top salespeople & RMs?" },
+  { icon: "💳", text: "What is the total outstanding?" },
+  { icon: "🔄", text: "How many repeat customers do we have?" },
+  { icon: "🚶", text: "How is field activity progressing?" },
+  { icon: "⚠️", text: "Which dealers are dormant without orders?" },
 ];
 
 const SparkIcon = () => (
@@ -83,6 +84,16 @@ function AskAiContent({ autoFocus = false, initialQuestion = "" }: { autoFocus?:
             placeholder="Ask anything about sales, customers or field activity…"
             aria-label="Your question"
           />
+          {question && (
+            <button
+              type="button"
+              className="askai-clear-btn"
+              onClick={() => { setQuestion(""); inputRef.current?.focus(); }}
+              aria-label="Clear question"
+            >
+              ✕
+            </button>
+          )}
           <button type="submit" className="askai-submit-btn" disabled={loading || !question.trim()}>
             <SparkIcon />
             <span>{loading ? "Searching…" : "Search"}</span>
@@ -90,15 +101,28 @@ function AskAiContent({ autoFocus = false, initialQuestion = "" }: { autoFocus?:
         </div>
       </form>
 
-      <div className="askai-range">
-        <label><span>From</span><input type="date" value={from} onChange={(event) => setFrom(event.target.value)} /></label>
-        <label><span>To</span><input type="date" value={to} onChange={(event) => setTo(event.target.value)} /></label>
+      <div className="askai-range-bar">
+        <div className="askai-range">
+          <label><span>From</span><input type="date" value={from} onChange={(event) => setFrom(event.target.value)} /></label>
+          <label><span>To</span><input type="date" value={to} onChange={(event) => setTo(event.target.value)} /></label>
+        </div>
+        <div className="askai-presets">
+          <button type="button" onClick={() => { setFrom(`${defaults.to.slice(0, 4)}-04-01`); setTo(defaults.to); }}>FY 2026-27</button>
+          <button type="button" onClick={() => {
+            const d = new Date(); d.setDate(d.getDate() - 30);
+            setFrom(d.toISOString().slice(0, 10)); setTo(defaults.to);
+          }}>Last 30 Days</button>
+          <button type="button" onClick={() => { setFrom("2024-04-01"); setTo(defaults.to); }}>All Data</button>
+        </div>
       </div>
 
       <p className="askai-label">Suggested questions</p>
       <div className="askai-chips">
         {QUESTIONS.map((item) => (
-          <button type="button" key={item} onClick={() => handleChipClick(item)}>{item}</button>
+          <button type="button" key={item.text} onClick={() => handleChipClick(item.text)}>
+            <span className="askai-chip-icon">{item.icon}</span>
+            <span>{item.text}</span>
+          </button>
         ))}
       </div>
 
@@ -172,25 +196,19 @@ export function HeaderAiAsk() {
 
   return (
     <>
-      <form className="topbar-ai-search" onSubmit={handleSearchSubmit} role="search">
+      <div className="topbar-ai-search" onClick={() => setOpen(true)} role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") setOpen(true); }} aria-label="Open Ask AI command palette">
         <div className="topbar-ai-icon">
           <SparkIcon />
         </div>
-        <input
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          placeholder="Ask AI anything about sales, RMs, dormant dealers..."
-          aria-label="Ask AI"
-          onClick={() => setOpen(true)}
-        />
-        <div style={{ display: "flex", alignItems: "center", gap: 6, flexShrink: 0 }}>
+        <span className="topbar-ai-placeholder">Ask AI anything...</span>
+        <div className="topbar-ai-actions">
           <span className="topbar-ai-kbd">Ctrl K</span>
-          <button type="button" className="topbar-ai-btn" onClick={() => setOpen(true)}>
+          <span className="topbar-ai-btn">
             <SparkIcon />
             <span>Ask AI</span>
-          </button>
+          </span>
         </div>
-      </form>
+      </div>
 
       {open && mounted && createPortal(
         <div className="askai-overlay" role="dialog" aria-modal="true" aria-label="Ask AI">

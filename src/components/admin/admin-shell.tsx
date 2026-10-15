@@ -114,6 +114,7 @@ export function AdminShell({ children }: { children: ReactNode }) {
 
   return (
     <div className={`admin-shell${navOpen ? " nav-open" : ""}`}>
+      {navOpen && <div className="admin-sidebar-backdrop" onClick={() => setNavOpen(false)} aria-hidden="true" />}
       <aside className="admin-sidebar">
         <div className="admin-brand">
           <PssplLogo />
@@ -166,8 +167,25 @@ function AdminTopBar({ user, onSignOut, onToggleNav, navOpen }: {
 }) {
   return (
     <header className="topbar">
-      <button type="button" className="admin-nav-toggle" onClick={onToggleNav} aria-expanded={navOpen}>
-        {navOpen ? "Close" : "Menu"}
+      <button
+        type="button"
+        className="admin-nav-toggle"
+        onClick={onToggleNav}
+        aria-expanded={navOpen}
+        aria-label={navOpen ? "Close navigation" : "Open navigation"}
+      >
+        {navOpen ? (
+          <svg viewBox="0 0 20 20" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
+            <line x1="4" y1="4" x2="16" y2="16" />
+            <line x1="16" y1="4" x2="4" y2="16" />
+          </svg>
+        ) : (
+          <svg viewBox="0 0 20 20" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
+            <line x1="3" y1="5" x2="17" y2="5" />
+            <line x1="3" y1="10" x2="17" y2="10" />
+            <line x1="3" y1="15" x2="17" y2="15" />
+          </svg>
+        )}
       </button>
 
       <HeaderAiAsk />

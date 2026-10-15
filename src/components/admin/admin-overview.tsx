@@ -188,9 +188,9 @@ export function AdminOverview() {
           return quarters.length > 0 && (
             <section style={{ margin: "2rem 0" }}>
               <header style={{ marginBottom: "1rem" }}><p style={{ fontSize: "0.85rem", textTransform: "uppercase", fontWeight: "600", color: "var(--color-text-2)" }}>Quarterly Analysis</p><h2>Quarter-wise Trend</h2></header>
-              <div style={{ display: "flex", gap: "1rem" }}>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: "1rem" }}>
                 {quarters.map((q) => (
-                  <div key={q.name} style={{ flex: 1, padding: "1rem", background: "var(--color-surface)", border: "1px solid var(--color-border)", borderRadius: "8px" }}>
+                  <div key={q.name} style={{ padding: "1rem", background: "var(--color-surface)", border: "1px solid var(--color-border)", borderRadius: "8px" }}>
                     <div style={{ fontSize: "0.85rem", color: "var(--color-text-2)", marginBottom: "0.5rem" }}>{q.name}</div>
                     <div style={{ fontSize: "1.25rem", fontWeight: "bold" }}>{formatRupees(q.salesValue)}</div>
                     <div style={{ width: "100%", height: "4px", background: "var(--color-surface-2)", marginTop: "0.5rem", borderRadius: "2px" }}>

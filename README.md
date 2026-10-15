@@ -4,6 +4,14 @@ An enterprise CRM and field sales platform specifically designed for **Progressi
 
 ---
 
+## 🌐 Live Production Deployment
+
+* **Production Web App (Vercel):** [https://psspl-crm.vercel.app](https://psspl-crm.vercel.app)
+* **Backend API (Render):** [https://psspl-crm-backend.onrender.com/api/health](https://psspl-crm-backend.onrender.com/api/health)
+* **GitHub Repository:** [https://github.com/DeepakSingh-gh/psspl](https://github.com/DeepakSingh-gh/psspl)
+
+---
+
 ## 🚀 Quick Start
 
 ### 1. Installation & Running
@@ -19,10 +27,10 @@ npm run dev
 ```
 
 ### 2. Local setup for teammates
-Requirements: Node.js 22 or newer and npm. The CRM uses a local SQLite file, so external services are not required for local development.
+Requirements: Node.js 22 or newer and npm. The CRM uses a local SQLite file with automated gzip baseline initialization (`data/crm-baseline.sqlite.gz`), so external databases are not required for local development.
 
 ```bash
-git clone https://github.com/Khushi-Bizgenix/psspl.git
+git clone https://github.com/DeepakSingh-gh/psspl.git
 cd psspl
 npm install
 cp .env.example .env
@@ -33,12 +41,12 @@ npm run dev
 
 ---
 
-### 3. Live Application Portals
-* **Main App & Login:** [http://localhost:3000](http://localhost:3000)
-* **Executive Admin Dashboard:** [http://localhost:3000/admin](http://localhost:3000/admin)
-* **Regional Manager Portal:** [http://localhost:3000/rm](http://localhost:3000/rm)
-* **Field Sales PWA View:** [http://localhost:3000/field](http://localhost:3000/field) or [http://localhost:3000/sales/my-day](http://localhost:3000/sales/my-day)
-* **Backend API Health:** [http://localhost:4000/api/health](http://localhost:4000/api/health)
+### 3. Application Portals
+* **Main App & Login:** [https://psspl-crm.vercel.app/login](https://psspl-crm.vercel.app/login) (Local: `http://localhost:3000/login`)
+* **Executive Admin Dashboard:** [https://psspl-crm.vercel.app/admin](https://psspl-crm.vercel.app/admin) (Local: `http://localhost:3000/admin`)
+* **Regional Manager Portal:** [https://psspl-crm.vercel.app/rm](https://psspl-crm.vercel.app/rm) (Local: `http://localhost:3000/rm`)
+* **Field Sales PWA View:** [https://psspl-crm.vercel.app/sales/my-day](https://psspl-crm.vercel.app/sales/my-day) (Local: `http://localhost:3000/sales/my-day`)
+* **Backend API Health:** [https://psspl-crm-backend.onrender.com/api/health](https://psspl-crm-backend.onrender.com/api/health) (Local: `http://localhost:4000/api/health`)
 
 ---
 
@@ -155,16 +163,25 @@ The CRM dashboard features the official PSS corporate visual identity:
 - **Service & Support Requests:** Track customer complaints, technical trials, and commercial quotation requests.
 
 ### 4. AI Executive Intelligence & Copilot
-- **Global Header AI Ask Copilot:** Accessible on every page header (`topbar`) with a glowing search bar, shortcut `[Ctrl + K]`, and a prominent gradient **Search AI** button.
+- **Redesigned Ask AI Command Center (`HeaderAiAsk`):** Accessible on every page header (`topbar`) with a streamlined trigger pill, keyboard shortcut hint (`Ctrl K` on desktop, auto-hidden on mobile), and quick modal launcher.
+- **Enhanced Search Experience & Quick Presets:** Includes one-click clear button (`✕`), instant date-range filter presets (*FY 2026-27*, *Last 30 Days*, *All Data*), and categorized prompt chips featuring visual emoji badges (*📉 Underperforming products*, *🌍 Regional demand*, *🏆 RM leaderboards*, *💳 Outstanding dues*, *🔄 Customer retention*, *🚶 Field ops*, *⚠️ Dormant accounts*).
 - **Executive Card Formatting (`AiResponseFormatter`):** Converts raw LLM output into structured **Executive Action Cards** with blue **Data Point** badges, green **Recommended Action** boxes, and inline currency/count metric pills (`askai-metric-pill`).
 - **Instant Query Execution:** Clicking suggested prompt chips immediately fills the input and triggers live database intelligence retrieval.
 - **One-Click Copy & Data Provenance:** Integrated **Copy** button with instant state feedback and live SQL data provenance details.
 - **Grounded SQL Data Engine:** Context synthesized directly from real-time database tables (`tally_invoices`, `tally_products`, `tally_customers`, `leads`, `follow_ups`, `salesperson_profiles`).
-- **Resilient AI Model Engine:** Connected via **Google Gemini API** (`gemini-3.8-flash`, `gemini-3.6-flash`) via `GEMINI_API_KEY` with low-latency direct reasoning (with fallback to OpenAI `gpt-4o-mini`).
+- **Resilient AI Model Engine:** Connected via **Google Gemini API** (`gemini-2.5-flash`, `gemini-2.0-flash`, `gemini-1.5-flash`, `gemini-3.8-flash`) via `GEMINI_API_KEY` with low-latency direct reasoning (with fallback to OpenAI `gpt-4o-mini`).
 - **Voice Speech-to-Text Search (`<VoiceMicButton>`):** Reusable voice recording mic button integrated on all search boxes across Sales Hub, Ask AI, RM Directory, Admin Customers, and Admin Products. Supports instant free browser Web Speech API with backend OpenAI Whisper API (`POST /api/stt`) fallback.
 - **Automated 5:00 PM EOD Cron:** Built with `node-cron` in `server/app.mjs`, compiling daily visits, order booking, and attendance into a WhatsApp digest sent via Meta WhatsApp Cloud API.
 
----
+### 5. Mobile-First & Cross-Device Responsiveness
+- **Adaptive Screen Viewports:** Fully fluid layout scaling down to 360px mobile viewports (Brave, Chrome, Safari on iOS/Android).
+- **Off-Canvas Navigation Drawer:** Collapsible sidebar on mobile devices with an interactive backdrop blur overlay (`.admin-sidebar-backdrop`), swipe/tap to dismiss, and an animated vector hamburger toggle button.
+- **Fluid Multi-Tier Grids:**
+  - `.rm-kpi-grid`: Reflows dynamically from 6 columns on desktop down to 3 columns on tablet and 2 columns on mobile.
+  - `.rm-3col-grid`: Stacks cleanly from 3 columns into 1 column on tablet and mobile viewports.
+  - `.rm-thrust-grid`: Auto-fits strategic focus products into responsive columns with zero horizontal scroll.
+  - `.overview-quarterly-grid`: Adapts quarterly trend cards to mobile screens without squishing.
+- **Anti-Blowout Enclosures:** Global `max-width: 100vw` and `overflow-x: hidden` with scoped `overflow-x: auto` table card containers ensure tables and large data sets scroll smoothly without breaking the parent mobile viewport.
 
 ## ⚙️ Environment Variables
 
