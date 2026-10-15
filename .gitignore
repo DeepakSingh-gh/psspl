@@ -22,3 +22,9 @@ scripts/apply-indexes.js
 # Client-provided source workbooks are local reference data, not application code.
 *.xlsx
 *.xls
+.vercel
+.env
+.env.local
+.env.*.local
+!.env.production
+!.env.example
