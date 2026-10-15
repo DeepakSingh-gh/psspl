@@ -17,3 +17,6 @@ Migration files are applied in filename order and recorded in the `schema_migrat
 
 Run migrations with `npm run db:migrate` or initialize with `npm run db:setup`.
 
+### Cloud & Ephemeral Baseline Auto-Restore
+For ephemeral cloud environments (e.g., Render, Docker, or fresh developer clones), `server/db.mjs` automatically restores a full pre-seeded baseline dataset from `data/crm-baseline.sqlite.gz` (compressed 8.6 MB, expanding to 57 MB SQLite) if `data/crm.sqlite` is not present at server startup. All 171 customers, 666 products, and historical billing transactions are restored seamlessly without requiring external manual steps.
+

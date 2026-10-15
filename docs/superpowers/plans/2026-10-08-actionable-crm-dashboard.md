@@ -268,3 +268,15 @@ Open the mobile view `/sales/my-day`. Select "Phone Call". Record a voice note, 
 - [x] **Zero-Latency & Crisp Capture**: 100% pure inline SVG with zero external charting library bloat, ensuring 0ms rendering and crystal-clear retina capture during PDF generation and in-page preview.
 - [x] **Page 1 Layout Budget**: Neatly calibrated height and spacing ensuring all 8 KPI cards, the dual-bar chart, and top customers/products tables fit within the 1122px A4 height budget without triggering any page overflow.
 
+---
+
+### Task 18: Ask AI UI Overhaul, Full Mobile Responsiveness & Production Cloud Deployment
+
+**Tasks Completed:**
+- [x] **Ask AI Command Center Redesign (`HeaderAiAsk`)**: Transformed header search input into a sleek command palette trigger with keyboard shortcut listener (`Ctrl K` on desktop, auto-hidden on mobile).
+- [x] **Instant Date Presets & Clear Search**: Integrated quick range buttons (`FY 2026-27`, `Last 30 Days`, `All Data`) and an instant clear button (`✕`) with automatic refocus inside the Ask AI modal.
+- [x] **Categorized Query Chips**: Replaced plain text prompts with visual emoji badges across 7 core business intelligence areas (underperforming products, regional demand, RM leaderboards, collections/dues, customer retention, field ops, and dormant accounts).
+- [x] **Off-Canvas Mobile Navigation**: Converted fixed desktop sidebar into a mobile drawer (`< 1000px`) with animated vector hamburger toggler and touch backdrop dismiss (`.admin-sidebar-backdrop`).
+- [x] **Fluid Grids & Viewport Safety**: Converted fixed CSS grids into responsive classes (`.rm-kpi-grid` 6-to-3-to-2 cols, `.rm-3col-grid` to 1 col, `.rm-thrust-grid` auto-fit, `.overview-quarterly-grid` auto-fit), enforced `min-width: 0` on grid items, and applied global `overflow-x: hidden; max-width: 100vw` with scoped horizontal table scrolling.
+- [x] **Production Cloud Deployment**: Deployed production frontend to Vercel (`https://psspl-crm.vercel.app`) with static optimization across 27 routes, configured Render backend (`https://psspl-crm-backend.onrender.com`), and synchronized all code to GitHub (`https://github.com/DeepakSingh-gh/psspl`).
+
