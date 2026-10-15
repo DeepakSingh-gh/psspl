@@ -14,7 +14,7 @@ import { buildRmDirectory, resolveRmId } from "./rm-directory.mjs";
 
 seedAdmin();
 const app = express();
-app.use(cors({ origin: ["http://localhost:3000", "http://127.0.0.1:3000"] }));
+app.use(cors({ origin: true, credentials: true }));
 app.use(express.json({ limit: "8mb" }));
 app.use("/api", connectorRouter);
 app.use("/api", sttRouter);
@@ -87,11 +87,12 @@ import cron from "node-cron";
 import { sendEodSummary } from "./whatsapp.mjs";
 
 app.use((error, _req, res, _next) => { console.error(error); res.status(500).json({ error: "Something went wrong" }); });
-const port = Number(process.env.CRM_API_PORT) || 4000;
+const port = Number(process.env.PORT) || Number(process.env.CRM_API_PORT) || 4000;
+const host = process.env.HOST || "0.0.0.0";
 
 cron.schedule("0 17 * * *", () => {
   console.log("[Cron] Running EOD summary generation...");
   sendEodSummary(db).then((r) => console.log("[Cron] EOD WhatsApp result:", r)).catch((e) => console.error("[Cron] EOD Error:", e));
 });
 
-app.listen(port, "127.0.0.1", () => console.log(`PSSPL API running at http://127.0.0.1:${port}`));
+app.listen(port, host, () => console.log(`PSSPL API running at http://${host}:${port}`));

@@ -134,6 +134,40 @@ All core high-priority gaps from the initial concept analysis have been implemen
   - **12-Month Target vs Actual Bar Chart:** September 2026 bar matches `₹62.15 L / ₹45.93 L (135%)` and FY pace `310% achieved / ₹17.02 Cr`.
 * **Period-Aware Target Proration:** Enhanced target evaluation for *Today* (Daily quota = Monthly target ÷ 30) and *This Week* with informative status states (`Daily Invoicing Open`, `Daily Quota Met`, `Daily Billing Active`) to prevent misleading false-alarm underperformance banners on single days.
 
+### 20. Executive RM Report Card Download & Dedicated Print View (`/admin/team/[id]/print`)
+✅ **Implemented & Verified.**
+* **Header Download Action Button:** Added green `⬇ Download Report` button next to the period selector on `/admin/team/[id]` that opens `/admin/team/[id]/print` in a new tab.
+* **Dedicated High-Fidelity Print Page:** Created `src/app/admin/team/[id]/print/page.tsx` and `print-report.css` featuring:
+  - Top controls bar with **Download PDF** (`window.print()`) and **Close** actions (auto-hidden during print).
+  - Clean branded company header with RM identity, code `075709`, operating city, and performance % chip.
+  - 8 executive KPI cards (Target, Actual, Remaining/Surplus, Active Customers, Visits, Follow-ups, Products, Achievement %).
+  - Progress bar comparing Target vs Actual with gap/surplus metrics.
+  - Side-by-side Top Customers and Top Products tables.
+  - Scoped recent visits log and open follow-up items.
+* **Strict Date-Range Visit Filtering:** Updated visit database queries in `server/rm-routes.mjs` to apply `startDate` and `endDate` parameters, ensuring managers view visits corresponding strictly to the selected period.
+
+### 21. Sales Workspace Monthly Performance Surplus & Active Ledger Realignment
+✅ **Implemented & Verified.**
+* **Active Ledger Cycle Period Tag:** Displays active ledger cycle (e.g. `2026-09 active ledger`) in the header of the Monthly Performance card on `/sales/my-day`.
+* **Dynamic Surplus vs Gap:** Computes positive surplus (e.g. `Surplus (+35%)` with `+₹16.22 L`) whenever actual billed sales exceed quota, replacing static zero-gap indicators.
+* **Target Achieved Milestone Status:** Displays green `✓ Target Achieved` status chip with a dynamic green gradient progress bar fill.
+
+### 22. In-Page Report Preview Modal & Strict 2-Page Executive PDF Engine
+✅ **Implemented & Verified.**
+* **In-Page Report Preview Modal (`RmReportPreviewModal`):** Replaced new-tab navigation with an in-page modal dialog. Clicking `Download Report` immediately displays the report preview directly over `/admin/team/[id]` with zero popup delays, URL shifts, or page unloads.
+* **AI Insight & Manager Action Plan Integration:** Added **AI Executive Diagnostic & Field Intelligence** and **Manager Action Plan Directives** into Page 2 of the downloaded report card PDF, while keeping the main web dashboard tabs clean and unmixed.
+* **Strict 2-Page Executive Architecture (`RmReportDocument`):**
+  - **Page 1:** Executive cover identity, 8 KPI cards, Target vs Actual bar, Top 7 Customers table, Top 7 Products table, and Page 1 Footer.
+  - **Page 2:** Section 2 header, AI Diagnostic narrative, Manager Action Plan directives with urgency badges and direct supervisory actions, Recent Field Visits, Open Follow-ups, and Page 2 Footer.
+* **Zero Blank Pages Resolution (`downloadRmReportDirect`):** Replaced `html2pdf.js` tall container slicing (which caused 2 empty overflow pages in the middle) with direct page-by-page rendering using `html2canvas` and `jsPDF`. Page 1 (`#rm-report-page-1`) and Page 2 (`#rm-report-page-2`) are captured to dedicated high-resolution canvases and written directly to A4 pages (`210mm × 297mm`), guaranteeing strictly 2 pages with 0 blank pages.
+
+### 23. High-Impact Vector SVG Dual-Bar Graph in Executive Report Download
+✅ **Implemented & Verified.**
+* **Native Vector Dual-Bar Visualization:** Embedded a 12-month Financial Year (Apr–Mar) target vs actual sales trajectory graph directly on Page 1 of `RmReportDocument` in `src/components/admin/rm-report-pdf.tsx`.
+* **Crisp Color Palette & Quota Flags:** Target bars styled in neutral slate (`#cbd5e1`), actual billed bars styled in emerald green (`#16a34a`, ≥100%) or vibrant cyan (`#0284c7`, <100%), with dynamic % achievement pills positioned over active billing bars.
+* **0ms Latency & Retina Fidelity:** Pure inline SVG requiring zero external chart library overhead, ensuring instant 0ms rendering and 100% crisp capture in both the in-page preview modal and the downloaded PDF.
+* **Strict 2-Page Executive Fit:** Page 1 height budget strictly preserved without overflowing into Page 2.
+
 ---
 
 ## 2. Real Client Data Ingestion

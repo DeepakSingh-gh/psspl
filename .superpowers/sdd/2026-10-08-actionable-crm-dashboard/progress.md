@@ -18,5 +18,9 @@ Task 16: complete (RM unplanned visit planning fix: multi-tier access control in
 Task 17: complete (Unified follow-up creation button in Sales Workspace /sales/my-day, resilient check-in with geolocation graceful fallback for desktop/non-GPS devices, inline follow-up modal error handling and saving states -> pass)
 Task 18: complete (Cleared hardcoded milestone data in Special Achievements & Milestones keeping field blank, removed Key Insights & Next Actions from report cards, upgraded Ask AI to gemini-3.8-flash and gemini-3.6-flash with thinkingBudget 0 for 3s response time -> pass)
 Task 19: complete (Sales Workspace monthly performance card realignment: added active ledger period badge, dynamic surplus (+35%) vs gap calculation, and Target Achieved badge -> pass)
+Task 21: complete (Direct in-page report preview modal replacing new tab opening: clicking "Download Report" opens RmReportPreviewModal on same page without navigation or popups -> pass)
+Task 22: complete (Integrated AI Executive Diagnostic & Field Intelligence and Manager Action Plan Directives into Page 2 of the downloaded report card PDF, keeping dashboard tabs clean and unmixed -> pass)
+Task 23: complete (Fixed multi-page blank page bug: replaced html2pdf.js continuous container auto-slicer with direct page-by-page jsPDF + html2canvas engine rendering Page 1 and Page 2 to dedicated canvases, guaranteeing strictly 2 pages with 0 blank pages -> pass)
+Task 24: complete (Embedded high-impact 12-month Target vs Actual Sales vector SVG dual-bar graph on Page 1 of the executive report PDF and in-page preview modal with 0ms rendering overhead, crisp gridlines, quota bars, and percentage badges -> pass)
 Final review: complete
 

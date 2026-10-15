@@ -2,6 +2,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { AdminPage, AdminState } from "./admin-shell";
+import { RmReportDocument, RmReportPreviewModal, downloadRmReportDirect } from "./rm-report-pdf";
 import { adminApi } from "@/lib/api";
 import { useAdminData } from "@/lib/use-admin-data";
 import {
@@ -1462,6 +1463,9 @@ function ManagerActionPlanTab({ data, kpi }: { data: any; kpi: any }) {
 export function AdminRmDetail({ rmId }: { rmId: string }) {
   const [tab, setTab] = useState<Tab>("performance");
   const [period, setPeriod] = useState<Period>("month");
+  const [showPreview, setShowPreview] = useState(false);
+  const [downloading, setDownloading] = useState(false);
+  const [downloadSuccess, setDownloadSuccess] = useState(false);
   const { from, to } = periodDates(period);
 
   const { data, loading, error, reload } = useAdminData(
@@ -1470,6 +1474,22 @@ export function AdminRmDetail({ rmId }: { rmId: string }) {
   );
 
   const kpi = data?.kpi;
+
+  const handleDownloadReport = async () => {
+    if (!data || downloading) return;
+    setDownloading(true);
+    try {
+      const ok = await downloadRmReportDirect(data, period);
+      if (ok) {
+        setDownloadSuccess(true);
+        setTimeout(() => setDownloadSuccess(false), 3500);
+      }
+    } catch (err) {
+      console.error("Failed to download report:", err);
+    } finally {
+      setDownloading(false);
+    }
+  };
 
   return (
     <>
@@ -1486,17 +1506,34 @@ export function AdminRmDetail({ rmId }: { rmId: string }) {
             : "Loading…"
         }
         actions={
-          <div className="rm-detail-period">
-            {(["today", "week", "month", "fytd"] as Period[]).map((p) => (
+          <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+            <div className="rm-detail-period">
+              {(["today", "week", "month", "fytd"] as Period[]).map((p) => (
+                <button
+                  key={p}
+                  type="button"
+                  className={`rm-detail-period-btn${period === p ? " active" : ""}`}
+                  onClick={() => setPeriod(p)}
+                >
+                  {p === "today" ? "Today" : p === "week" ? "This Week" : p === "month" ? "This Month" : "FYTD"}
+                </button>
+              ))}
+            </div>
+            {data && (
               <button
-                key={p}
                 type="button"
-                className={`rm-detail-period-btn${period === p ? " active" : ""}`}
-                onClick={() => setPeriod(p)}
+                onClick={() => setShowPreview(true)}
+                className="rm-download-report-btn"
+                title="Preview & Download executive report card"
               >
-                {p === "today" ? "Today" : p === "week" ? "This Week" : p === "month" ? "This Month" : "FYTD"}
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                  <polyline points="7 10 12 15 17 10" />
+                  <line x1="12" y1="15" x2="12" y2="3" />
+                </svg>
+                Download Report
               </button>
-            ))}
+            )}
           </div>
         }
       >
@@ -1791,10 +1828,34 @@ export function AdminRmDetail({ rmId }: { rmId: string }) {
                   <ManagerActionPlanTab data={data} kpi={kpi} />
                 </div>
               )}
+              {/* Hidden off-screen render target for direct PDF capture (NO NEW TAB/PAGE OPENS) */}
+              <div
+                style={{
+                  position: "fixed",
+                  left: "-9999px",
+                  top: 0,
+                  width: "794px",
+                  zIndex: -999,
+                  pointerEvents: "none",
+                }}
+                aria-hidden="true"
+              >
+                <RmReportDocument data={data} period={period} />
+              </div>
             </>
           )}
         </AdminState>
       </AdminPage>
+
+      {/* In-Page Report Preview Modal (NO NEXT PAGE OPENS!) */}
+      {data && (
+        <RmReportPreviewModal
+          isOpen={showPreview}
+          onClose={() => setShowPreview(false)}
+          data={data}
+          period={period}
+        />
+      )}
     </>
   );
 }

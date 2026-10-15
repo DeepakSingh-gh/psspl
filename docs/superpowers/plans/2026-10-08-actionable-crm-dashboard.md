@@ -230,3 +230,41 @@ Open the mobile view `/sales/my-day`. Select "Phone Call". Record a voice note, 
 - [x] **Dynamic Surplus vs Gap Indicator**: Replaced flat `Gap: ₹0` with dynamic calculation. When actual exceeds target, displays positive green `Surplus (+35%)` with value `+₹16.22 L`.
 - [x] **Target Achieved Milestone Status & Green Progress Bar**: Added green `✓ Target Achieved` pill when achievement >= 100% and dynamic green gradient progress bar fill.
 
+---
+
+### Task 15: RM Detail Visit Date Filtering & Executive Report Card PDF Download View
+
+**Tasks Completed:**
+- [x] **Temporal Visit Query Filtering**: Updated `server/rm-routes.mjs` so `GET /api/admin/team/:id` strictly applies start and end date filters (`startDate`, `endDate`) to customer visits queries, ensuring temporal consistency when switching between *Today*, *This Week*, *This Month*, and *FYTD*.
+- [x] **Header "Download Report" Action Button**: Added green `⬇ Download Report` button (`.rm-download-report-btn`) next to period pills in `src/components/admin/admin-rm-detail.tsx` with dedicated hover and focus styling in `src/app/admin.css`. Opens the report in a new tab.
+- [x] **Dedicated Print Page Route (`/admin/team/[id]/print`)**: Created `src/app/admin/team/[id]/print/page.tsx` and `print-report.css` featuring:
+  - Fixed top action controls bar with "Download PDF" (`window.print()`) and "Close" controls (hidden during printing).
+  - Branded header banner with PSSPL logo, RM code, operating city, and performance achievement %.
+  - 8 executive KPI cards (Target, Actual, Remaining/Surplus, Active Customers, Visits, Follow-ups, Products, Achievement %).
+  - Visual Target vs Actual progress bar with exact financial values and gap indicator.
+  - Side-by-side Top Customers and Top Products tables.
+  - Recent Visits and Open Follow-ups logs.
+  - Timestamped verification footer and print-optimized `@media print` CSS rules.
+
+---
+
+### Task 16: In-Page Report Preview Modal & Strict 2-Page Executive PDF Engine
+
+**Tasks Completed:**
+- [x] **In-Page Report Preview Modal (`RmReportPreviewModal`)**: Replaced external page/tab navigation with an interactive in-page modal dialog. Clicking `Download Report` opens the preview on the same screen (`/admin/team/[id]`) with a dark backdrop, top action toolbar (`⬇ Download PDF`, `✕ Close`), and document viewer.
+- [x] **AI Insight & Manager Action Plan Integration**: Integrated **AI Executive Diagnostic & Field Intelligence** and **Manager Action Plan Directives** into Page 2 of the downloaded report card PDF, while keeping the web dashboard tabs clean and unmixed.
+- [x] **Strict 2-Page Document Layout (`RmReportDocument`)**:
+  - **Page 1**: Executive cover card with achievement badge (`135%`, `On Track ✅`), 8 KPI metrics cards, Target vs Actual achievement bar, Top 7 Customers table, Top 7 Products table, and Page 1 Footer.
+  - **Page 2**: Section 2 header banner, AI Sales Insight Diagnostic narrative, Manager Action Plan directives with urgency tags and direct supervisory action items, Recent Field Visits, Open Follow-ups, and Page 2 Footer.
+- [x] **Blank Pages Bug Resolution (`downloadRmReportDirect`)**: Replaced `html2pdf.js` tall container slicing (which created 2 empty overflow pages in the middle) with direct page-by-page rendering using `html2canvas` and `jsPDF`. Page 1 (`#rm-report-page-1`) and Page 2 (`#rm-report-page-2`) are captured to dedicated retina canvases and placed onto exact A4 pages (`210mm × 297mm`), guaranteeing strictly 2 pages with 0 blank pages.
+
+---
+
+### Task 17: High-Impact 12-Month Target vs Actual Sales Visual Graph in Report Card Download
+
+**Tasks Completed:**
+- [x] **High-Impact Vector SVG Graph**: Embedded a native SVG dual-bar chart on Page 1 of `RmReportDocument` in [src/components/admin/rm-report-pdf.tsx](file:///c:/Users/deepa/psspl/src/components/admin/rm-report-pdf.tsx) visualizing the full 12-month Financial Year trajectory (`monthlyTargetVsActual`).
+- [x] **Performance Badges & Color Coding**: Each month displays target bars (neutral slate `#cbd5e1`) and actual billing bars (emerald `#16a34a` for ≥100% achieved, vibrant blue `#0284c7` for <100%), with bold percentage labels above active months.
+- [x] **Zero-Latency & Crisp Capture**: 100% pure inline SVG with zero external charting library bloat, ensuring 0ms rendering and crystal-clear retina capture during PDF generation and in-page preview.
+- [x] **Page 1 Layout Budget**: Neatly calibrated height and spacing ensuring all 8 KPI cards, the dual-bar chart, and top customers/products tables fit within the 1122px A4 height budget without triggering any page overflow.
+

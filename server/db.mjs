@@ -1,12 +1,22 @@
 import { DatabaseSync } from "node:sqlite";
-import { mkdirSync } from "node:fs";
+import { mkdirSync, existsSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { gunzipSync } from "node:zlib";
 import { runMigrations } from "./migrations.mjs";
 
 const projectRoot = fileURLToPath(new URL("..", import.meta.url));
 const databasePath = process.env.CRM_DATABASE_PATH || join(projectRoot, "data", "crm.sqlite");
 mkdirSync(dirname(databasePath), { recursive: true });
+
+if (!existsSync(databasePath)) {
+  const gzPath = join(projectRoot, "data", "crm-baseline.sqlite.gz");
+  if (existsSync(gzPath)) {
+    console.log("[db] Initializing database from crm-baseline.sqlite.gz...");
+    writeFileSync(databasePath, gunzipSync(readFileSync(gzPath)));
+    console.log("[db] Database initialization complete.");
+  }
+}
 
 export const db = new DatabaseSync(databasePath);
 db.exec("PRAGMA foreign_keys = ON; PRAGMA journal_mode = WAL; PRAGMA temp_store = MEMORY;");
