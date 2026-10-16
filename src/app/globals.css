@@ -24,18 +24,33 @@
 }
 
 * { box-sizing: border-box; }
-html, body {
+html {
   margin: 0;
   padding: 0;
-  max-width: 100vw;
-  overflow-x: hidden;
+  width: 100%;
+  max-width: 100%;
+  overflow-x: clip;
+}
+body {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  max-width: 100%;
+  overflow-x: clip;
   background: #f0f6fb;
   color: var(--ink);
   font-family: Inter, "Segoe UI", Arial, sans-serif;
 }
 button, input, select, textarea { font: inherit; }
 
-.crm-shell { min-height: 100vh; display: grid; grid-template-columns: 248px minmax(0, 1fr); }
+.crm-shell {
+  min-height: 100vh;
+  width: 100%;
+  max-width: 100%;
+  overflow-x: clip;
+  display: grid;
+  grid-template-columns: 248px minmax(0, 1fr);
+}
 .sales-sidebar {
   background: linear-gradient(175deg, #002840 0%, #003d60 40%, #005480 70%, #006fa8 100%);
   color: white; padding: 28px 20px; display: flex; flex-direction: column; position: sticky; top: 0; height: 100vh;
