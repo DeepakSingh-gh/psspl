@@ -1,6 +1,6 @@
-import { RmHome } from "@/components/rm/rm-home";
+import { redirect } from "next/navigation";
 
-/** Landing chooser: an RM picks their team view or their own field day. */
+/** RMs use the same My Day / Customer DB workspace as field sales. */
 export default function RmPage() {
-  return <RmHome />;
+  redirect("/sales/my-day");
 }

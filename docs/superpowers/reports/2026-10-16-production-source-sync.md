@@ -12,6 +12,10 @@ The local source is the release source: API routing fixes, backend AI provider c
 
 The production build completed successfully for all 27 pages, with one existing CSS autoprefixer warning. Provider checks, TypeScript, 25-scope ledger comparisons, authenticated RM/salesperson compression checks and whitespace checks passed.
 
+## RM landing correction
+
+The initial synchronized source still intentionally sent `rm` logins to `/rm`, which rendered the separate team dashboard. The localhost screenshot showed the field-sales workspace at `/sales/my-day`; this difference was route/role behavior, not evidence of a missing GitHub push. The RM landing has now been changed to `/sales/my-day`, and `/rm` redirects there for existing sessions and saved links. Both RM and salesperson logins therefore use the existing My Day and Customer DB sidebar. Admin landing and existing detailed report routes are preserved. This frontend correction does not migrate or combine RM/alias/field accounts or databases.
+
 ## Deployment boundaries
 
 GitHub synchronization and Vercel frontend publication do not copy or merge local and live databases. The frontend continues to call the existing Render API. Render's Free service has an ephemeral SQLite filesystem, so its automatic deploy trigger must be temporarily paused during the GitHub push to prevent an unintended backend restart. Backend optimization rollout requires preserving the live database separately.

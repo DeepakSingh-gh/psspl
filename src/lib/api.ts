@@ -40,7 +40,7 @@ export function getSessionUser(): SessionUser | null {
   try { const raw = localStorage.getItem(USER_KEY); return raw ? (JSON.parse(raw) as SessionUser) : null; }
   catch { return null; }
 }
-export function homePathFor(role: string | undefined) { return role === "admin" ? "/admin" : role === "rm" ? "/rm" : "/sales/my-day"; }
+export function homePathFor(role: string | undefined) { return role === "admin" ? "/admin" : "/sales/my-day"; }
 
 function query(params: Record<string, string | number | undefined>) {
   const search = new URLSearchParams();
