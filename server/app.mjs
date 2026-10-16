@@ -1,4 +1,5 @@
 import cors from "cors";
+import compression from "compression";
 import express from "express";
 import { randomUUID } from "node:crypto";
 import { z } from "zod";
@@ -15,6 +16,8 @@ import { buildRmDirectory, resolveRmId } from "./rm-directory.mjs";
 seedAdmin();
 const app = express();
 app.use(cors({ origin: true, credentials: true }));
+// Compress large JSON responses without changing their data or caching user activity.
+app.use(compression({ level: 1, threshold: 1024 }));
 app.use(express.json({ limit: "8mb" }));
 app.use("/api", connectorRouter);
 app.use("/api", sttRouter);
@@ -26,11 +29,13 @@ const loginSchema = z.object({ email: z.string().email(), password: z.string().m
 const visitSchema = z.object({ productId: z.string().min(1), outcome: z.string().min(1), expectedOrderValue: z.number().min(0), expectedOrderDate: z.string().optional(), nextFollowUp: z.string().min(1), nextFollowUpType: z.enum(["call", "visit"]).optional(), nextFollowUpNotes: z.string().optional(), notes: z.string().optional() });
 
 async function buildSalesDay(userId) {
-  const [customers, products, sales, connector, insights] = await Promise.all([tally.customers({ salespersonId: userId }), tally.products(), tally.salesSummary({ salespersonId: userId }), tally.status(), tally.overview({ salespersonId: userId })]);
+  // Reuse this request's directory across all queries, with no stale cross-request cache.
+  const directory = buildRmDirectory();
+  const scope = { salespersonId: userId, directory };
+  const [customers, products, sales, connector, insights] = await Promise.all([tally.customers(scope), tally.products(), tally.salesSummary(scope), tally.status(), tally.overview(scope)]);
   const customerMap = new Map(customers.map((item) => [item.id, item]));
   const productMap = new Map(products.map((item) => [item.id, item]));
   const profile = db.prepare("SELECT u.id,u.email,p.full_name,p.employee_code,p.operating_city,p.region,p.territory,p.monthly_target FROM users u JOIN salesperson_profiles p ON p.user_id=u.id WHERE u.id=?").get(userId);
-  const directory = buildRmDirectory();
   const rm = directory.find((entry) => entry.id === userId || (entry.keys && entry.keys.includes(userId)) || resolveRmId(directory, profile?.full_name || "") === entry.id);
   const allNames = rm ? [rm.name, ...rm.aliases] : [profile?.full_name].filter(Boolean);
   const nameList = allNames.length ? allNames.map(() => "?").join(",") : "";
@@ -86,7 +91,11 @@ app.post("/api/follow-ups", authenticate, async (req, res, next) => { try { cons
 import cron from "node-cron";
 import { sendEodSummary } from "./whatsapp.mjs";
 
-app.use((error, _req, res, _next) => { console.error(error); res.status(500).json({ error: "Something went wrong" }); });
+app.use((error, _req, res, _next) => {
+  if (error.status === 503) return res.status(503).json({ error: error.message });
+  console.error(error);
+  res.status(500).json({ error: "Something went wrong" });
+});
 const port = Number(process.env.PORT) || Number(process.env.CRM_API_PORT) || 4000;
 const host = process.env.HOST || "0.0.0.0";
 

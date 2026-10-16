@@ -2,6 +2,18 @@
 
 An enterprise CRM and field sales platform specifically designed for **Progressive Surface Systems Pvt. Ltd. (PSSPL)**, integrating Tally accounting data with field sales mobility, Regional Manager oversight, and executive analytics.
 
+## My Day loading performance — 16 October 2026
+
+Source synchronization and production frontend release procedure: [16 October source-sync report](docs/superpowers/reports/2026-10-16-production-source-sync.md). The canonical user-owned repository is `DeepakSingh-gh/psspl`, production branch `main`; local secrets and databases are not part of source synchronization.
+
+The My Day API now filters customers before joining invoice lines, reuses one RM directory per request, and compresses large responses. Sales navigation uses Next.js links. The response fields, complete product list, permissions and activity workflows are preserved, without adding cross-request data caching.
+
+Local verification: all 25 tested scopes matched the previous product totals; aggregate query time decreased from 3,980 ms to 161 ms. Actual RM/salesperson HTTP responses decreased from approximately 2.40 MB to 410 KB with gzip (83% smaller), with identical decoded JSON. These are local measurements, not a guarantee of live page timings.
+
+Run `node scripts/verify-my-day-performance.mjs` for ledger comparisons and `node scripts/verify-my-day-http.mjs` against the local API on port 4000 for compression/authentication checks. The HTTP check creates and removes temporary test sessions.
+
+The live Render service was confirmed to use Free compute. Its [idle spin-down behavior](https://render.com/docs/free#spinning-down-on-idle) can still add about a minute after 15 minutes without traffic. These code changes do not change the hosting plan and have not yet been deployed. Preserve live SQLite data before any deployment: the current Free service uses an ephemeral filesystem.
+
 ---
 
 ## 🌐 Live Production Deployment
@@ -198,6 +210,7 @@ CRM_DATABASE_PATH=./data/crm.sqlite
 
 # Google Gemini API Integration (Ask AI Assistant)
 GEMINI_API_KEY=your_gemini_api_key_here
+GEMINI_MODEL=gemini-2.5-flash
 
 # OpenAI Integration (Optional Fallback)
 OPENAI_API_KEY=your_openai_api_key_here
@@ -207,6 +220,8 @@ WHATSAPP_PHONE_NUMBER_ID=your_phone_number_id
 WHATSAPP_ACCESS_TOKEN=your_meta_system_user_token
 WHATSAPP_RECIPIENT_PHONE=919876543210
 ```
+
+For the deployed app, set `GEMINI_API_KEY` in the **Render backend service → Environment**, then save and redeploy. A key in your laptop's `.env` or the Vercel frontend does not configure the Render backend. Keep API keys server-side; do not use a `NEXT_PUBLIC_` prefix. `GEMINI_MODEL` optionally overrides the default model, and `OPENAI_API_KEY` enables the fallback provider. Missing configuration and provider failures return HTTP 503 and appear as errors rather than AI answers.
 
 ---
 

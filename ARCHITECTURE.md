@@ -2,6 +2,16 @@
 
 This document outlines the complete technical architecture of the PSSPL CRM, spanning frontend client applications, Express API services, SQLite database schema, accounting synchronisation, and external automations.
 
+### My Day performance update — 16 October 2026
+
+`buildSalesDay` creates an RM directory once per request and passes it to customer, sales-summary and overview queries. Other connector callers retain their default behavior. No cache persists between requests, so check-in, visits, follow-ups and connector updates continue to read current records.
+
+The overview product aggregate selects invoices through a scoped customer-ID subquery before joining invoice lines. SQLite uses the existing customer-ID and invoice-ID indexes instead of walking the entire active invoice ledger. Customer ownership, team membership, RM aliases, staging exclusion, grouping, ordering and top-five limit retain the previous semantics. No schema migration or data rewrite is involved.
+
+Express `compression` middleware negotiates supported encodings for compressible responses above 1 KB, using gzip level 1 for low CPU overhead. Requests without compression support receive ordinary JSON; response schemas and reference lists remain complete. `Vary: Accept-Encoding` distinguishes encodings. Sales sidebar links use Next.js navigation to avoid full document reloads.
+
+Regression coverage and measurements are recorded in [the loading-performance report](docs/superpowers/reports/2026-10-16-my-day-performance.md). Production remains on Render Free compute; idle startup latency is separate from query/transfer latency. No hosting upgrade or production deployment was performed for this change.
+
 ---
 
 ## 1. High-Level Architecture & Production Topology

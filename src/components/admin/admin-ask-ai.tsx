@@ -41,6 +41,7 @@ function AskAiContent({ autoFocus = false, initialQuestion = "" }: { autoFocus?:
       setQuestion(initialQuestion);
       setLoading(true);
       setError("");
+      setResult(null);
       adminApi.askAi(initialQuestion, defaults.from, defaults.to)
         .then((res) => setResult(res))
         .catch((cause) => setError(cause instanceof Error ? cause.message : "Unable to answer the question"))
@@ -55,6 +56,7 @@ function AskAiContent({ autoFocus = false, initialQuestion = "" }: { autoFocus?:
     if (!q) return;
     setLoading(true);
     setError("");
+    setResult(null);
     try { setResult(await adminApi.askAi(q, from, to)); }
     catch (cause) { setError(cause instanceof Error ? cause.message : "Unable to answer the question"); }
     finally { setLoading(false); }

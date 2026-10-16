@@ -159,6 +159,7 @@ salesRouter.post("/ask-ai", async (req, res) => {
     const answer = await askOpenAI(buildSystemPrompt(contextJson), question);
     res.json({ question, answer, source: "PSSPL CRM & Tally data via AI" });
   } catch (err) {
+    if (err.status === 503) return res.status(503).json({ error: err.message });
     res.status(500).json({ error: "Ask AI encountered an error" });
   }
 });

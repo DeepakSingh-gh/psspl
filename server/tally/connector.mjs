@@ -2,10 +2,10 @@ import { db } from "../db.mjs";
 import { buildRmDirectory, resolveRmId } from "../rm-directory.mjs";
 
 class TallyConnectorClient {
-  async customers({ salespersonId } = {}) {
+  async customers({ salespersonId, directory: suppliedDirectory } = {}) {
     if (!salespersonId) return db.prepare("SELECT id,name,city,party_type type,rm_name rmName,total_sales totalSales,outstanding,last_payment_date lastPaymentDate FROM tally_customers ORDER BY total_sales DESC").all();
     const profile = db.prepare("SELECT full_name FROM salesperson_profiles WHERE user_id=?").get(salespersonId);
-    const directory = buildRmDirectory();
+    const directory = suppliedDirectory ?? buildRmDirectory();
     const rm = directory.find((entry) => entry.id === salespersonId || (entry.keys && entry.keys.includes(salespersonId)) || resolveRmId(directory, profile?.full_name || "") === entry.id);
     const allNames = rm ? [rm.name, ...rm.aliases] : [profile?.full_name].filter(Boolean);
     const nameList = allNames.length ? allNames.map(() => "?").join(",") : "";
@@ -25,9 +25,8 @@ class TallyConnectorClient {
     return db.prepare("SELECT id,name,COALESCE(uom,'') 'group',packing_size packingSize,rate,total_qty totalQuantity,total_value totalValue,frequency FROM tally_products ORDER BY total_value DESC").all();
   }
 
-  async salesSummary({ salespersonId }) {
+  async salesSummary({ salespersonId, directory = buildRmDirectory() }) {
     const profile = db.prepare("SELECT full_name, employee_code, monthly_target FROM salesperson_profiles WHERE user_id=?").get(salespersonId);
-    const directory = buildRmDirectory();
     const rm = directory.find((entry) => entry.id === salespersonId || (entry.keys && entry.keys.includes(salespersonId)) || resolveRmId(directory, profile?.full_name || "") === entry.id);
     const allNames = rm ? [rm.name, ...rm.aliases] : [profile?.full_name].filter(Boolean);
     const nameList = allNames.length ? allNames.map(() => "?").join(",") : "";
@@ -105,20 +104,21 @@ class TallyConnectorClient {
     };
   }
 
-  async overview({ salespersonId }) {
+  async overview({ salespersonId, directory = buildRmDirectory() }) {
     const profile = db.prepare("SELECT full_name FROM salesperson_profiles WHERE user_id=?").get(salespersonId);
-    const directory = buildRmDirectory();
     const rm = directory.find((entry) => entry.id === salespersonId || (entry.keys && entry.keys.includes(salespersonId)) || resolveRmId(directory, profile?.full_name || "") === entry.id);
     const allNames = rm ? [rm.name, ...rm.aliases] : [profile?.full_name].filter(Boolean);
     const nameList = allNames.length ? allNames.map(() => "?").join(",") : "";
 
     const topProducts = db.prepare(`
       SELECT l.product_name name,SUM(l.amount) salesValue,SUM(l.quantity) quantity
-      FROM tally_invoice_lines l
-      JOIN tally_invoices i ON i.id=l.invoice_id
-      JOIN tally_customers c ON c.id=i.customer_id
+      FROM tally_invoices i
+      JOIN tally_invoice_lines l ON l.invoice_id=i.id
       WHERE i.ingest_session_id IS NULL
-        AND (c.owner_user_id=? OR c.owner_user_id IN (SELECT user_id FROM salesperson_profiles WHERE manager_user_id=?) OR c.rm_name IN (${nameList}))
+        AND i.customer_id IN (
+          SELECT c.id FROM tally_customers c
+          WHERE c.owner_user_id=? OR c.owner_user_id IN (SELECT user_id FROM salesperson_profiles WHERE manager_user_id=?) OR c.rm_name IN (${nameList})
+        )
       GROUP BY l.product_name ORDER BY salesValue DESC LIMIT 5
     `).all(salespersonId, salespersonId, ...allNames);
     const customers = db.prepare(`

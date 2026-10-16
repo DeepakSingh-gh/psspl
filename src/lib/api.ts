@@ -20,7 +20,11 @@ import type {
   UserListResponse,
 } from "@/types/admin";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://127.0.0.1:4000/api";
+// Keep local browser traffic on the app origin. The Next dev server forwards
+// /api to Express, avoiding browser restrictions on loopback/cross-origin calls.
+const API_URL = process.env.NODE_ENV === "development"
+  ? "/api"
+  : (process.env.NEXT_PUBLIC_API_URL ?? "http://127.0.0.1:4000/api");
 
 const TOKEN_KEY = "psspl_crm_session";
 const USER_KEY = "psspl_crm_user";

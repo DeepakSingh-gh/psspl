@@ -1,5 +1,6 @@
 "use client";
 import { usePathname } from "next/navigation";
+import Link from "next/link";
 import { PssplLogo } from "@/components/common/psspl-logo";
 
 const NAV = [
@@ -28,7 +29,7 @@ export function SalesSidebar({ name, subtitle, onSignOut }: {
       </div>
       <nav>
         {NAV.map((item) => (
-          <a key={item.href} href={item.href} className={isActive(item) ? "active" : undefined}>{item.label}</a>
+          <Link key={item.href} href={item.href} className={isActive(item) ? "active" : undefined}>{item.label}</Link>
         ))}
       </nav>
       <div className="user-card">
