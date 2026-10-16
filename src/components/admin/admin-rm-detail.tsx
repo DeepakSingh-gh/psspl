@@ -23,14 +23,14 @@ type Tab =
   | "actionplan";
 
 const TABS: Array<{ id: Tab; label: string }> = [
+  { id: "actionplan", label: "📋 Manager Action Plan" },
+  { id: "insight", label: "AI Insights" },
   { id: "performance", label: "📊 Report Card" },
   { id: "visits", label: "Customer Visits" },
   { id: "pipeline", label: "Pipeline" },
   { id: "sales", label: "Actual Sales" },
   { id: "products", label: "Products" },
   { id: "followups", label: "Follow-ups" },
-  { id: "insight", label: "AI Insight" },
-  { id: "actionplan", label: "📋 Manager Action Plan" },
 ];
 
 type Period = "today" | "week" | "month" | "fytd";
@@ -1455,7 +1455,7 @@ function ManagerActionPlanTab({ data, kpi }: { data: any; kpi: any }) {
 
 /* ── Main component ── */
 export function AdminRmDetail({ rmId }: { rmId: string }) {
-  const [tab, setTab] = useState<Tab>("performance");
+  const [tab, setTab] = useState<Tab>("actionplan");
   const [period, setPeriod] = useState<Period>("month");
   const [showPreview, setShowPreview] = useState(false);
   const [downloading, setDownloading] = useState(false);
