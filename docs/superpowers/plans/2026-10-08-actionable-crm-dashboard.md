@@ -280,3 +280,23 @@ Open the mobile view `/sales/my-day`. Select "Phone Call". Record a voice note, 
 - [x] **Fluid Grids & Viewport Safety**: Converted fixed CSS grids into responsive classes (`.rm-kpi-grid` 6-to-3-to-2 cols, `.rm-3col-grid` to 1 col, `.rm-thrust-grid` auto-fit, `.overview-quarterly-grid` auto-fit), enforced `min-width: 0` on grid items, and applied global `overflow-x: hidden; max-width: 100vw` with scoped horizontal table scrolling.
 - [x] **Production Cloud Deployment**: Deployed production frontend to Vercel (`https://psspl-crm.vercel.app`) with static optimization across 27 routes, configured Render backend (`https://psspl-crm-backend.onrender.com`), and synchronized all code to GitHub (`https://github.com/DeepakSingh-gh/psspl`).
 
+---
+
+### Task 19: Laptop Viewport Side-Scroll Elimination & CSS Clipping Architecture
+
+**Tasks Completed:**
+- [x] **Root Viewport Clipping**: Upgraded `html`, `body`, and `.crm-shell` / `.admin-shell` from `max-width: 100vw; overflow-x: hidden;` to `width: 100%; max-width: 100%; overflow-x: clip;`, eliminating horizontal panning caused by vertical scrollbars on Windows/Blink laptops.
+- [x] **Fixed Desktop Sidebar Geometry**: Pinned `.admin-sidebar` to `width: 264px; min-width: 264px; max-width: 264px; flex-shrink: 0; left: 0;`, preventing navigation shrinkage or off-screen horizontal drift.
+- [x] **Responsive Grid Track Collapse**: Expanded the collapse threshold for `.command-story` and `.command-money-field` from `1100px` to `1280px` (`@media (max-width: 1280px)`), replacing unbounded pixel tracks with `minmax(0, 1fr)`.
+- [x] **SVG Chart Overflow Protection**: Constrained `.command-chart` and `.command-chart svg` with `overflow: hidden;` preventing chart blowout on narrow desktop screens.
+
+---
+
+### Task 20: Webpack Dev Server Chunk Cache Resiliency
+
+**Tasks Completed:**
+- [x] **Root Cause Investigation**: Identified that running `npm run build` while `npm run dev` was active replaced development chunks in `.next` with production hashes, causing `Cannot find module './308.js'`.
+- [x] **Cache Clean & Process Recovery**: Terminated stale dev runner processes, purged the `.next` directory, and cleanly restarted the development server.
+- [x] **Route Verification**: Confirmed `/admin` compiles cleanly in 1245ms and returns HTTP 200 OK without errors.
+
+

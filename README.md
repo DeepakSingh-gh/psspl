@@ -70,6 +70,7 @@ The CRM is loaded with actual client records imported from client workbooks and 
 * **171 Customers & Dealers:** Protec Finish Innovators, Metfin Systems, Schneider Electric, Chem X Enterprises, S.B. Refractory, etc., including city mappings, destination codes, and outstanding balances.
 * **666 PSS Chemical Products:** Complete catalog with packing sizes, UOM (Kgs., Ltrs., Nos.), rates, and historical sales.
 * **868 Real Invoices & 1,730 Product Lines:** Totaling **Rs 35.47 Crore** in sales, backing all executive charts and customer history.
+* **Live Tally Ingestion Pipeline:** Real-time collection receipts (`tally_payments_live`), raw material procurement vouchers (`tally_purchases`, `tally_purchase_lines`), and chunked session state tracking (`tally_import_metadata`).
 * **12 Regional Managers & 144 Monthly Targets:** Full target tracking across all 12 zones, plus exact **FY 2026-27 Target Feedback Support schedule (501.00 Lakh target)** for Anil Jena (North Region / Gurugram).
 * **1,896 RM Product Sales Comparison Records:** FY 2024-25 vs FY 2025-26 volume and value comparisons.
 * **48 Field Sales Executives:** Mapped under their respective Regional Managers, including Anil Jena's 9 Gurugram team members.
@@ -181,7 +182,8 @@ The CRM dashboard features the official PSS corporate visual identity:
   - `.rm-3col-grid`: Stacks cleanly from 3 columns into 1 column on tablet and mobile viewports.
   - `.rm-thrust-grid`: Auto-fits strategic focus products into responsive columns with zero horizontal scroll.
   - `.overview-quarterly-grid`: Adapts quarterly trend cards to mobile screens without squishing.
-- **Anti-Blowout Enclosures:** Global `max-width: 100vw` and `overflow-x: hidden` with scoped `overflow-x: auto` table card containers ensure tables and large data sets scroll smoothly without breaking the parent mobile viewport.
+- **Zero Side-Scroll Architecture:** Hardened with `width: 100%; max-width: 100%; overflow-x: clip;` across `html`, `body`, and `.admin-shell`, completely eliminating the side-scroll bug on Windows/Blink laptops caused by standard 17px vertical scrollbars. Combined with desktop sidebar pinning (`264px` fixed geometry), responsive grid track collapses (`minmax(0, 1fr)`) at `<= 1280px`, and overflow-clipped SVG charts.
+- **Table Scroll Protection:** Scoped `overflow-x: auto` table card containers allow smooth horizontal swiping on high-density data tables without pushing parent viewports or sidebars off-screen.
 
 ## ⚙️ Environment Variables
 
@@ -214,4 +216,6 @@ WHATSAPP_RECIPIENT_PHONE=919876543210
 * **Test Dev Server:** `npm run dev`
 * **Run Data Importer:** `npm run import:data`
 * **Backend Health Check:** `curl http://localhost:4000/api/health`
+* **Purge Next.js Cache (if alternating build & dev):** `Remove-Item -Recurse -Force .next` (PowerShell) / `rm -rf .next` (Bash)
+
 

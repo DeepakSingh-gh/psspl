@@ -35,13 +35,15 @@ graph TD
 * **Corporate Brand Identity:** Vector `<PssplLogo />` component (`src/components/common/psspl-logo.tsx`) with transparent background blending, precision hexagonal flask symbol, and crisp PSSPL typography integrated across Admin, RM, Sales sidebars, report headers, and authentication portals.
 * **Styling & Presentation:** Progressive Surface Systems (PSS) Vanilla CSS Design Tokens (`--honolulu-blue: #007CBA`, `--voluptuous-violet: #7A00DF`, `--love-goddess: #CC1818`, `--exhilarating-green: #7CC68D`, `--steam: #DDDDDD`, `--black: #000000`), custom follow-up description box styles (`.followup-textarea` with `1.5px solid #007CBA` border & focus ring + `.followup-notes-display` left accent container), media query print stylesheet (`print.css`), and global header AI bar (`.topbar-ai-search`).
 * **Ask AI Command Center & Formatting:** React `createPortal` (`document.body`) for modal overlay, quick date presets (*FY 2026-27*, *Last 30 Days*, *All Data*), clear button (`✕`), categorized prompt chips with icons, and `AiResponseFormatter` for parsing LLM Markdown into structured **Executive Insight Cards** with data point badges, action boxes, and metric pills.
-* **Mobile-First Responsive Layout:**
+* **Mobile-First & Laptop-Safe Responsive Layout:**
   - Sliding off-canvas navigation drawer with backdrop tap-to-dismiss (`.admin-sidebar-backdrop`) and animated vector hamburger button.
-  - Responsive multi-breakpoint design (`< 1200px`, `< 1000px`, `< 768px`, `< 480px`).
+  - Responsive multi-breakpoint design (`< 1280px`, `< 1000px`, `< 768px`, `< 480px`).
   - Fluid grid system (`.rm-kpi-grid`, `.rm-3col-grid`, `.rm-2col-grid`, `.rm-thrust-grid`, `.rm-stat-3col`) with `min-width: 0` constraints to eliminate table blowout on 360px-480px viewports.
-  - Global `overflow-x: hidden` and `max-width: 100vw` protection on root HTML/body.
+  - **Zero Horizontal Side-Scroll Architecture:** Root HTML, body, and `.admin-shell` hardened with `width: 100%; max-width: 100%; overflow-x: clip;` (replacing `100vw` / `overflow-x: hidden`, which caused horizontal panning on Windows/Blink laptops due to the 17px vertical scrollbar).
+  - **Sidebar Pinned Geometry:** Pinned desktop sidebar to `width: 264px; min-width: 264px; max-width: 264px; flex-shrink: 0; left: 0;` ensuring navigation stays fixed and never squishes or shifts off-screen.
+  - **Responsive Command Tracks:** Collapses `.command-story` and `.command-money-field` into single columns at `< 1280px` using `minmax(0, 1fr)` tracks, and clips `.command-chart svg` with `overflow: hidden`.
 * **Integrated Search Controls & Voice STT:** `<VoiceMicButton>` component integrated on all search inputs with dual-engine Speech-to-Text (browser Web Speech API for free instant transcription + backend OpenAI Whisper API `POST /api/stt` endpoint in `server/stt.mjs`).
-* **Backend Runtime:** Node.js native ES Modules (`server/app.mjs`), Express 5.1.
+* **Backend Runtime:** Node.js native ES Modules (`server/app.mjs`), Express 5.1 with SQLite WAL mode.
 * **Authentication Security:** Asynchronous non-blocking `crypto.scrypt` password verification (`promisify`), malformed hash guards, strict `Bearer` token validation, and background session cleanup.
 * **AI Engine:** Google Gemini API (`gemini-2.5-flash`, `gemini-2.0-flash`, `gemini-1.5-flash`, `gemini-3.8-flash`) via `GEMINI_API_KEY` with live SQL context window synthesis (`server/ai-context.mjs`) and zero-thinking budget (`thinkingBudget: 0`) optimization for sub-4-second conversational analytics.
 * **Scheduler & Automation:** `node-cron` running daily at 5:00 PM IST (EOD WhatsApp digest).
@@ -51,11 +53,11 @@ graph TD
 
 ## 3. Database Schema Overview
 
-All application state resides in `data/crm.sqlite` across three primary domains:
+All application state resides in `data/crm.sqlite` across four primary domains:
 
 ### A. Authentication & User Management
 * `users`: `id`, `email`, `password_hash` (`scrypt`), `role` (`admin` | `rm` | `salesperson`), `active`, `created_at`.
-* `salesperson_profiles`: `user_id`, `employee_code`, `full_name`, `region`, `territory`, `manager_user_id`, `monthly_target`.
+* `salesperson_profiles`: `user_id`, `employee_code`, `full_name`, `region`, `territory`, `operating_city`, `reg_code_1`, `reg_code_2`, `manager_user_id`, `monthly_target`.
 * `sessions`: Sliding window session tokens with idle timeout and maximum lifetime ceiling.
 * `audit_logs`: Entity-level audit logging of admin actions, resets, and report exports.
 
@@ -67,19 +69,22 @@ All application state resides in `data/crm.sqlite` across three primary domains:
 * `expected_orders`: Order pipeline tracking with expected amounts, dates, and statuses.
 * `follow_ups`: Scheduled action items with due dates, priority levels (`high`, `medium`, `low`), channel mode (`follow_up_type`: `'call'` | `'visit'`), discussion notes (`notes`), and assignment (`assigned_to_user_id`).
 
-### C. Tally Accounting Snapshots
-* `tally_customers`: Master list of 171 dealers/customers with city, RM assignment, outstanding ledger balance, and last payment date.
+### C. Tally Accounting Snapshots & Live ERP Tables
+* `tally_customers`: Master list of 171 dealers/customers with city, RM assignment, outstanding ledger balance, `owner_user_id`, and last payment date.
 * `tally_customer_monthly_sales`: 14-month historical monthly billing matrix.
 * `tally_products`: Master catalog of 666 products with packing sizes, UOM, and unit prices.
 * `tally_product_monthly_sales`: Monthly product movement quantities and sales values.
 * `tally_rm_product_sales`: 1,896 product performance comparisons across all 12 Regional Managers.
 * `tally_rm_targets`: Monthly sales targets in Lakhs for all RMs.
 * `tally_invoices` & `tally_invoice_lines`: 868 real invoices and 1,730 product line items representing Rs 35.47 Cr in billing.
+* `tally_payments_live`: Real-time collection payment receipts (`id`, `company_name`, `voucher_guid`, `voucher_number`, `payment_date`, `payment_type`, `customer_id`, `customer_name`, `amount`, `reference`, `source_sync_id`).
+* `tally_purchases` & `tally_purchase_lines`: Ingested supplier purchases and chemical raw material procurement lines (`supplier_name`, `quantity`, `rate`, `amount`, `uom`).
+* `tally_import_metadata`: Ingest sync state and transaction boundaries (`key`, `value`).
 * `rm_weekly_purchases`: 4-week monthly breakdown matrix of actual purchases vs weekly quotas.
 * `rm_historical_monthly_performance`: Multi-year monthly target vs actual ledger storing previous financial year comparisons.
 
 ### D. Strategic & Thrust Products Tracking
-* `thrust_products`: High-margin, strategically vital chemical products established at the start of the financial year (`id`, `product_name`, `target_qty`, `unit`, `active`, `created_at`). Pre-seeded with priority lines: *Zpn Blue 15, Zpn 200, Zpn Black, Shimaclad Peony, Clearclad Lcbh, Enilex Chrome Catalyst, POP, Uviclad 612, Patinas*.
+* `thrust_products`: High-margin, strategically vital chemical products established at the start of the financial year (`id`, `product_name`, `alias_keywords`, `sort_order`, `active`, `created_at`). Pre-seeded with priority lines: *Zpn Blue 15, Zpn 200, Zpn Black, Shimaclad Peony, Clearclad Lcbh, Enilex Chrome Catalyst, POP, Uviclad 612, Patinas*.
 * `dormant_reasons`: Structured customer dormancy explanations and recovery action logs submitted by RMs.
 
 ---
@@ -166,10 +171,17 @@ Located in `server/admin.mjs` and `src/components/admin/`:
   - `idx_tally_invoices_session_date`: Optimizes date-range invoice filtering while ignoring raw ingestion sessions.
   - `idx_tally_invoice_lines_inv_prod`: Eliminates full scans on product-line item lookups across 27,000+ line items.
   - `idx_tally_rm_product_sales_rm`: Speeds up previous-year RM performance comparisons.
+  - `idx_tally_payments_date_customer`: Accelerates payment receipt reconciliation by date and customer ID.
+  - `idx_tally_purchases_date_supplier`: Indexes supplier procurement vouchers by purchase date and supplier name.
+  - `idx_tally_purchase_lines_product`: Optimizes raw material volume aggregation across purchase line items.
+  - `idx_tally_customers_owner_user_id`: Enforces instant owner-based customer scoping for sales reps.
 * **Single-Pass In-Memory Thrust Aggregation (`calculateAllThrustProductsBatch`):**
   - Replaced 330+ repetitive nested SQL queries with an in-memory aggregation map, cutting `/api/admin/team` latency from 3,630ms to ~450ms (8× speedup).
 * **Client-Side SWR (Stale-While-Revalidate) Cache Layer (`src/lib/use-admin-data.ts`):**
   - Client hook provides instant zero-latency rendering of cached records with background API revalidation.
   - Namespaced composite cache keys (`${loaderSource}::${JSON.stringify(deps)}`) prevent cross-endpoint data pollution.
   - Defensive null-safe accessors in `AdminOverview` ensure resilient runtime behavior during state transitions.
+* **Webpack Runtime & Build Cache Isolation:**
+  - When transitioning between production verification (`npm run build`) and active development (`npm run dev`), `.next` build caches are automatically isolated/purged to prevent in-memory chunk map collisions (such as `Cannot find module './308.js'`).
+
 
