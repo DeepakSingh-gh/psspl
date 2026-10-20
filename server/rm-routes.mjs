@@ -1,12 +1,16 @@
+import { reminderSummary } from "./reminder-summary.mjs";
+import { aiLimiter, askAiHandler } from "./ai-answer.mjs";
 import { Router } from "express";
 import { authenticate, requireRole } from "./auth.mjs";
 import { db } from "./db.mjs";
 import { buildRmDirectory, resolveRmId } from "./rm-directory.mjs";
+import { authoritativeInvoiceWhere, netInvoiceAmount, netInvoiceLineAmount } from "./tally/metrics.mjs";
+import { indiaBusinessDate } from "./field-activity.mjs";
 
 export const rmRouter = Router();
 rmRouter.use(authenticate, requireRole("rm"));
 
-const today = () => new Date().toISOString().slice(0, 10);
+const today = () => indiaBusinessDate();
 const financialYearStart = () => { const now = new Date(); const year = now.getMonth() + 1 >= 4 ? now.getFullYear() : now.getFullYear() - 1; return `${year}-04-01`; };
 
 /** Returns [rmUserId, ...salesperson IDs that report to this RM] */
@@ -29,9 +33,9 @@ rmRouter.get("/dashboard", (req, res, next) => {
     const nameList = allNames.length ? allNames.map(() => "?").join(",") : "";
 
     const spRow = allNames.length ? db.prepare(`SELECT code, city FROM tally_salespeople WHERE name IN (${nameList}) AND code IS NOT NULL AND code <> '' LIMIT 1`).get(...allNames) : null;
-    const rmCode = managerRow?.employeeCode || spRow?.code || "075709";
-    const operatingFrom = managerRow?.operatingCity?.trim() || spRow?.city?.trim() || managerRow?.territory?.trim() || "Gurugram";
-    const teamExecutiveCities = ["Gurgaon", "Delhi", "Ghaziabad", "Faridabad", "Noida", "Sonepat", "Bahadurgarh", "Sahibabad", "Rudrapur"];
+    const rmCode = managerRow?.employeeCode || null;
+    const operatingFrom = managerRow?.operatingCity?.trim() || managerRow?.territory?.trim() || null;
+    const teamTerritories = db.prepare("SELECT DISTINCT p.territory FROM users u JOIN salesperson_profiles p ON p.user_id=u.id WHERE p.manager_user_id=? AND u.role='salesperson' AND u.active=1 AND p.territory IS NOT NULL AND trim(p.territory)<>'' ORDER BY p.territory").all(req.user.id).map((row) => row.territory);
 
     // Manager's own attendance (clock-in / clock-out)
     const todayStr = today();
@@ -51,10 +55,10 @@ rmRouter.get("/dashboard", (req, res, next) => {
       ...managerRow,
       rmCode,
       operatingFrom,
-      teamExecutiveCities,
-      region: managerRow?.region || "North Region",
-      regCode1: managerRow?.regCode1 || "2111C126",
-      regCode2: managerRow?.regCode2 || "2111S126",
+      teamTerritories,
+      region: managerRow?.region || null,
+      regCode1: managerRow?.regCode1 || null,
+      regCode2: managerRow?.regCode2 || null,
       attendance: managerAttendance ? {
         checkInAt: managerAttendance.checkInAt,
         checkOutAt: managerAttendance.checkOutAt,
@@ -66,10 +70,10 @@ rmRouter.get("/dashboard", (req, res, next) => {
     const users = db.prepare(`SELECT u.id,u.email,u.active,p.full_name fullName,p.region,p.territory,p.monthly_target monthlyTarget,
         CASE WHEN u.id=? THEN 1 ELSE 0 END isSelf
       FROM users u JOIN salesperson_profiles p ON p.user_id=u.id
-      WHERE (p.manager_user_id=? AND u.role='salesperson') OR u.id=?
+      WHERE (p.manager_user_id=? AND u.role='salesperson' AND u.active=1) OR u.id=?
       ORDER BY isSelf DESC, p.full_name`).all(req.user.id, req.user.id, req.user.id);
     const members = users.map((user) => {
-      const sales = db.prepare(`SELECT COALESCE(SUM(i.amount),0) total,COUNT(*) invoices FROM tally_invoices i JOIN tally_customers c ON c.id=i.customer_id WHERE i.ingest_session_id IS NULL AND c.owner_user_id=? AND i.invoice_date BETWEEN ? AND ?`).get(user.id, from, to);
+      const sales = db.prepare(`SELECT COALESCE(SUM(${netInvoiceAmount("i")}),0) total,COUNT(*) invoices FROM tally_invoices i JOIN tally_customers c ON c.id=i.customer_id WHERE ${authoritativeInvoiceWhere("i")} AND c.owner_user_id=? AND i.invoice_date BETWEEN ? AND ?`).get(user.id, from, to);
       const customers = db.prepare("SELECT COUNT(*) count,COALESCE(SUM(outstanding),0) outstanding FROM tally_customers WHERE owner_user_id=?").get(user.id);
       const visits = db.prepare("SELECT COUNT(*) total,COALESCE(SUM(CASE WHEN status='completed' THEN 1 ELSE 0 END),0) completed FROM visits WHERE user_id=? AND business_date BETWEEN ? AND ?").get(user.id, from, to);
       const followUpsOpen = db.prepare("SELECT COUNT(*) count FROM follow_ups WHERE user_id=? AND completed=0").get(user.id).count;
@@ -106,44 +110,30 @@ rmRouter.get("/report-card", (req, res, next) => {
     );
     const allNames = rm ? [rm.name, ...rm.aliases] : [profileRow?.fullName].filter(Boolean);
     const nameList = allNames.length ? allNames.map(() => "?").join(",") : "";
+    const reportTeamIds = getTeamIds(req.user.id);
+    const reportTeamPlaceholders = reportTeamIds.map(() => "?").join(",");
 
     // Detect latest active invoice date in database for this RM
     const maxDateRow = allNames.length ? db.prepare(`
       SELECT MAX(i.invoice_date) maxDate
       FROM tally_invoices i
       JOIN tally_customers c ON c.id = i.customer_id
-      WHERE i.ingest_session_id IS NULL AND c.rm_name IN (${nameList})
+      WHERE ${authoritativeInvoiceWhere("i")} AND c.rm_name IN (${nameList})
     `).get(...allNames) : null;
     const latestActiveDate = maxDateRow?.maxDate || todayStr;
     const latestActiveMonth = latestActiveDate.slice(0, 7);
 
-    // Anchor period to active ledger cycle if current calendar month has no invoices
     let effectiveFrom = monthStart;
     let effectiveTo = monthEnd;
-    let isAnchoredToLatestCycle = false;
-    if (monthStart.slice(0, 7) > latestActiveMonth) {
-      effectiveFrom = `${latestActiveMonth}-01`;
-      effectiveTo = latestActiveDate;
-      isAnchoredToLatestCycle = true;
-    }
+    const isAnchoredToLatestCycle = false;
 
     // Actual sales (query by RM name aliases if available, otherwise by owner_user_id)
     let sales = { salesValue: 0, invoiceCount: 0 };
-    if (allNames.length) {
-      sales = db.prepare(`
-        SELECT COALESCE(SUM(i.amount),0) salesValue, COUNT(*) invoiceCount
-        FROM tally_invoices i JOIN tally_customers c ON c.id=i.customer_id
-        WHERE i.ingest_session_id IS NULL AND c.rm_name IN (${nameList}) AND i.invoice_date BETWEEN ? AND ?
-      `).get(...allNames, effectiveFrom, effectiveTo);
-    }
-    if ((!sales || sales.salesValue === 0) && !isAnchoredToLatestCycle) {
-      const fallback = db.prepare(`
-        SELECT COALESCE(SUM(i.amount),0) salesValue, COUNT(*) invoiceCount
-        FROM tally_invoices i JOIN tally_customers c ON c.id=i.customer_id
-        WHERE i.ingest_session_id IS NULL AND c.owner_user_id=? AND i.invoice_date BETWEEN ? AND ?
-      `).get(req.user.id, monthStart, monthEnd);
-      if (fallback?.salesValue > 0) sales = fallback;
-    }
+    sales = db.prepare(`
+      SELECT COALESCE(SUM(${netInvoiceAmount("i")}),0) salesValue, COUNT(*) invoiceCount
+      FROM tally_invoices i JOIN tally_customers c ON c.id=i.customer_id
+      WHERE ${authoritativeInvoiceWhere("i")} AND c.owner_user_id IN (${reportTeamPlaceholders}) AND i.invoice_date BETWEEN ? AND ?
+    `).get(...reportTeamIds, effectiveFrom, effectiveTo);
 
     // Field activity
     const visitsRow = db.prepare(`
@@ -161,7 +151,7 @@ rmRouter.get("/report-card", (req, res, next) => {
     // Calls logged
     const callsLogged = db.prepare(`
       SELECT COUNT(*) count FROM customer_activities
-      WHERE user_id=? AND activity_type='call' AND DATE(occurred_at) BETWEEN ? AND ?
+      WHERE user_id=? AND activity_type IN ('call','call_incoming','call_outgoing') AND date(occurred_at,'+5 hours','+30 minutes') BETWEEN ? AND ?
     `).get(req.user.id, monthStart, monthEnd);
 
     // Follow-ups
@@ -190,39 +180,43 @@ rmRouter.get("/report-card", (req, res, next) => {
         AND period >= ? AND period <= ?
     `).get(...allNames, fromMonth, toMonth) : null;
 
-    const rawTarget = profileRow?.monthlyTarget ?? 0;
-    const baseMonthly = rawTarget > 10 ? Math.round(rawTarget * 100000) : Math.round(rawTarget * 10000000);
-    const monthlyTarget = (rmTargetRow?.totalTarget > 0 ? rmTargetRow.totalTarget : null) || baseMonthly || 4593000;
-    const achievementPercent = monthlyTarget > 0 ? Math.round((sales.salesValue / monthlyTarget) * 100) : 0;
+    const monthlyTarget = rmTargetRow?.totalTarget > 0 ? rmTargetRow.totalTarget : null;
+    const achievementPercent = monthlyTarget > 0 ? Math.round((sales.salesValue / monthlyTarget) * 100) : null;
 
     // Top 5 dealers by revenue
     let topDealers = [];
     if (allNames.length) {
       topDealers = db.prepare(`
-        SELECT c.name dealerName, COALESCE(SUM(i.amount),0) salesValue
+        SELECT c.name dealerName, COALESCE(SUM(${netInvoiceAmount("i")}),0) salesValue
         FROM tally_customers c
-        JOIN tally_invoices i ON i.customer_id=c.id AND i.invoice_date BETWEEN ? AND ? AND i.ingest_session_id IS NULL
-        WHERE c.rm_name IN (${nameList})
+        JOIN tally_invoices i ON i.customer_id=c.id AND i.invoice_date BETWEEN ? AND ? AND ${authoritativeInvoiceWhere("i")}
+        WHERE c.owner_user_id IN (${reportTeamPlaceholders})
         GROUP BY c.id
         ORDER BY salesValue DESC
         LIMIT 5
-      `).all(effectiveFrom, effectiveTo, ...allNames);
+      `).all(effectiveFrom, effectiveTo, ...reportTeamIds);
     }
     if (topDealers.length === 0) {
       topDealers = db.prepare(`
-        SELECT c.name dealerName, COALESCE(SUM(i.amount),0) salesValue
+        SELECT c.name dealerName, COALESCE(SUM(${netInvoiceAmount("i")}),0) salesValue
         FROM tally_customers c
-        LEFT JOIN tally_invoices i ON i.customer_id=c.id AND i.invoice_date BETWEEN ? AND ? AND i.ingest_session_id IS NULL
-        WHERE c.owner_user_id=?
+        LEFT JOIN tally_invoices i ON i.customer_id=c.id AND i.invoice_date BETWEEN ? AND ? AND ${authoritativeInvoiceWhere("i")}
+        WHERE c.owner_user_id IN (${reportTeamPlaceholders})
         GROUP BY c.id
         ORDER BY salesValue DESC
         LIMIT 5
-      `).all(monthStart, monthEnd, req.user.id);
+      `).all(monthStart, monthEnd, ...reportTeamIds);
     }
-    const topDealersTotal = topDealers.reduce((sum, d) => sum + d.salesValue, 0) || 1;
+    const topDealersTotal = topDealers.reduce((sum, d) => sum + d.salesValue, 0);
+    const totalAttributedSales = sales.salesValue || 0;
     const topDealersWithShare = topDealers.map((d) => ({
-      ...d, pctShare: Math.round((d.salesValue / topDealersTotal) * 100),
+      ...d, pctShare: totalAttributedSales > 0 ? Math.round((d.salesValue / totalAttributedSales) * 100) : null,
     }));
+    const topFiveDealerRevenue = topDealers.reduce((sum, d) => sum + d.salesValue, 0);
+    const activeDealerCount = db.prepare(`SELECT COUNT(DISTINCT i.customer_id) count FROM tally_invoices i
+      JOIN tally_customers c ON c.id=i.customer_id
+      WHERE ${authoritativeInvoiceWhere("i")} AND i.invoice_date BETWEEN ? AND ?
+        AND c.owner_user_id IN (${reportTeamPlaceholders})`).get(effectiveFrom, effectiveTo, ...reportTeamIds).count;
 
     // Dormant dealers
     let dormantDealers = [];
@@ -230,62 +224,62 @@ rmRouter.get("/report-card", (req, res, next) => {
       dormantDealers = db.prepare(`
         SELECT c.name dealerName, MAX(i.invoice_date) lastInvoice
         FROM tally_customers c
-        LEFT JOIN tally_invoices i ON i.customer_id=c.id AND i.ingest_session_id IS NULL
-        WHERE c.rm_name IN (${nameList})
+        LEFT JOIN tally_invoices i ON i.customer_id=c.id AND ${authoritativeInvoiceWhere("i")}
+        WHERE c.owner_user_id IN (${reportTeamPlaceholders})
         GROUP BY c.id
-        HAVING lastInvoice IS NULL OR lastInvoice < date('now', '-90 days')
+        HAVING lastInvoice IS NOT NULL AND lastInvoice < date('now', '-90 days')
         ORDER BY lastInvoice ASC
         LIMIT 5
-      `).all(...allNames);
+      `).all(...reportTeamIds);
     } else {
       dormantDealers = db.prepare(`
         SELECT c.name dealerName, MAX(i.invoice_date) lastInvoice
         FROM tally_customers c
-        LEFT JOIN tally_invoices i ON i.customer_id=c.id AND i.ingest_session_id IS NULL
-        WHERE c.owner_user_id=?
+        LEFT JOIN tally_invoices i ON i.customer_id=c.id AND ${authoritativeInvoiceWhere("i")}
+        WHERE c.owner_user_id IN (${reportTeamPlaceholders})
         GROUP BY c.id
-        HAVING lastInvoice IS NULL OR lastInvoice < date('now', '-90 days')
+        HAVING lastInvoice IS NOT NULL AND lastInvoice < date('now', '-90 days')
         ORDER BY lastInvoice ASC
         LIMIT 5
-      `).all(req.user.id);
+      `).all(...reportTeamIds);
     }
 
     // Top products
     let topProducts = [];
     if (allNames.length) {
       topProducts = db.prepare(`
-        SELECT l.product_name productName, COALESCE(SUM(l.amount),0) salesValue
+        SELECT l.product_name productName, COALESCE(SUM(${netInvoiceLineAmount("i","l")}),0) salesValue
         FROM tally_invoice_lines l
-        JOIN tally_invoices i ON i.id=l.invoice_id AND i.invoice_date BETWEEN ? AND ? AND i.ingest_session_id IS NULL
-        JOIN tally_customers c ON c.id=i.customer_id AND c.rm_name IN (${nameList})
+        JOIN tally_invoices i ON i.id=l.invoice_id AND i.invoice_date BETWEEN ? AND ? AND ${authoritativeInvoiceWhere("i")}
+        JOIN tally_customers c ON c.id=i.customer_id AND c.owner_user_id IN (${reportTeamPlaceholders})
         GROUP BY l.product_name
         ORDER BY salesValue DESC
         LIMIT 5
-      `).all(effectiveFrom, effectiveTo, ...allNames);
+      `).all(effectiveFrom, effectiveTo, ...reportTeamIds);
     }
     if (topProducts.length === 0) {
       topProducts = db.prepare(`
-        SELECT p.name productName, COALESCE(SUM(l.amount),0) salesValue
+        SELECT p.name productName, COALESCE(SUM(${netInvoiceLineAmount("i","l")}),0) salesValue
         FROM tally_products p
         JOIN tally_invoice_lines l ON l.product_id=p.id
-        JOIN tally_invoices i ON i.id=l.invoice_id AND i.invoice_date BETWEEN ? AND ? AND i.ingest_session_id IS NULL
-        JOIN tally_customers c ON c.id=i.customer_id AND c.owner_user_id=?
+        JOIN tally_invoices i ON i.id=l.invoice_id AND i.invoice_date BETWEEN ? AND ? AND ${authoritativeInvoiceWhere("i")}
+        JOIN tally_customers c ON c.id=i.customer_id AND c.owner_user_id IN (${reportTeamPlaceholders})
         GROUP BY p.id
         ORDER BY salesValue DESC
         LIMIT 5
-      `).all(monthStart, monthEnd, req.user.id);
+      `).all(monthStart, monthEnd, ...reportTeamIds);
     }
 
     // 12-Month Target vs Actual Performance History
     const monthlySalesRows = allNames.length ? db.prepare(`
-      SELECT substr(i.invoice_date, 1, 7) month, COALESCE(SUM(i.amount), 0) actualSales
+      SELECT substr(i.invoice_date, 1, 7) month, COALESCE(SUM(${netInvoiceAmount("i")}), 0) actualSales
       FROM tally_invoices i
       JOIN tally_customers c ON c.id = i.customer_id
-      WHERE i.ingest_session_id IS NULL AND c.rm_name IN (${nameList})
+      WHERE ${authoritativeInvoiceWhere("i")} AND c.owner_user_id IN (${reportTeamPlaceholders})
       GROUP BY month
       ORDER BY month DESC
       LIMIT 12
-    `).all(...allNames).reverse() : [];
+    `).all(...reportTeamIds).reverse() : [];
 
     const monthlyTargetRows = allNames.length ? db.prepare(`
       SELECT period month, COALESCE(target_lakh * 100000, 0) targetValue
@@ -299,14 +293,9 @@ rmRouter.get("/report-card", (req, res, next) => {
       const [yr, mo] = row.month.split("-");
       const label = `${monthNames[parseInt(mo, 10) - 1]} '${yr.slice(2)}`;
       let targetVal = targetMap.get(row.month);
-      if (targetVal === undefined || targetVal === null) {
-        targetVal = targetMap.get(`2024-${mo}`);
-      }
-      if (!targetVal || targetVal === 0) {
-        targetVal = monthlyTarget > 0 ? monthlyTarget : 4593000;
-      }
+      if (targetVal === undefined || targetVal === null) targetVal = null;
       const actualVal = row.actualSales;
-      const pct = targetVal > 0 ? Math.round((actualVal / targetVal) * 100) : 0;
+      const pct = targetVal > 0 ? Math.round((actualVal / targetVal) * 100) : null;
       return {
         month: row.month,
         label,
@@ -324,7 +313,7 @@ rmRouter.get("/report-card", (req, res, next) => {
     const rmCode = profileRow?.employeeCode || spRow?.code || "075709";
     const operatingFrom = profileRow?.operatingCity?.trim() || spRow?.city?.trim() || profileRow?.territory?.trim() || "Gurugram";
     const teamExecutiveCities = ["Gurgaon", "Delhi", "Ghaziabad", "Faridabad", "Noida", "Sonepat", "Bahadurgarh", "Sahibabad", "Rudrapur"];
-    const periodLabel = isAnchoredToLatestCycle ? `This Month (${latestActiveMonth} active ledger)` : "This Month";
+    const periodLabel = "This Month";
 
     // Tally sync info
     const tallySync = db.prepare("SELECT MAX(last_sync_at) lastSync FROM tally_connectors WHERE revoked_at IS NULL").get();
@@ -368,7 +357,7 @@ rmRouter.get("/report-card", (req, res, next) => {
       salesValue: sales.salesValue,
       invoiceCount: sales.invoiceCount,
       achievementPercent,
-      statusLabel: achievementPercent >= 80 ? "On Track" : achievementPercent >= 50 ? "Moderate Pace" : "Under Quota Pace",
+      statusLabel: achievementPercent == null ? "Target unavailable" : achievementPercent >= 80 ? "On Track" : achievementPercent >= 50 ? "Moderate Pace" : "Under Quota Pace",
       monthlyTargetVsActual,
       specialAchievements,
       fieldActivity: {
@@ -386,6 +375,9 @@ rmRouter.get("/report-card", (req, res, next) => {
         low: { count: pipelineLeads.lowCount ?? 0, value: pipelineLeads.lowValue },
       },
       topDealers: topDealersWithShare,
+      activeDealerCount,
+      topFiveDealerRevenue,
+      topFiveDealerConcentrationPercent: totalAttributedSales > 0 ? Math.round((topFiveDealerRevenue / totalAttributedSales) * 1000) / 10 : null,
       dormantDealers,
       topProducts,
       tallySync: tallySync?.lastSync ?? null,
@@ -409,8 +401,12 @@ rmRouter.get("/customers", (req, res, next) => {
 
 rmRouter.post("/customers/:id/dormant-reason", (req, res, next) => {
   try {
+    const teamIds = getTeamIds(req.user.id);
+    const placeholders = teamIds.map(() => "?").join(",");
+    const customer = db.prepare(`SELECT 1 FROM tally_customers WHERE id=? AND owner_user_id IN (${placeholders})`).get(req.params.id, ...teamIds);
+    if (!customer) return res.status(404).json({ error: "Customer not found in your team" });
     const reason = String(req.body.reason || "").trim();
-    if (!reason) return res.status(400).json({ error: "Reason is required" });
+    if (!reason || reason.length > 1000) return res.status(400).json({ error: "A reason of 1 to 1000 characters is required" });
     db.prepare("INSERT INTO dormant_reasons (customer_id, rm_id, reason) VALUES (?, ?, ?)")
       .run(req.params.id, req.user.id, reason);
     res.json({ success: true });
@@ -422,12 +418,13 @@ rmRouter.get("/customers/:id", (req, res, next) => {
     const teamIds = getTeamIds(req.user.id);
     const customer = db.prepare("SELECT * FROM tally_customers WHERE id=?").get(req.params.id);
     if (!customer || !teamIds.includes(customer.owner_user_id)) return res.status(403).json({ error: "This customer is not in your team" });
-    const monthlySales = db.prepare("SELECT period,amount FROM tally_customer_monthly_sales WHERE customer_id=? ORDER BY period").all(req.params.id);
-    const visits = db.prepare("SELECT id,business_date,purpose,outcome,status,completed_at FROM visits WHERE tally_customer_id=? ORDER BY business_date DESC LIMIT 20").all(req.params.id);
-    const activities = db.prepare("SELECT * FROM customer_activities WHERE tally_customer_id=? ORDER BY occurred_at DESC LIMIT 20").all(req.params.id);
-    const requests = db.prepare("SELECT * FROM service_requests WHERE tally_customer_id=? ORDER BY created_at DESC").all(req.params.id);
-    const dormantReasons = db.prepare("SELECT * FROM dormant_reasons WHERE customer_id=? ORDER BY created_at DESC").all(req.params.id);
-    const lastInvoice = db.prepare("SELECT invoice_date FROM tally_invoices WHERE customer_id=? AND ingest_session_id IS NULL ORDER BY invoice_date DESC LIMIT 1").get(req.params.id);
+    const monthlySales = db.prepare(`SELECT substr(i.invoice_date,1,7) period,SUM(${netInvoiceAmount("i")}) amount FROM tally_invoices i WHERE ${authoritativeInvoiceWhere("i")} AND i.customer_id=? GROUP BY substr(i.invoice_date,1,7) ORDER BY period`).all(req.params.id);
+    const teamPlaceholders = teamIds.map(() => "?").join(",");
+    const visits = db.prepare(`SELECT id,business_date,purpose,outcome,status,completed_at FROM visits WHERE tally_customer_id=? AND user_id IN (${teamPlaceholders}) ORDER BY business_date DESC LIMIT 20`).all(req.params.id, ...teamIds);
+    const activities = db.prepare(`SELECT * FROM customer_activities WHERE tally_customer_id=? AND user_id IN (${teamPlaceholders}) ORDER BY occurred_at DESC LIMIT 20`).all(req.params.id, ...teamIds);
+    const requests = db.prepare(`SELECT * FROM service_requests WHERE tally_customer_id=? AND user_id IN (${teamPlaceholders}) ORDER BY created_at DESC`).all(req.params.id, ...teamIds);
+    const dormantReasons = db.prepare(`SELECT * FROM dormant_reasons WHERE customer_id=? AND rm_id IN (${teamPlaceholders}) ORDER BY created_at DESC`).all(req.params.id, ...teamIds);
+    const lastInvoice = db.prepare(`SELECT invoice_date FROM tally_invoices i WHERE customer_id=? AND ${authoritativeInvoiceWhere("i")} ORDER BY invoice_date DESC LIMIT 1`).get(req.params.id);
     res.json({ customer: { ...customer, lastInvoiceDate: lastInvoice?.invoice_date }, monthlySales, visits, activities, requests, dormantReasons });
   } catch (error) { next(error); }
 });
@@ -439,17 +436,17 @@ rmRouter.get("/product-trends", (req, res, next) => {
     const from = financialYearStart();
     const to = today();
     const trends = db.prepare(`
-      SELECT p.name, COALESCE(SUM(l.amount),0) salesValue, COALESCE(SUM(l.quantity),0) quantity,
+      SELECT p.name, COALESCE(SUM(${netInvoiceLineAmount("i","l")}),0) salesValue, COALESCE(SUM(l.quantity),0) quantity,
              COUNT(DISTINCT i.id) invoiceCount
       FROM tally_products p
       LEFT JOIN tally_invoice_lines l ON l.product_id=p.id
-      LEFT JOIN tally_invoices i ON i.id=l.invoice_id AND i.invoice_date BETWEEN ? AND ?
+      LEFT JOIN tally_invoices i ON i.id=l.invoice_id AND ${authoritativeInvoiceWhere("i")} AND i.invoice_date BETWEEN ? AND ?
       LEFT JOIN tally_customers c ON c.id=i.customer_id
-      WHERE (c.rm_name LIKE ? OR c.destination_code LIKE ? OR ? = '')
+      WHERE c.owner_user_id IN (${getTeamIds(req.user.id).map(() => "?").join(",")})
       GROUP BY p.id
       ORDER BY salesValue DESC
       LIMIT 40
-    `).all(from, to, `%${region}%`, `%${region}%`, region);
+    `).all(from, to, ...getTeamIds(req.user.id));
     res.json({ territory: region, trends, from, to });
   } catch (error) { next(error); }
 });
@@ -475,11 +472,7 @@ rmRouter.get("/alerts", (req, res, next) => {
       WHERE u.id IN (${ph}) AND u.active=1
         AND NOT EXISTS (SELECT 1 FROM attendance a WHERE a.user_id=u.id AND a.business_date=?)
     `).all(...teamIds, todayStr);
-    const targetShortfalls = db.prepare(`
-      SELECT u.id,u.email,p.full_name fullName,p.region,p.monthly_target monthlyTarget
-      FROM users u JOIN salesperson_profiles p ON p.user_id=u.id
-      WHERE u.id IN (${ph}) AND u.active=1 AND p.monthly_target>0
-    `).all(...teamIds);
+    const targetShortfalls = []; // Historical salesperson target units are not verified.
     const overdueOrders = db.prepare(`
       SELECT e.id,e.expected_date expectedDate,e.expected_value expectedValue,
              c.name customer,p2.name product,u.email,sp.full_name fullName,
@@ -492,20 +485,11 @@ rmRouter.get("/alerts", (req, res, next) => {
       WHERE e.user_id IN (${ph}) AND e.status='open' AND e.expected_date<?
       ORDER BY e.expected_date
     `).all(...teamIds, todayStr);
-    res.json({ overdueFollowUps, missedCheckIns, targetShortfalls, overdueOrders });
+    res.json({ reminders: reminderSummary(db, req.user.id), targetShortfallsAvailable: false, overdueFollowUps, missedCheckIns, targetShortfalls, overdueOrders });
   } catch (error) { next(error); }
 });
 
-rmRouter.post("/ask-ai", async (req, res, next) => {
-  try {
-    const question = String(req.body?.question || "").trim();
-    if (!question) return res.status(400).json({ error: "Enter a question" });
-    const { buildContext, buildSystemPrompt, askOpenAI } = await import("./ai-context.mjs");
-    const contextJson = await buildContext(req.user.id, "rm");
-    const answer = await askOpenAI(buildSystemPrompt(contextJson), question);
-    res.json({ question, answer, source: "PSSPL CRM & Tally data via AI" });
-  } catch (error) { next(error); }
-});
+rmRouter.post("/ask-ai", aiLimiter, askAiHandler);
 
 rmRouter.get("/print-report", async (req, res, next) => {
   try {
@@ -518,7 +502,7 @@ rmRouter.get("/print-report", async (req, res, next) => {
     const team = db.prepare(`
       SELECT DISTINCT p.full_name name, p.territory citiesCovered
       FROM users u JOIN salesperson_profiles p ON p.user_id=u.id
-      WHERE (p.manager_user_id=? OR p.manager_user_id='rm-anil-jena') AND u.role='salesperson'
+      WHERE p.manager_user_id=? AND u.role='salesperson'
       ORDER BY p.full_name
     `).all(req.user.id);
 
@@ -560,10 +544,10 @@ rmRouter.get("/print-report", async (req, res, next) => {
 
     // Thrust products from thrust_products table
     const thrustProductsList = db.prepare(`
-      SELECT tp.name product, COALESCE(SUM(l.amount), 0) / 100000.0 ytdSalesLakh
+      SELECT tp.name product, COALESCE(SUM(CASE WHEN lower(i.voucher_type) LIKE '%credit note%' OR lower(i.voucher_type) LIKE '%sales return%' THEN -ABS(l.amount) ELSE ABS(l.amount) END), 0) / 100000.0 ytdSalesLakh
       FROM thrust_products tp
       LEFT JOIN tally_invoice_lines l ON l.product_name LIKE tp.alias_keywords
-      LEFT JOIN tally_invoices i ON i.id = l.invoice_id AND i.invoice_date BETWEEN ? AND ?
+      LEFT JOIN tally_invoices i ON i.id = l.invoice_id AND i.ingest_session_id IS NULL AND (i.source_sync_id IS NULL OR i.source_sync_id <> 'excel-import') AND i.invoice_date BETWEEN ? AND ?
       WHERE tp.active = 1
       GROUP BY tp.id
       ORDER BY tp.sort_order ASC

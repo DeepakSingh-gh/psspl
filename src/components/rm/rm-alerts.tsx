@@ -29,6 +29,7 @@ export function RmAlerts() {
         {error && <div className="admin-error">{error}</div>}
         {loading ? <div className="admin-placeholder">Loading alerts…</div> : data && (
           <>
+            {data.reminders && <section className="admin-panel"><p>In-app: {data.reminders.followUps.pending} pending follow-ups ({data.reminders.followUps.dueToday} due today); {data.reminders.visits.upcoming} upcoming visits; {data.reminders.visits.pastScheduled} past scheduled visits needing confirmation.</p>{data.reminders.managementAttention.map((item: any) => <p key={`${item.rmName}:${item.id}`}><strong>{item.title}</strong> ? {item.metric}. {item.action} {item.thresholdsProvisional ? "Provisional threshold." : ""}</p>)}</section>}
             {/* Missed Check-ins */}
             <div className="admin-section-title" style={{ marginBottom: "0.75rem", fontWeight: 600 }}>
               Missed Check-ins Today {badge(data.missedCheckIns?.length ?? 0)}

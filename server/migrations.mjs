@@ -15,6 +15,19 @@ function hasApplicationTables(database) {
   return Boolean(database.prepare("SELECT 1 FROM sqlite_schema WHERE type='table' AND name IN ('users','tally_invoices') LIMIT 1").get());
 }
 
+// Annotated additive columns support both clean schemas and older seeded schemas
+// that already contain these fields. Other SQL failures still roll back normally.
+function migrationSql(database, sql) {
+  return sql.replace(/-- @add-column-if-missing\r?\n(ALTER TABLE ([a-z_][a-z0-9_]*) ADD COLUMN ([a-z_][a-z0-9_]*) TEXT;)/gi, (_match, statement, table, column) => {
+    const columns = database.prepare(`PRAGMA table_info("${table}")`).all();
+    if (!columns.length) throw new Error(`Additive migration requires table ${table}`);
+    const existing = columns.find(item => item.name === column);
+    if (!existing) return statement;
+    if (existing.type.toUpperCase() !== "TEXT") throw new Error(`Incompatible existing column ${table}.${column}: expected TEXT`);
+    return "";
+  });
+}
+
 export function runMigrations(database, { directory = defaultMigrationsDirectory, log = false } = {}) {
   database.exec(`
     CREATE TABLE IF NOT EXISTS schema_migrations (
@@ -36,7 +49,7 @@ export function runMigrations(database, { directory = defaultMigrationsDirectory
     database.exec("BEGIN IMMEDIATE");
     try {
       if (!(baselineExisting && index === 0)) {
-        database.exec(readFileSync(join(directory, filename), "utf8"));
+        database.exec(migrationSql(database, readFileSync(join(directory, filename), "utf8")));
       }
       database.prepare("INSERT INTO schema_migrations (version,filename) VALUES (?,?)").run(version, filename);
       database.exec("COMMIT");

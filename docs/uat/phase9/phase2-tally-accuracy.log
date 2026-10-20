@@ -1,0 +1,55 @@
+TAP version 13
+# (node:18492) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# Subtest: authoritative sales reconcile over all eligible invoices, excluding workbook projections and netting returns
+ok 1 - authoritative sales reconcile over all eligible invoices, excluding workbook projections and netting returns
+  ---
+  duration_ms: 304.4452
+  type: 'test'
+  ...
+# Subtest: financial year and display-unit conversions use explicit rupee factors
+ok 2 - financial year and display-unit conversions use explicit rupee factors
+  ---
+  duration_ms: 0.7735
+  type: 'test'
+  ...
+# Subtest: voucher identity remains idempotent for duplicate imports and ownership gaps stay explicit
+ok 3 - voucher identity remains idempotent for duplicate imports and ownership gaps stay explicit
+  ---
+  duration_ms: 0.5237
+  type: 'test'
+  ...
+# Subtest: Tally chunk ingestion safely deduplicates retried voucher chunks
+ok 4 - Tally chunk ingestion safely deduplicates retried voucher chunks
+  ---
+  duration_ms: 177.5553
+  type: 'test'
+  ...
+# Subtest: admin sales report reconciles full invoice population and connector reads obey owner relationships
+ok 5 - admin sales report reconciles full invoice population and connector reads obey owner relationships
+  ---
+  duration_ms: 9.4572
+  type: 'test'
+  ...
+# Subtest: dashboard, team, product, management and RM report endpoints remain query-compatible
+ok 6 - dashboard, team, product, management and RM report endpoints remain query-compatible
+  ---
+  duration_ms: 127.0372
+  type: 'test'
+  ...
+# Subtest: management attention reconciles MTD/FYTD to RM report card and requires admin authorization
+ok 7 - management attention reconciles MTD/FYTD to RM report card and requires admin authorization
+  ---
+  duration_ms: 44.7773
+  type: 'test'
+  ...
+1..7
+# tests 7
+# suites 0
+# pass 7
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 864.8042
+

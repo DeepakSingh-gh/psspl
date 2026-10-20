@@ -1,14 +1,14 @@
-"use client";
+﻿"use client";
+import { indiaBusinessDate } from "@/lib/business-date";
 import { FormEvent, useEffect, useState } from "react";
 import { salesFeaturesApi } from "@/lib/api";
-import { formatRupees } from "@/lib/format";
 
 const STAGES = ["lead", "technical_discussion", "sample", "quotation", "follow_up", "expected_order", "won", "lost"] as const;
 type Stage = typeof STAGES[number];
 
 const STAGE_LABELS: Record<Stage, string> = {
-  lead: "New Lead", technical_discussion: "Tech Discussion", sample: "Sample",
-  quotation: "Quotation", follow_up: "Follow-up", expected_order: "Expected Order", won: "Won ✓", lost: "Lost ✗",
+  lead: "Lead", technical_discussion: "Technical Discussion", sample: "Sample",
+  quotation: "Quotation", follow_up: "Follow-up", expected_order: "Order Expected", won: "Won", lost: "Lost",
 };
 
 const STAGE_COLORS: Record<string, string> = {
@@ -22,13 +22,16 @@ const STAGE_COLORS: Record<string, string> = {
   lost: "linear-gradient(135deg, #CC1818, #991212)",
 };
 
-interface Lead { id: string; name: string; company: string; phone: string; city: string; source: string; stage: Stage; expected_value: number; next_action_date: string; notes: string; created_at: string; }
+interface Lead { id: string; user_id: string; name: string; company: string; phone: string; city: string; source: string; stage: Stage; expected_value: number; next_action_date: string; notes: string; created_at: string; }
 
 
 
 export function LeadBoard() {  
   const [leads, setLeads] = useState<Lead[]>([]);
+  const [assignees, setAssignees] = useState<Array<{ userId: string; name: string; role: string }>>([]);
+  const [conversion, setConversion] = useState<{ total: number; won: number; lost: number; conversionPercent: number | null } | null>(null);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState("");
   const [showForm, setShowForm] = useState(false);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [expandedDetail, setExpandedDetail] = useState<any>(null);
@@ -37,7 +40,7 @@ export function LeadBoard() {
   const [dragging, setDragging] = useState<string | null>(null);
   const [overStage, setOverStage] = useState<string | null>(null);
 
-  const today = new Date().toISOString().slice(0, 10);
+  const today = indiaBusinessDate();
 
   async function handleDelete(leadId: string, leadName: string, e: React.MouseEvent) {
     e.stopPropagation();
@@ -60,26 +63,41 @@ export function LeadBoard() {
   async function moveLeadToStage(id: string, stage: Stage) {
     setLeads(current => current.map(l => l.id === id ? { ...l, stage } : l));
     setMovingId(id);
-    await salesFeaturesApi.setLeadStage(id, stage).finally(() => setMovingId(null));
-    refresh(true);
+    try { await salesFeaturesApi.setLeadStage(id, stage); }
+    catch (error: any) { alert(error.message || "Stage update failed"); }
+    finally { setMovingId(null); refresh(true); }
   }
 
-  function refresh(silent = false) {
+  async function refresh(silent = false) {
     if (!silent) setLoading(true);
-    salesFeaturesApi.leads().then(setLeads).finally(() => {
+    try {
+      const [leadRows, people, report] = await Promise.all([salesFeaturesApi.leads(), salesFeaturesApi.leadAssignees(), salesFeaturesApi.leadConversionReport()]);
+      setLeads(leadRows); setAssignees(people); setConversion(report); setLoadError("");
+    } catch (error) {
+      setLoadError(error instanceof Error ? error.message : "Unable to load the lead pipeline");
+    } finally {
       if (!silent) setLoading(false);
-    });
+    }
   }
 
-  useEffect(() => { refresh(); }, []);
+  useEffect(() => {
+    refresh().catch(() => {});
+    const handleRefresh = (event: Event) => {
+      const request = event as CustomEvent<{ tasks: Promise<unknown>[] }>;
+      request.detail.tasks.push(refresh(true));
+    };
+    window.addEventListener("psspl:refresh-data", handleRefresh);
+    return () => window.removeEventListener("psspl:refresh-data", handleRefresh);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   async function moveStage(lead: Lead, direction: 1 | -1) {
     const idx = STAGES.indexOf(lead.stage);
     const next = STAGES[idx + direction];
     if (!next) return;
     setMovingId(lead.id);
-    await salesFeaturesApi.setLeadStage(lead.id, next).finally(() => setMovingId(null));
-    refresh();
+    try { await salesFeaturesApi.setLeadStage(lead.id, next); }
+    catch (error: any) { alert(error.message || "Stage update failed"); }
+    finally { setMovingId(null); refresh(); }
   }
 
   async function toggleExpand(id: string) {
@@ -93,6 +111,10 @@ export function LeadBoard() {
   leads.forEach((l) => { if (grouped[l.stage]) grouped[l.stage].push(l); });
 
   if (loading) return <div className="admin-placeholder" style={{ animation: "pulse 2s infinite" }}>Loading pipeline…</div>;
+
+  const activeLeadCount = leads.filter((lead) => lead.stage !== "won" && lead.stage !== "lost").length;
+  const decidedLeadCount = (conversion?.won ?? 0) + (conversion?.lost ?? 0);
+  const currency = new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR", maximumFractionDigits: 0 });
 
   return (
     <div style={{ fontFamily: "'Inter', sans-serif" }}>
@@ -139,24 +161,32 @@ export function LeadBoard() {
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1.5rem" }}>
         <div>
           <h2 style={{ fontSize: "1.5rem", fontWeight: 700, color: "#0f172a", margin: 0, letterSpacing: "-0.02em" }}>Lead Pipeline</h2>
-          <p style={{ color: "#64748b", margin: "4px 0 0 0", fontSize: "0.9rem" }}>Manage and track your prospects ({leads.length} active leads)</p>
+          <p style={{ color: "#64748b", margin: "4px 0 0 0", fontSize: "0.9rem" }}>Manage and track your prospects ({activeLeadCount} active {activeLeadCount === 1 ? "lead" : "leads"})</p>
         </div>
         <button className="add-lead-btn" style={{ color: "#fff", border: "none", padding: "0.6rem 1.25rem", borderRadius: "8px", fontWeight: 600, cursor: "pointer", display: "flex", alignItems: "center", gap: "0.5rem" }} onClick={() => setShowForm(!showForm)}>
-          <span style={{ fontSize: "1.2rem", lineHeight: 1 }}>{showForm ? '×' : '+'}</span>
+          <span style={{ fontSize: "1.2rem", lineHeight: 1 }}>{showForm ? "×" : "+"}</span>
           {showForm ? 'Close Form' : 'Add Lead'}
         </button>
       </div>
 
+      {loadError && <div className="pipeline-error" role="alert">{loadError}<button type="button" onClick={() => refresh().catch(() => {})}>Retry</button></div>}
+      {conversion && <div className="lead-conversion-summary" aria-label="Lead conversion summary">
+        <div><span>Total leads</span><strong>{conversion.total}</strong></div>
+        <div><span>Won</span><strong>{conversion.won}</strong></div>
+        <div><span>Lost</span><strong>{conversion.lost}</strong></div>
+        <div><span>Conversion rate</span><strong>{conversion.conversionPercent === null ? "—" : `${conversion.conversionPercent}%`}</strong></div>
+        <p>{decidedLeadCount === 0 ? "No leads are marked Won or Lost yet. Conversion appears after the first decision." : `Calculated from ${decidedLeadCount} decided ${decidedLeadCount === 1 ? "lead" : "leads"}.`}</p>
+      </div>}
       {showForm && (
         <div className="premium-form">
           <LeadForm  onCreated={() => { setShowForm(false); refresh(); }} onCancel={() => setShowForm(false)} />
         </div>
       )}
 
-      <div style={{ overflowX: "auto", paddingBottom: "1.5rem", WebkitOverflowScrolling: "touch", margin: "0 -1rem", padding: "0 1rem" }}>
-        <div style={{ display: "flex", gap: "1rem", minWidth: "max-content", padding: "0.25rem" }}>
+      <div className="pipeline-board-viewport" aria-label="Lead stages; scroll horizontally to see all stages">
+        <div className="pipeline-board-track">
           {STAGES.map((stage) => (
-            <div key={stage} className="kanban-col" style={{ width: "260px", flexShrink: 0, display: "flex", flexDirection: "column", height: "100%", transform: overStage === stage ? "scale(1.02)" : "scale(1)", transition: "transform 0.2s" }}
+            <div key={stage} className={`kanban-col${overStage === stage ? " is-over" : ""}`} style={{ width: "clamp(180px, calc((100vw - 500px) / 8), 230px)", flexShrink: 0, display: "flex", flexDirection: "column", height: "100%", transform: overStage === stage ? "scale(1.01)" : "scale(1)", transition: "transform 0.2s" }}
               onDragOver={(e) => { e.preventDefault(); e.dataTransfer.dropEffect = "move"; if (overStage !== stage) setOverStage(stage); }}
               onDragLeave={() => setOverStage((current) => current === stage ? null : current)}
               onDrop={(e) => { e.preventDefault(); const id = e.dataTransfer.getData("text/plain") || dragging; setOverStage(null); setDragging(null); if (id) moveLeadToStage(id, stage as Stage); }}
@@ -201,30 +231,30 @@ export function LeadBoard() {
                             e.currentTarget.style.background = "transparent";
                           }}
                         >
-                          {deletingId === lead.id ? "…" : "🗑️"}
+                          {deletingId === lead.id ? "…" : "Delete"}
                         </button>
                       </div>
-                      {lead.company && <div style={{ fontSize: "0.8rem", color: "#64748b", fontWeight: 500 }}>🏢 {lead.company}</div>}
-                      <div style={{ fontSize: "0.75rem", color: "#94a3b8", fontWeight: 500, marginTop: "0.25rem" }}>📍 {lead.city || "Location pending"}</div>
+                      {lead.company && <div style={{ fontSize: "0.8rem", color: "#64748b", fontWeight: 500 }}>Company: {lead.company}</div>}
+                      <div style={{ fontSize: "0.75rem", color: "#64748b", fontWeight: 500, marginTop: "0.25rem" }}>City: {lead.city || "Location pending"}</div>
                       
                       {lead.expected_value > 0 && (
                         <div style={{ display: "inline-block", background: "#f0fdf4", color: "#16a34a", padding: "2px 8px", borderRadius: "12px", fontSize: "0.75rem", fontWeight: 600, marginTop: "0.5rem" }}>
-                          💰 {formatRupees(lead.expected_value)}
+                          Expected value: {currency.format(lead.expected_value)}
                         </div>
                       )}
                       
                       {lead.next_action_date && (
                         <div style={{ display: "flex", alignItems: "center", gap: "4px", fontSize: "0.75rem", marginTop: "0.75rem", color: isOverdue ? "#ef4444" : "#64748b", fontWeight: isOverdue ? 600 : 500, padding: "4px 8px", background: isOverdue ? "#fef2f2" : "#f1f5f9", borderRadius: "6px" }}>
-                          <span>{isOverdue ? "⚠️" : "📅"}</span> {lead.next_action_date}
+                          <span>{isOverdue ? "Overdue:" : "Next action:"}</span> {lead.next_action_date}
                         </div>
                       )}
                       
                       {expandedId === lead.id && expandedDetail && (
                         <div style={{ marginTop: "1rem", paddingTop: "0.75rem", borderTop: "1px dashed #cbd5e1", fontSize: "0.8rem", animation: "slideDown 0.2s ease" }} onClick={(e) => e.stopPropagation()}>
                           <div style={{ display: "flex", flexDirection: "column", gap: "0.4rem" }}>
-                            {lead.phone && <div style={{ color: "#475569" }}>📞 <strong>{lead.phone}</strong></div>}
-                            {lead.city && <div style={{ color: "#475569" }}>📍 {lead.city}</div>}
-                            {lead.source && <div style={{ color: "#475569" }}>🎯 {lead.source}</div>}
+                            {lead.phone && <div style={{ color: "#475569" }}>Phone: <strong>{lead.phone}</strong></div>}
+                            {lead.city && <div style={{ color: "#475569" }}>City: {lead.city}</div>}
+                            {lead.source && <div style={{ color: "#475569" }}>Source: {lead.source}</div>}
                           </div>
                           {lead.notes && (
                             <div style={{ marginTop: "0.75rem", background: "#f8fafc", padding: "0.5rem", borderRadius: "6px", color: "#475569", fontStyle: "italic" }}>
@@ -241,6 +271,8 @@ export function LeadBoard() {
                               ))}
                             </div>
                           )}
+                          {assignees.length > 1 && <label style={{ display: "grid", gap: 4, marginTop: 10, color: "#475569" }}>Assigned to<select aria-label={`Assign ${lead.name}`} value={lead.user_id} onChange={async (event) => { try { await salesFeaturesApi.assignLead(lead.id, event.target.value); refresh(true); } catch (error: any) { alert(error.message || "Lead assignment failed"); } }} style={{ padding: 6, borderRadius: 6, border: "1px solid #cbd5e1" }}>{assignees.map((person) => <option key={person.userId} value={person.userId}>{person.name} Â· {person.role === "rm" ? "RM" : "Salesperson"}</option>)}</select></label>}
+                          {expandedDetail.history?.length > 0 && <div style={{ marginTop: 10 }}><div style={{ fontWeight: 600, color: "#1e293b", marginBottom: 4, fontSize: "0.75rem", textTransform: "uppercase" }}>Stage history</div>{expandedDetail.history.map((entry: any, index: number) => <div key={`${entry.changed_at}-${index}`} style={{ color: "#64748b", fontSize: "0.72rem", marginBottom: 3 }}>{entry.previous_stage.replaceAll("_", " ")} â†’ {entry.new_stage.replaceAll("_", " ")} Â· {entry.actor_email} Â· {new Date(entry.changed_at).toLocaleString()}</div>)}</div>}
                         </div>
                       )}
                       
@@ -252,7 +284,7 @@ export function LeadBoard() {
                         )}
                         {STAGES.indexOf(stage) < STAGES.length - 1 && stage !== "won" && stage !== "lost" && (
                           <button style={{ flex: 1, fontSize: "0.75rem", padding: "4px", borderRadius: "6px", border: "none", background: STAGE_COLORS[stage], color: "#fff", cursor: "pointer", fontWeight: 600, transition: "all 0.2s", opacity: movingId === lead.id ? 0.7 : 1 }} disabled={movingId === lead.id} onClick={() => moveStage(lead, 1)} onMouseOver={e => e.currentTarget.style.filter = "brightness(1.1)"} onMouseOut={e => e.currentTarget.style.filter = "none"}>
-                            {movingId === lead.id ? "…" : "Next Stage"}
+                            {movingId === lead.id ? "Moving…" : "Next Stage"}
                           </button>
                         )}
                       </div>
@@ -297,7 +329,7 @@ function LeadForm({ onCreated, onCancel }: { onCreated: () => void; onCancel: ()
     <div style={{ background: "rgba(255, 255, 255, 0.9)", backdropFilter: "blur(12px)", border: "1px solid rgba(255,255,255,0.5)", borderRadius: "16px", padding: "2rem", marginBottom: "2rem", boxShadow: "0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1)" }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1.5rem" }}>
         <h3 style={{ margin: 0, fontSize: "1.25rem", color: "#0f172a", fontWeight: 700, display: "flex", alignItems: "center", gap: "0.5rem" }}>
-          <span style={{ display: "inline-flex", background: "#e0f2fe", color: "#0284c7", padding: "6px", borderRadius: "8px" }}>✨</span>
+          <span aria-hidden="true" style={{ display: "inline-flex", background: "#e0f2fe", color: "#0284c7", padding: "6px 9px", borderRadius: "8px" }}>+</span>
           Create New Lead
         </h3>
       </div>
@@ -331,14 +363,14 @@ function LeadForm({ onCreated, onCancel }: { onCreated: () => void; onCancel: ()
         
         
         
-        <label><span style={labelStyle}>Expected Deal Value (₹)</span><input className="premium-input" name="expectedValue" type="number" min="0" placeholder="e.g. 50000" style={{...inputStyle, fontWeight: 600, color: "#16a34a"}} /></label>
+        <label><span style={labelStyle}>Expected deal value (₹)</span><input className="premium-input" name="expectedValue" type="number" min="0" placeholder="e.g. 50000" style={{...inputStyle, fontWeight: 600, color: "#16a34a"}} /></label>
         <label><span style={labelStyle}>Next Action Date</span><input className="premium-input" name="nextActionDate" type="date" style={inputStyle} /></label>
         
         <label style={{ gridColumn: "1/-1" }}><span style={labelStyle}>Additional Notes</span><textarea className="premium-input" name="notes" rows={3} placeholder="Add any background context, specific requirements, or conversation details..." style={{...inputStyle, resize: "vertical"}} /></label>
         
         <div style={{ gridColumn: "1/-1", display: "flex", gap: "1rem", marginTop: "1rem", borderTop: "1px solid #e2e8f0", paddingTop: "1.5rem" }}>
           <button type="submit" className="add-lead-btn" style={{ flex: 1, padding: "0.75rem", borderRadius: "8px", background: "linear-gradient(135deg, #0284c7, #0369a1)", color: "white", border: "none", fontWeight: 700, fontSize: "1rem", cursor: "pointer", display: "flex", justifyContent: "center", alignItems: "center", gap: "0.5rem" }} disabled={saving}>
-            {saving ? <span style={{ animation: "pulse 2s infinite" }}>Processing...</span> : <><span>✓</span> Create Lead Record</>}
+            {saving ? <span style={{ animation: "pulse 2s infinite" }}>Processing…</span> : <>Create Lead Record</>}
           </button>
           <button type="button" style={{ padding: "0.75rem 1.5rem", borderRadius: "8px", background: "#f8fafc", color: "#475569", border: "1px solid #cbd5e1", fontWeight: 600, fontSize: "1rem", cursor: "pointer", transition: "all 0.2s" }} onClick={onCancel} onMouseOver={e => e.currentTarget.style.background = "#f1f5f9"} onMouseOut={e => e.currentTarget.style.background = "#f8fafc"}>Cancel</button>
         </div>

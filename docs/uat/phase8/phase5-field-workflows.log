@@ -1,0 +1,43 @@
+TAP version 13
+# (node:17712) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# Subtest: field date and GPS validation reject malformed or out-of-range evidence
+ok 1 - field date and GPS validation reject malformed or out-of-range evidence
+  ---
+  duration_ms: 273.6073
+  type: 'test'
+  ...
+# Subtest: call logging validates saved details, owner access, follow-up and daily counts
+ok 2 - call logging validates saved details, owner access, follow-up and daily counts
+  ---
+  duration_ms: 110.585
+  type: 'test'
+  ...
+# Subtest: check-in persists once with truthful GPS state; check-out validates, saves once, and remains owner scoped
+ok 3 - check-in persists once with truthful GPS state; check-out validates, saves once, and remains owner scoped
+  ---
+  duration_ms: 64.5915
+  type: 'test'
+  ...
+# Subtest: voice note access preflight hides visits owned by another user
+ok 4 - voice note access preflight hides visits owned by another user
+  ---
+  duration_ms: 24.0536
+  type: 'test'
+  ...
+# Subtest: past planned visits appear as review actions, never as confirmed missed visits
+ok 5 - past planned visits appear as review actions, never as confirmed missed visits
+  ---
+  duration_ms: 26.5245
+  type: 'test'
+  ...
+1..5
+# tests 5
+# suites 0
+# pass 5
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 794.6437
+

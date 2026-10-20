@@ -1,4 +1,5 @@
 "use client";
+import { reportDateRange } from "@/lib/business-date";
 
 import { useEffect, useState } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
@@ -44,9 +45,9 @@ export default function RmPrintReport() {
       .catch(() => { clearSession(); router.replace("/login"); });
 
     // Use passed date range or default to this month
-    const now   = new Date();
-    const from  = searchParams.get("from") || `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-01`;
-    const to    = searchParams.get("to")   || now.toISOString().slice(0, 10);
+    const defaults = reportDateRange("month");
+    const from  = searchParams.get("from") || defaults.from;
+    const to    = searchParams.get("to")   || defaults.to;
 
     adminApi.rmDetail(id, from, to)
       .then(setData)

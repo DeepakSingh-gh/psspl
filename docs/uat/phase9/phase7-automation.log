@@ -1,0 +1,127 @@
+TAP version 13
+# (node:28216) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# Subtest: admin/RM/sales scope, signed Tally totals, excluded synthetic values and RM target consistency
+ok 1 - admin/RM/sales scope, signed Tally totals, excluded synthetic values and RM target consistency
+  ---
+  duration_ms: 223.7995
+  type: 'test'
+  ...
+# Subtest: missing financial records and sync metadata remain unavailable; failed/old sync is disclosed
+ok 2 - missing financial records and sync metadata remain unavailable; failed/old sync is disclosed
+  ---
+  duration_ms: 4.0048
+  type: 'test'
+  ...
+# Subtest: India FY rollover and invalid or inverted reporting dates
+ok 3 - India FY rollover and invalid or inverted reporting dates
+  ---
+  duration_ms: 1.7443
+  type: 'test'
+  ...
+# Subtest: AI evidence selection cannot inject fabricated values, output text or another team
+ok 4 - AI evidence selection cannot inject fabricated values, output text or another team
+  ---
+  duration_ms: 3.8611
+  type: 'test'
+  ...
+# Subtest: AI provider failures propagate as unavailable, not business answers
+ok 5 - AI provider failures propagate as unavailable, not business answers
+  ---
+  duration_ms: 0.9938
+  type: 'test'
+  ...
+# Subtest: authenticated AI routes reject missing auth, role mismatch, invalid dates; requests are throttled
+ok 6 - authenticated AI routes reject missing auth, role mismatch, invalid dates; requests are throttled
+  ---
+  duration_ms: 224.1954
+  type: 'test'
+  ...
+# Subtest: daily/monthly scheduling uses India time and complete previous month
+ok 7 - daily/monthly scheduling uses India time and complete previous month
+  ---
+  duration_ms: 3.4287
+  type: 'test'
+  ...
+# Subtest: monthly generation catches restart after day one and reconciles prior-month targets
+ok 8 - monthly generation catches restart after day one and reconciles prior-month targets
+  ---
+  duration_ms: 7.8417
+  type: 'test'
+  ...
+# Subtest: overlapping runs and restart send one occurrence; payload scoped to recipient
+ok 9 - overlapping runs and restart send one occurrence; payload scoped to recipient
+  ---
+  duration_ms: 36.0302
+  type: 'test'
+  ...
+# Subtest: explicit rejection retries with backoff and stops after three attempts
+ok 10 - explicit rejection retries with backoff and stops after three attempts
+  ---
+  duration_ms: 12.6991
+  type: 'test'
+  ...
+# Subtest: a rejected attempt can recover once without duplicate retry delivery
+ok 11 - a rejected attempt can recover once without duplicate retry delivery
+  ---
+  duration_ms: 9.5586
+  type: 'test'
+  ...
+# Subtest: ambiguous send and crash-left sending are held, never replayed
+ok 12 - ambiguous send and crash-left sending are held, never replayed
+  ---
+  duration_ms: 8.2085
+  type: 'test'
+  ...
+# Subtest: disabled configuration, revoked opt-in and inactive recipients cannot call sender
+ok 13 - disabled configuration, revoked opt-in and inactive recipients cannot call sender
+  ---
+  duration_ms: 4.9622
+  type: 'test'
+  ...
+# Subtest: template transport is gated and redacts errors; timeouts/5xx are ambiguous
+ok 14 - template transport is gated and redacts errors; timeouts/5xx are ambiguous
+  ---
+  duration_ms: 4.7462
+  type: 'test'
+  ...
+# Subtest: admin-only schedule API, disabled creation, no free-text bypass or duplicate cadence
+ok 15 - admin-only schedule API, disabled creation, no free-text bypass or duplicate cadence
+  ---
+  duration_ms: 58.1354
+  type: 'test'
+  ...
+# Subtest: pending/due/overdue follow-ups and visit reminders remain scoped and in-app
+ok 16 - pending/due/overdue follow-ups and visit reminders remain scoped and in-app
+  ---
+  duration_ms: 2.094
+  type: 'test'
+  ...
+# Subtest: signed delivery callbacks progress monotonically; forged callbacks cannot change state
+ok 17 - signed delivery callbacks progress monotonically; forged callbacks cannot change state
+  ---
+  duration_ms: 71.8773
+  type: 'test'
+  ...
+# Subtest: delivery callback arriving before the send response is retained and reconciled
+ok 18 - delivery callback arriving before the send response is retained and reconciled
+  ---
+  duration_ms: 19.0105
+  type: 'test'
+  ...
+# Subtest: authenticated AI success uses mocked provider and sends only authorized context
+ok 19 - authenticated AI success uses mocked provider and sends only authorized context
+  ---
+  duration_ms: 37.6701
+  type: 'test'
+  ...
+1..19
+# tests 19
+# suites 0
+# pass 19
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 1031.2425
+

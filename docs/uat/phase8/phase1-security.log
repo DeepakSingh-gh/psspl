@@ -1,0 +1,73 @@
+TAP version 13
+# (node:9740) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# Subtest: lead mutations and child creation are confined to the authenticated owner
+ok 1 - lead mutations and child creation are confined to the authenticated owner
+  ---
+  duration_ms: 470.1742
+  type: 'test'
+  ...
+# Subtest: follow-up updates/deletes and customer-linked creation enforce ownership
+ok 2 - follow-up updates/deletes and customer-linked creation enforce ownership
+  ---
+  duration_ms: 82.3387
+  type: 'test'
+  ...
+# Subtest: RM dormant-reason mutations are limited to the RM's assigned team
+ok 3 - RM dormant-reason mutations are limited to the RM's assigned team
+  ---
+  duration_ms: 32.9858
+  type: 'test'
+  ...
+# Subtest: customer details exclude another user's activity and transcription rejects unauthenticated calls
+ok 4 - customer details exclude another user's activity and transcription rejects unauthenticated calls
+  ---
+  duration_ms: 211.7615
+  type: 'test'
+  ...
+# Subtest: owner IDs and manager relationships govern access; RM aliases never override ownership
+ok 5 - owner IDs and manager relationships govern access; RM aliases never override ownership
+  ---
+  duration_ms: 200.2721
+  type: 'test'
+  ...
+# Subtest: AI product aggregates obey individual and RM team scope
+ok 6 - AI product aggregates obey individual and RM team scope
+  ---
+  duration_ms: 2.9242
+  type: 'test'
+  ...
+# Subtest: encrypted SQLite backup and restore preserve synthetic rows in disposable files
+ok 7 - encrypted SQLite backup and restore preserve synthetic rows in disposable files
+  ---
+  duration_ms: 444.772
+  type: 'test'
+  ...
+# Subtest: backup command fails closed without destination or valid key
+ok 8 - backup command fails closed without destination or valid key
+  ---
+  duration_ms: 80.0514
+  type: 'test'
+  ...
+# Subtest: production startup guard leaves an existing database unchanged unless explicitly approved
+ok 9 - production startup guard leaves an existing database unchanged unless explicitly approved
+  ---
+  duration_ms: 96.6138
+  type: 'test'
+  ...
+# Subtest: rate limiter isolates keys and resets its window
+ok 10 - rate limiter isolates keys and resets its window
+  ---
+  duration_ms: 0.7692
+  type: 'test'
+  ...
+1..10
+# tests 10
+# suites 0
+# pass 10
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 2060.5131
+

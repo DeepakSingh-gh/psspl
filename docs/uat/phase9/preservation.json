@@ -1,0 +1,32 @@
+{
+  "baselineFiles": 249,
+  "changedPreexistingFiles": 23,
+  "changes": [
+    "scripts/phase2-tally-accuracy.test.mjs",
+    "scripts/phase6-my-day.test.mjs",
+    "scripts/phase6-reports.test.mjs",
+    "scripts/phase8-fixture-server.mjs",
+    "scripts/phase8-workflows.test.mjs",
+    "server/field-activity.mjs",
+    "server/admin.mjs",
+    "server/app.mjs",
+    "server/db.mjs",
+    "server/migrations.mjs",
+    "server/sales-routes.mjs",
+    "server/tally/connector.mjs",
+    "src/app/admin.css",
+    "src/app/admin/team/[id]/print/page.tsx",
+    "src/app/globals.css",
+    "src/app/rm-report/[id]/page.tsx",
+    "src/components/admin/admin-ask-ai.tsx",
+    "src/components/admin/admin-reports.tsx",
+    "src/components/admin/admin-rm-detail.tsx",
+    "src/components/rm/rm-dashboard.tsx",
+    "src/components/sales/lead-board.tsx",
+    "src/components/sales/sales-hub.tsx",
+    "src/types/admin.ts"
+  ],
+  "protectedBaselineFiles": 5,
+  "protectedChangedFiles": [],
+  "branch": "feature/psspl-phase3-rm-report-cards"
+}

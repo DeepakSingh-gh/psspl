@@ -1,0 +1,33 @@
+{
+  "date": "2026-10-18",
+  "baselineFiles": 241,
+  "isolatedTestWindowChangedExistingFiles": [],
+  "intendedExistingDocumentationChanges": [
+    "PSSPL_PHASE8_IMPLEMENTATION_PLAN.md",
+    "PSSPL_REQUIREMENTS_AUDIT.md",
+    "PSSPL_REQUIREMENTS_AUDIT_EVIDENCE.md",
+    "PSSPL_REQUIREMENTS_AUDIT_MATRIX.md",
+    "PSSPL_REQUIREMENTS_AUDIT_MATRIX_2.md"
+  ],
+  "concurrentDatabaseDifferences": [
+    "data/crm.sqlite-shm",
+    "data/crm.sqlite-wal",
+    "external-configured-db-wal",
+    "external-configured-db-shm"
+  ],
+  "unexpectedNonDatabaseChanges": [],
+  "applicationAndConfigurationPreserved": true,
+  "databaseMainFileMatchedAtFinalCheck": true,
+  "wholeSessionDatabasePreservation": "NOT VERIFIED: WAL/shared-memory files changed after isolated tests; a normal development/watch backend appeared after the initial process inventory. Phase 8 tools did not launch or stop it; no business-row or migration state was queried.",
+  "automatedTestsPassed": 76,
+  "originalRequirements": 142,
+  "counts": {
+    "COMPLETED": 28,
+    "PARTIALLY COMPLETED": 103,
+    "NOT IMPLEMENTED": 5,
+    "BROKEN": 1,
+    "NOT VERIFIED": 5
+  },
+  "verifiedCompletionPercent": 19.72,
+  "finalAcceptance": "FAIL"
+}

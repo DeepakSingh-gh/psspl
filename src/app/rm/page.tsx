@@ -1,6 +1,6 @@
-import { redirect } from "next/navigation";
+import { RmHome } from "@/components/rm/rm-home";
 
-/** RMs use the same My Day / Customer DB workspace as field sales. */
+/** RM accounts land on their team dashboard; My Day remains available in the RM navigation. */
 export default function RmPage() {
-  redirect("/sales/my-day");
+  return <RmHome />;
 }

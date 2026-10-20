@@ -1,4 +1,18 @@
 # SDD ledger — plan: docs/superpowers/plans/2026-10-08-actionable-crm-dashboard.md
+
+
+## Follow-up ledger ? 16 October 2026
+
+- [x] Manager Action Plan moved to the first/default admin RM report tab; AI Insights moved to second. Remaining tab order preserved.
+- [x] RM sign-in and legacy /rm redirect use the shared My Day / Customer DB workspace.
+- [x] Frontend releases verified READY on Vercel through commit 87eae1e; public report route and deployed tab labels/order verified.
+- [x] TypeScript, whitespace, provider checks and local My Day regression checks passed in the relevant code tasks.
+- [x] Local main tracks user-owned DeepakSingh-gh/psspl/main.
+- [ ] Backend provider/query/compression rollout awaits live SQLite preservation.
+- [ ] Persistent Vercel Git connection remains permission-blocked; frontend deployments were explicit API releases.
+
+The older completion entries remain historical evidence. This Markdown refresh is local only and does not commit, push, deploy or migrate data. See the [source-sync report](../../../docs/superpowers/reports/2026-10-16-production-source-sync.md).
+
 Task 1: complete (commits manually applied inline, tests: manual visual verification -> pass)
 Task 2: complete (commits manually applied inline, tests: manual visual verification -> pass)
 Task 3: complete (commits manually applied inline, tests: manual visual verification -> pass)
@@ -27,4 +41,18 @@ Task 26: complete (Laptop/desktop horizontal side-scroll elimination: replaced 1
 Task 27: complete (Webpack runtime dev chunk cache recovery for ./308.js missing chunk error, clean cache purge, live Tally tables tally_payments_live, tally_purchases, tally_purchase_lines, and composite indexes documented across all md files -> pass)
 Final review: complete
 
+## Latest local follow-up ? 16 October 2026
 
+- [x] Local manual refresh button added; removed from login/root pages and hidden in print.
+
+- [x] Overview/Team/RM detail/Field Activity/Alerts connected to shared attendance change checks; unchanged revisions avoid full dashboard refetches.
+
+- [x] Monitor lifecycle/error checks and isolated-snapshot real clock-in/out verification passed; no actual attendance records changed.
+
+- [x] October report empty state explained by ledger coverage ending `2026-09-08`; September has 78 invoices and the selected October range has none.
+
+- [ ] Combined rollout of pending local code and Markdown changes, on a later explicit user instruction. Last verified live frontend remains `87eae1e`.
+
+Release context: [source synchronization and deployment status](../../../docs/superpowers/reports/2026-10-16-production-source-sync.md).
+
+> Current project status (19 October 2026): See the [production readiness report](../../../PSSPL_FINAL_PRODUCTION_READINESS_REPORT.md) for the latest verified work and blockers; earlier findings in this document retain their original date.

@@ -1,21 +1,43 @@
 import { DatabaseSync } from "node:sqlite";
 import { mkdirSync, existsSync, readFileSync, writeFileSync } from "node:fs";
-import { dirname, join } from "node:path";
+import { dirname, join, relative, resolve, sep } from "node:path";
+import { tmpdir } from "node:os";
 import { fileURLToPath } from "node:url";
 import { gunzipSync } from "node:zlib";
 import { runMigrations } from "./migrations.mjs";
 
 const projectRoot = fileURLToPath(new URL("..", import.meta.url));
 const databasePath = process.env.CRM_DATABASE_PATH || join(projectRoot, "data", "crm.sqlite");
+const isolatedTestRoot = process.env.CRM_TEST_DATABASE_ROOT;
+if (process.env.NODE_ENV === "test" && isolatedTestRoot) {
+  const root = resolve(isolatedTestRoot);
+  const target = resolve(databasePath);
+  const relativeRoot = relative(resolve(tmpdir()), root);
+  const rel = relative(root, target);
+  if (relativeRoot === ".." || relativeRoot.startsWith(`..${sep}`) || resolve(resolve(tmpdir()), relativeRoot) !== root) {
+    throw new Error("Refusing a test database root outside the operating system temporary directory");
+  }
+  if (rel === ".." || rel.startsWith(`..${sep}`) || resolve(root, rel) !== target) {
+    throw new Error("Refusing to open a test database outside CRM_TEST_DATABASE_ROOT");
+  }
+}
+const databaseExistedAtStartup = existsSync(databasePath);
 mkdirSync(dirname(databasePath), { recursive: true });
 
-if (!existsSync(databasePath)) {
+if (!existsSync(databasePath) && process.env.CRM_DISABLE_BASELINE_RESTORE !== "true") {
   const gzPath = join(projectRoot, "data", "crm-baseline.sqlite.gz");
   if (existsSync(gzPath)) {
+    if (process.env.NODE_ENV === "production" && process.env.CRM_ALLOW_BASELINE_RESTORE !== "true") {
+      throw new Error("Refusing to initialize a production database from the bundled baseline without explicit approval. Set CRM_ALLOW_BASELINE_RESTORE=true only for an approved restore.");
+    }
     console.log("[db] Initializing database from crm-baseline.sqlite.gz...");
     writeFileSync(databasePath, gunzipSync(readFileSync(gzPath)));
     console.log("[db] Database initialization complete.");
   }
+}
+
+if (process.env.NODE_ENV === "production" && databaseExistedAtStartup && process.env.CRM_ALLOW_STARTUP_SCHEMA_CHANGES !== "true") {
+  throw new Error("Refusing to start against an existing production database because startup may apply schema changes. Back up and review migrations, then set CRM_ALLOW_STARTUP_SCHEMA_CHANGES=true for an approved deployment.");
 }
 
 export const db = new DatabaseSync(databasePath);
@@ -39,6 +61,9 @@ db.exec(`
     region TEXT NOT NULL,
     territory TEXT NOT NULL,
     manager_user_id TEXT REFERENCES users(id),
+    operating_city TEXT,
+    reg_code_1 TEXT,
+    reg_code_2 TEXT,
     monthly_target REAL NOT NULL DEFAULT 0
   );
 

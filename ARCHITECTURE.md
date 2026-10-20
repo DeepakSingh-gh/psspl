@@ -2,7 +2,21 @@
 
 This document outlines the complete technical architecture of the PSSPL CRM, spanning frontend client applications, Express API services, SQLite database schema, accounting synchronisation, and external automations.
 
-### My Day performance update — 16 October 2026
+### Current source and deployment — 16 October 2026
+
+Local `main` tracks `DeepakSingh-gh/psspl` through `origin`. The last verified frontend release is commit `87eae1e` on Vercel (`dpl_8Lqo3dUH9DPXpMFLT4QJGFmtTbgD`). RM landing/redirect changes and report tab prioritization are live. Backend AI-provider and query/compression changes are in source control, but Render still runs the prior backend build; deploying those changes requires preserving its live SQLite data. Render automatic deployment settings were restored after each protected frontend release. Automatic Vercel Git linking remains permission-blocked; explicit API releases succeeded. This documentation update is local only.
+
+### Local-only automatic attendance revalidation — 16 October 2026
+
+Admin Overview/Alerts, Team, RM detail and Field Activity opt into attendance updates through `useAdminData(..., liveAttendance=true)`. `admin-attendance-live.ts` shares one `attendance-monitor.ts` poller across mounted views. It checks every two seconds while visible, prevents overlapping requests, aborts requests after ten seconds or on final unsubscribe, and checks immediately on focus/visibility/online events. Hidden tabs skip network requests; outages retain displayed data and retry.
+
+`GET /api/admin/attendance/revision` is behind admin authentication/authorization and sends `Cache-Control: no-store`. `server/attendance-revision.mjs` hashes the current business day's persisted user/check-in/check-out rows in stable order; alias entries, edits, deletions and date rollover change the signature. Revision changes invalidate each subscribed admin cache key and rerun its loader without remounting the page. The endpoint reads the database; it does not depend on an in-process mutation counter, Tally sync or the client that performed attendance updates. No schema migration is needed. This frontend/backend addition is not yet deployed.
+
+Five focused tests cover revision correctness, shared polling, unchanged revisions, hidden-tab behavior, non-overlap, cleanup and recovery. An isolated-snapshot HTTP test confirmed check-in in Admin activity (12 ms for revision/activity fetch) and check-out in activity/canonical RM detail (234 ms for verification), plus HTTP 401/403 guards. These local API timings exclude the polling interval and production network/cold-start delays.
+
+### My Day performance implementation
+
+**Local-only UI addition:** `RefreshDataButton` is mounted once in `src/app/layout.tsx`, so app data routes have the same fixed refresh control. A `usePathname` guard excludes `/login` and the root redirect route. It uses `window.location.reload()` to rerun effect-based loaders and discard the module-level admin cache; `router.refresh()` alone would not rerun those client loaders. The current URL is retained, but unsaved form state and component-only tabs/filters may reset. Its styles sit below modal overlays, support mobile safe areas and keyboard focus, and hide the control for printing. No API, database or authentication change accompanies this button; it has not been deployed.
 
 `buildSalesDay` creates an RM directory once per request and passes it to customer, sales-summary and overview queries. Other connector callers retain their default behavior. No cache persists between requests, so check-in, visits, follow-ups and connector updates continue to read current records.
 
@@ -10,10 +24,9 @@ The overview product aggregate selects invoices through a scoped customer-ID sub
 
 Express `compression` middleware negotiates supported encodings for compressible responses above 1 KB, using gzip level 1 for low CPU overhead. Requests without compression support receive ordinary JSON; response schemas and reference lists remain complete. `Vary: Accept-Encoding` distinguishes encodings. Sales sidebar links use Next.js navigation to avoid full document reloads.
 
-Regression coverage and measurements are recorded in [the loading-performance report](docs/superpowers/reports/2026-10-16-my-day-performance.md). Production remains on Render Free compute; idle startup latency is separate from query/transfer latency. No hosting upgrade or production deployment was performed for this change.
+Regression coverage and measurements are recorded in [the loading-performance report](./docs/superpowers/reports/2026-10-16-my-day-performance.md). Production remains on Render Free compute; idle startup latency is separate from query/transfer latency. The frontend release is published; backend optimization rollout remains pending. No hosting upgrade was performed.
 
 ---
-
 ## 1. High-Level Architecture & Production Topology
 
 ```mermaid
@@ -25,7 +38,7 @@ graph TD
     subgraph Data Flow & Integrations
         RenderBackend -->|Context Injection| Gemini[Google Gemini API gemini-2.5-flash / gemini-2.0-flash]
         RenderBackend -->|Meta Graph API| WhatsApp[WhatsApp Cloud API]
-        RenderBackend -->|Cron 17:00 IST| EODService[EOD Daily Summary Cron]
+        RenderBackend -->|Minute check, Asia/Kolkata| ReportJobs[Approved Report Schedules]
         TallyAgent[Tally Windows Agent] -->|Chunked HMAC Sync| RenderBackend
         RenderBackend -->|supabase-sync.mjs (UPSERT)| Supabase[(Supabase Postgres Cloud Replica)]
         GitHubRepo[GitHub: DeepakSingh-gh/psspl] -->|CI/CD Git Triggers| VercelFrontend
@@ -38,7 +51,6 @@ graph TD
 * **Source Control:** Synchronized on GitHub at [https://github.com/DeepakSingh-gh/psspl](https://github.com/DeepakSingh-gh/psspl).
 
 ---
-
 ## 2. Technology Stack
 
 * **Frontend Framework:** Next.js 15.5 (React 19, TypeScript 5.9) with App Router.
@@ -55,12 +67,11 @@ graph TD
 * **Integrated Search Controls & Voice STT:** `<VoiceMicButton>` component integrated on all search inputs with dual-engine Speech-to-Text (browser Web Speech API for free instant transcription + backend OpenAI Whisper API `POST /api/stt` endpoint in `server/stt.mjs`).
 * **Backend Runtime:** Node.js native ES Modules (`server/app.mjs`), Express 5.1 with SQLite WAL mode.
 * **Authentication Security:** Asynchronous non-blocking `crypto.scrypt` password verification (`promisify`), malformed hash guards, strict `Bearer` token validation, and background session cleanup.
-* **AI Engine:** Google Gemini API (`gemini-2.5-flash`, `gemini-2.0-flash`, `gemini-1.5-flash`, `gemini-3.8-flash`) via `GEMINI_API_KEY` with live SQL context window synthesis (`server/ai-context.mjs`) and zero-thinking budget (`thinkingBudget: 0`) optimization for sub-4-second conversational analytics.
-* **Scheduler & Automation:** `node-cron` running daily at 5:00 PM IST (EOD WhatsApp digest).
+* **AI Engine (current source):** `server/ai-context.mjs` constructs SQL context/system prompts and re-exports the provider functions from `server/ai-provider.mjs`. Gemini uses `GEMINI_API_KEY` in the `x-goog-api-key` header, optional `GEMINI_MODEL`, and default/fallback `gemini-2.5-flash`; optional OpenAI fallback uses `gpt-4o-mini`. Each provider request has a 20-second timeout. Missing keys, placeholder keys and provider exhaustion are handled without returning configuration errors as successful AI answers. No fixed live latency is guaranteed, and this backend revision is not yet deployed to Render.
+* **Scheduler & Automation:** `node-cron` checks approved daily/monthly report schedules every minute in Asia/Kolkata. Delivery defaults to disabled; durable claims and signed callbacks track each occurrence.
 * **Media & Voice Recording:** HTML5 `MediaRecorder` API + Web Speech API + `multer` backend audio storage and OpenAI Whisper `whisper-1` transcription.
 
 ---
-
 ## 3. Database Schema Overview
 
 All application state resides in `data/crm.sqlite` across four primary domains:
@@ -98,7 +109,6 @@ All application state resides in `data/crm.sqlite` across four primary domains:
 * `dormant_reasons`: Structured customer dormancy explanations and recovery action logs submitted by RMs.
 
 ---
-
 ## 4. Portals & Security Model
 
 ```
@@ -119,9 +129,9 @@ All application state resides in `data/crm.sqlite` across four primary domains:
 ### Route Structure
 * `/admin/*`: Admin dashboard, quotation approvals, user directory, management reports, Tally sync.
 * `/admin/team`: Executive Team Performance Dashboard with traffic-light achievement pill badges, RM sorting, dedicated **Strategic Thrust Products — RM Leaderboard**, and **Sticky Table Column Headers on Scroll** (headers remain pinned at `top: 0` with `z-index: 10` inside a scrollable container). Features corrected target scaling (Lakhs-to-Rupees) with exact achievement percentages.
-* `/admin/team/[id]`: Comprehensive Executive RM Report Card (8-tab breakdown: *Performance*, *Customer Visits*, *Pipeline*, *Actual Sales*, *Products*, *Follow-ups*, *Manager Action Plan*, and *AI Insight*). Features canonical RM ID resolution (`aniljenafield` ↔ `aniljena`), active ledger cycle synchronization (anchors to latest active reporting month like September 2026 to ensure zero metric discrepancies across badges, milestones, and graphs), period-aware target proration, RM Code (`075709`), Operating headquarters (`Gurugram`), Team Executive Cities tags, clock-in/out timestamps, Special Achievements & Milestones (Vacant Box Architecture, 4 slots), Monthly Sales Target vs Actual Bar Chart, Thrust Product Sales Breakdown, and dedicated **Download Report** header action button.
+* `/admin/team/[id]`: Comprehensive Executive RM Report Card (8 tabs in order: *Manager Action Plan* ? default, *AI Insights*, *Report Card*, *Customer Visits*, *Pipeline*, *Actual Sales*, *Products*, *Follow-ups*). Features canonical RM ID resolution (`aniljenafield` ↔ `aniljena`), active ledger cycle synchronization (anchors to latest active reporting month like September 2026 to ensure zero metric discrepancies across badges, milestones, and graphs), period-aware target proration, RM Code (`075709`), Operating headquarters (`Gurugram`), Team Executive Cities tags, clock-in/out timestamps, Special Achievements & Milestones (Vacant Box Architecture, 4 slots), Monthly Sales Target vs Actual Bar Chart, Thrust Product Sales Breakdown, and dedicated **Download Report** header action button.
 * `/admin/team/[id]/print`: High-definition, A4 printable Executive RM Report Card view featuring full header identity, 8-KPI executive performance cards, Target vs Actual bar breakdown, side-by-side Top Customers and Top Products tables, recent visit transcripts, open follow-up actions, and a fixed top controls bar (`Download PDF` triggering `window.print()` and `Close`).
-* `/rm/*`: Regional Manager portal with clean, focused home dashboard, team accountability, regional customer 360, product comparisons, overdue alerts, live clock-in / clock-out attendance tracking, and streamlined top banner (redundant region tabs removed for optimal aesthetic clarity).
+* `/rm`: Server-side HTTP 307 redirect to `/sales/my-day`. Both RM and salesperson login roles use the shared My Day / Customer DB navigation. Existing `/rm/*` report and detail routes remain implemented; they are not the default RM landing.
 * `/rm/print-report`: High-definition 1:1 reproduction of the official **PSSPL Regional Manager Sales Target Feedback Support Report** with A4 print and PDF download capabilities.
 * `/sales/*` & `/sales/my-day`: Salesperson Day-Planner with RM Executive identity header pills (RM Code, Operating from, Region, Coverage cities), live rupee formatted monthly quota metrics (`Actual from Tally`, `Target`, `Gap` / `Surplus` in Lakhs/Rupees), active ledger period badges (`2026-09 active ledger`), `✓ Target Achieved` milestone pill, GPS check-in/out tracking, visit execution, voice note recording, Kanban pipeline with instant lead deletion, and modern `AnimatedSelect` dropdowns with smooth cubic-bezier transitions for customer visit scheduling.
 
@@ -134,20 +144,28 @@ All application state resides in `data/crm.sqlite` across four primary domains:
 * `POST /api/stt`: Receives recorded speech audio blobs (`multipart/form-data`) and transcribes speech to text using OpenAI Whisper API (`whisper-1`).
 
 ---
-
 ## 5. Automation & Integration Pipelines
 
-### 1. Daily 5:00 PM EOD Summary Cron
-Located in `server/app.mjs`:
-* Triggers every day at 17:00 (`0 17 * * *`).
-* Queries day attendance, completed visits, expected order bookings, and pending collections.
-* Formats a clean WhatsApp markdown message and dispatches it via `server/whatsapp.mjs`.
+### 1. Approved scheduled reporting
 
-### 2. Live Database AI Context & Response Formatting (`server/ai-context.mjs` & `AiResponseFormatter`)
-* Dynamically synthesizes live database tables (`tally_invoices`, `tally_products`, `tally_customers`, `leads`, `follow_ups`, `salesperson_profiles`).
-* Formats response via `AiResponseFormatter` into visual executive cards, metric pill badges, and data point callouts.
-* Features integrated gradient search button and instant chip execution.
-* Automatic model failover across `gemini-2.5-flash`, `gemini-2.0-flash`, `gemini-1.5-flash`, `gemini-1.5-pro`, and `gemini-3.6-flash`.
+`server/app.mjs` runs a minute-based Asia/Kolkata check through `server/report-automation.mjs`:
+
+* Daily reports cover today after the approved send time. Monthly reports cover the prior calendar month and catch up after restart during the following month.
+* Protected admin APIs manage disabled-by-default recipient-specific schedules, consent withdrawal and delivery history. Role/team authorization is recalculated on every attempt.
+* Migration 004 adds unique occurrences, atomic claims and callback metadata. It was tested only on disposable databases; application to the existing database remains pending approval.
+* Only explicit HTTP 429 rejections retry, at most three attempts. Ambiguous outcomes and crash-left sending records require review and are never automatically replayed.
+* The Cloud API transport requires explicit deployment enablement, approved templates and recipients, and a reviewed supported API version. Signed callbacks distinguish acceptance from delivery/read and retain early status events.
+* Legacy global EOD and free-text report sends are blocked. See [operator runbook](./docs/operations/PSSPL_REPORT_AUTOMATION.md).
+
+### 2. Authorized AI evidence selection
+
+`server/report-snapshot.mjs` builds complete role-scoped JSON using unchanged authoritative Tally metrics and Phase 3/4 review functions. The period, current-state CRM data, sync age and unavailable-data limits are explicit.
+
+* All admin/RM/sales AI routes use `server/ai-answer.mjs` with backend authorization, validated dates/questions and per-account throttling.
+* Gemini/OpenAI selects supported evidence section IDs; the server renders calculated facts and existing review actions. Provider prose, financial values and unsupported causal explanations are not displayed.
+* Admin date controls affect backend context. Legacy RM/sales screens default to the Indian financial year. Exact unique RM names and complete monthly targets are required for automation target achievement; unresolved aliases remain unavailable.
+* `server/ai-provider.mjs` tries a configured Gemini model, the default `gemini-2.5-flash`, and configured OpenAI fallback. Missing configuration, timeouts and invalid answers return unavailable errors.
+* Source/freshness limits, a top-five product subset and bounded BI support remain visible. Provider calls were mocked during verification; no live AI or speech acceptance is claimed.
 
 ### 3. Supabase Cloud Sync Engine (GI Connector)
 Located in `server/supabase-sync.mjs` and `server/connector-api.mjs`:
@@ -175,23 +193,7 @@ Located in `server/admin.mjs` and `src/components/admin/`:
     - **Page 2 (AI Intelligence & Managerial Action Directives):** Branded section header, **AI Executive Diagnostic & Field Intelligence** (automated operational narrative), **Manager Action Plan** (priority items with urgency tags and direct supervisory action steps), and recent customer visits & open follow-ups.
   - **Direct Page-by-Page Multi-page PDF Downloader (`downloadRmReportDirect`):** Uses `html2canvas` to render Page 1 (`#rm-report-page-1`) and Page 2 (`#rm-report-page-2`) independently into high-resolution retina canvases, then writes each directly to `jsPDF` pages (`210mm × 297mm`). Eliminates auto-slicing artifacts, avoids blank overflow pages, excludes Ask AI / browser chrome, and guarantees an exact 2-page PDF file downloaded straight to the browser.
 
-### 6. High-Performance Data & Caching Architecture
-* **Composite SQLite Indexes:**
-  - `idx_tally_customers_rm_name`: Accelerates RM customer lookups and outstanding joins.
-  - `idx_tally_invoices_session_date`: Optimizes date-range invoice filtering while ignoring raw ingestion sessions.
-  - `idx_tally_invoice_lines_inv_prod`: Eliminates full scans on product-line item lookups across 27,000+ line items.
-  - `idx_tally_rm_product_sales_rm`: Speeds up previous-year RM performance comparisons.
-  - `idx_tally_payments_date_customer`: Accelerates payment receipt reconciliation by date and customer ID.
-  - `idx_tally_purchases_date_supplier`: Indexes supplier procurement vouchers by purchase date and supplier name.
-  - `idx_tally_purchase_lines_product`: Optimizes raw material volume aggregation across purchase line items.
-  - `idx_tally_customers_owner_user_id`: Enforces instant owner-based customer scoping for sales reps.
-* **Single-Pass In-Memory Thrust Aggregation (`calculateAllThrustProductsBatch`):**
-  - Replaced 330+ repetitive nested SQL queries with an in-memory aggregation map, cutting `/api/admin/team` latency from 3,630ms to ~450ms (8× speedup).
-* **Client-Side SWR (Stale-While-Revalidate) Cache Layer (`src/lib/use-admin-data.ts`):**
-  - Client hook provides instant zero-latency rendering of cached records with background API revalidation.
-  - Namespaced composite cache keys (`${loaderSource}::${JSON.stringify(deps)}`) prevent cross-endpoint data pollution.
-  - Defensive null-safe accessors in `AdminOverview` ensure resilient runtime behavior during state transitions.
-* **Webpack Runtime & Build Cache Isolation:**
-  - When transitioning between production verification (`npm run build`) and active development (`npm run dev`), `.next` build caches are automatically isolated/purged to prevent in-memory chunk map collisions (such as `Cannot find module './308.js'`).
 
+Remaining caching and local follow-up notes: [Architecture continued](./docs/project-records/ARCHITECTURE_CONTINUED.md).
 
+> Current project status (19 October 2026): See the [production readiness report](PSSPL_FINAL_PRODUCTION_READINESS_REPORT.md) for the latest verified work and blockers; earlier findings in this document retain their original date.

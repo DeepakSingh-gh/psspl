@@ -4,6 +4,9 @@ import { dirname, resolve } from "node:path";
 import { runMigrations } from "../server/migrations.mjs";
 
 const databasePath = resolve(process.env.CRM_DATABASE_PATH || "data/crm.sqlite");
+if (process.env.NODE_ENV === "production" && process.env.CRM_ALLOW_DATABASE_MIGRATION !== "true") {
+  throw new Error("Production migrations require CRM_ALLOW_DATABASE_MIGRATION=true after an approved backup and migration review.");
+}
 mkdirSync(dirname(databasePath), { recursive: true });
 
 const database = new DatabaseSync(databasePath);

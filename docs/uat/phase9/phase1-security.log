@@ -1,0 +1,79 @@
+TAP version 13
+# (node:3112) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# Subtest: lead mutations and child creation are confined to the authenticated owner
+ok 1 - lead mutations and child creation are confined to the authenticated owner
+  ---
+  duration_ms: 430.3572
+  type: 'test'
+  ...
+# Subtest: follow-up updates/deletes and customer-linked creation enforce ownership
+ok 2 - follow-up updates/deletes and customer-linked creation enforce ownership
+  ---
+  duration_ms: 36.8408
+  type: 'test'
+  ...
+# Subtest: RM dormant-reason mutations are limited to the RM's assigned team
+ok 3 - RM dormant-reason mutations are limited to the RM's assigned team
+  ---
+  duration_ms: 16.0536
+  type: 'test'
+  ...
+# Subtest: customer details exclude another user's activity and transcription rejects unauthenticated calls
+ok 4 - customer details exclude another user's activity and transcription rejects unauthenticated calls
+  ---
+  duration_ms: 188.358
+  type: 'test'
+  ...
+# Subtest: owner IDs and manager relationships govern access; RM aliases never override ownership
+ok 5 - owner IDs and manager relationships govern access; RM aliases never override ownership
+  ---
+  duration_ms: 223.4342
+  type: 'test'
+  ...
+# Subtest: admin can assign and reassign a salesperson to an RM; each RM dashboard follows that assignment
+ok 6 - admin can assign and reassign a salesperson to an RM; each RM dashboard follows that assignment
+  ---
+  duration_ms: 159.8907
+  type: 'test'
+  ...
+# Subtest: AI product aggregates obey individual and RM team scope
+ok 7 - AI product aggregates obey individual and RM team scope
+  ---
+  duration_ms: 3.1283
+  type: 'test'
+  ...
+# Subtest: encrypted SQLite backup and restore preserve synthetic rows in disposable files
+ok 8 - encrypted SQLite backup and restore preserve synthetic rows in disposable files
+  ---
+  duration_ms: 361.9501
+  type: 'test'
+  ...
+# Subtest: backup command fails closed without destination or valid key
+ok 9 - backup command fails closed without destination or valid key
+  ---
+  duration_ms: 56.5967
+  type: 'test'
+  ...
+# Subtest: production startup guard leaves an existing database unchanged unless explicitly approved
+ok 10 - production startup guard leaves an existing database unchanged unless explicitly approved
+  ---
+  duration_ms: 70.0752
+  type: 'test'
+  ...
+# Subtest: rate limiter isolates keys and resets its window
+ok 11 - rate limiter isolates keys and resets its window
+  ---
+  duration_ms: 0.5657
+  type: 'test'
+  ...
+1..11
+# tests 11
+# suites 0
+# pass 11
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 1853.1334
+

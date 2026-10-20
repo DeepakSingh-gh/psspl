@@ -55,4 +55,16 @@ test("Ask AI provider configuration and failure handling", async (t) => {
     globalThis.fetch = async () => new Response("", { status: 429 });
     await assert.rejects(askAI("context", "question"), { status: 503 });
   });
+
+  await t.test("provider timeout aborts the request and returns unavailable", async () => {
+    delete process.env.GEMINI_API_KEY;
+    const originalTimeout = globalThis.setTimeout;
+    globalThis.setTimeout = (callback, _ms) => originalTimeout(callback, 1);
+    try {
+      globalThis.fetch = async (_url, init) => new Promise((_resolve, reject) => {
+        init.signal.addEventListener("abort", () => reject(Object.assign(new Error("synthetic timeout"), { name: "AbortError" })), { once: true });
+      });
+      await assert.rejects(askAI("context", "question"), { status: 503 });
+    } finally { globalThis.setTimeout = originalTimeout; }
+  });
 });

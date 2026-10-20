@@ -1,5 +1,11 @@
 # 2026-10-15: Ask AI UI Redesign, Full Mobile Responsiveness & Cloud Production Deployment
 
+## Release follow-up ? 16 October 2026
+
+Local main now tracks the user-owned DeepakSingh-gh/psspl repository. Explicit Vercel API releases published e17852a (source synchronization), 6c585c1 (RM My Day landing/redirect) and 87eae1e (Manager Action Plan first/default, AI Insights second). The last deployment was verified READY on psspl-crm.vercel.app. Automatic Git linking is permission-blocked and must not be treated as configured.
+
+The Gemini key was saved/verified in Render's environment, but a fresh authenticated AI answer was not verified. Current provider/error handling and My Day performance code are committed but not rolled out to Render. Its automatic deploy trigger was temporarily paused around source pushes and restored afterward to protect the live ephemeral SQLite data. Local development uses .next-runtime; Vercel/production verification used .next, without purging the active dev cache. See [release evidence](../reports/2026-10-16-production-source-sync.md). This documentation refresh performs no commit, push or deploy.
+
 ## Objective
 Deliver a polished, production-grade cloud deployment of the PSSPL CRM platform with an upgraded Ask AI interface, mobile-first responsive layout (preventing horizontal overflow across all viewports), and full documentation synchronization across GitHub and Vercel.
 
@@ -40,7 +46,7 @@ Deliver a polished, production-grade cloud deployment of the PSSPL CRM platform 
 ## 3. Production Deployment Topology
 - **Frontend (Vercel):**
   - URL: `https://psspl-crm.vercel.app`
-  - Automated deployment with Next.js 15 App Router static generation (27 routes).
+  - Next.js 15 App Router build (27 routes); latest releases were explicit Vercel API deployments. Persistent Git linking remains permission-blocked.
   - Production environment configuration (`.env.production`) targeting the live Render backend API.
 - **Backend (Render):**
   - URL: `https://psspl-crm-backend.onrender.com`
@@ -66,3 +72,16 @@ Deliver a polished, production-grade cloud deployment of the PSSPL CRM platform 
 - **Issue:** Running `npm run build` while `npm run dev` is active in the background overwrites `.next` with production hashes. The in-memory chunk map of `next dev` then attempts to require stale development chunks (e.g. `./308.js`), resulting in a runtime module error.
 - **Resolution:** When alternating between production build testing and local development, kill stale dev workers, purge the `.next` directory (`Remove-Item -Recurse -Force .next`), and launch `npm run dev` freshly.
 
+## Latest local follow-up ? 16 October 2026
+
+The latest verified published frontend is `87eae1e`. All later refresh-button, login exclusion, attendance-monitor and documentation edits remain local; no new Vercel or Render deployment was performed.
+
+Future attendance rollout requires both the admin-only no-store revision endpoint and subscribing frontend. Polling is shared every two seconds while visible; change-triggered loader revalidation preserves tabs/filters. Preserve live SQLite before a backend deployment.
+
+The fixed Refresh Data control is scoped away from login/root routes and hidden in print. It performs a full reload, unlike attendance-specific automatic revalidation.
+
+Current Sales Reports diagnosis: latest local invoice `2026-09-08`, 78 invoices in September, zero in 1?16 October. GitHub/Vercel source synchronization does not synchronize billing data; no report date fallback was added.
+
+Release context: [source synchronization and deployment status](../reports/2026-10-16-production-source-sync.md).
+
+> Current project status (19 October 2026): See the [production readiness report](../../../PSSPL_FINAL_PRODUCTION_READINESS_REPORT.md) for the latest verified work and blockers; earlier findings in this document retain their original date.

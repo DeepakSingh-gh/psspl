@@ -5,6 +5,7 @@ import { AdminPage, AdminState } from "./admin-shell";
 import { adminApi } from "@/lib/api";
 import { useAdminData } from "@/lib/use-admin-data";
 import { formatFinancialYear, formatNumber, formatPercent, formatRupees } from "@/lib/format";
+import { rankRmPerformance } from "@/lib/admin-performance";
 
 function getTrafficLightStatus(percent: number | null) {
   if (percent === null) return { light: "⚪", text: "No Target" };
@@ -16,13 +17,10 @@ function getTrafficLightStatus(percent: number | null) {
 export function AdminTeam() {
   const [financialYear, setFinancialYear] = useState<string>("");
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
-  const { data, loading, error, reload } = useAdminData(() => adminApi.team(financialYear || undefined), [financialYear], `admin-team-${financialYear || "default"}`);
+  const { data, loading, error, reload } = useAdminData(() => adminApi.team(financialYear || undefined), [financialYear], `admin-team-${financialYear || "default"}`, true);
 
-  const sortedMembers = data ? [...data.members].sort((a, b) => {
-    const aVal = a.achievementPercent !== null ? a.achievementPercent : a.salesValue;
-    const bVal = b.achievementPercent !== null ? b.achievementPercent : b.salesValue;
-    return sortOrder === "asc" ? aVal - bVal : bVal - aVal;
-  }) : [];
+  const sortedMembers = data ? rankRmPerformance(data.members, sortOrder) : [];
+  const detailHref = (id: string) => `/admin/team/${encodeURIComponent(id)}${data?.financialYear ? `?fy=${encodeURIComponent(data.financialYear)}` : ""}`;
 
   return (
     <AdminPage
@@ -165,7 +163,7 @@ export function AdminTeam() {
                     return (
                       <Link
                         key={item.id}
-                        href={`/admin/team/${encodeURIComponent(item.id)}`}
+                        href={detailHref(item.id)}
                         style={{
                           textDecoration: "none",
                           background: "#ffffff",
@@ -235,7 +233,7 @@ export function AdminTeam() {
                   {sortedMembers.map((member) => (
                     <tr key={member.id}>
                       <td>
-                        <Link href={`/admin/team/${encodeURIComponent(member.id)}`} className="rm-name-link" style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginBottom: '8px' }}>
+                        <Link href={detailHref(member.id)} className="rm-name-link" style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginBottom: '8px' }}>
                           {(() => {
                             const status = getTrafficLightStatus(member.achievementPercent);
                             const badgeStyles = {

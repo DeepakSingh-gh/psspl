@@ -1,5 +1,11 @@
 # PSSPL CRM Gap Fix — Design Specification
 
+## Current behavior addendum ? 16 October 2026
+
+This specification records the original portal design. The subsequent approved UI correction supersedes its standalone RM home: RM sign-in opens /sales/my-day with My Day and Customer DB navigation; /rm redirects to that workspace. Specialized RM report/detail routes remain implemented. Admin RM report tabs now start with Manager Action Plan (default) and AI Insights before the six remaining tabs.
+
+Current source uses server/ai-provider.mjs for configurable Gemini calls and optional OpenAI fallback, while server/ai-context.mjs builds context and prompts. Missing configuration/provider failures return HTTP 503, not successful intelligence cards. Frontend corrections are live at commit 87eae1e; backend changes await a separate Render rollout. See the [source-sync report](../reports/2026-10-16-production-source-sync.md). This addendum is local only; it does not rerun the historical implementation plan.
+
 **Date:** 2026-10-02  
 **Status:** Approved for planning  
 **Gap analysis source:** `gap_analysis.md`
@@ -165,33 +171,6 @@ Replaces keyword-matching logic with a real LLM integration powered by Google Ge
 
 ## Sub-System E — Delivery, Export & Automation
 
-### E1 — WhatsApp Business API delivery
-- Config: `WHATSAPP_PHONE_NUMBER_ID`, `WHATSAPP_ACCESS_TOKEN`, `WHATSAPP_RECIPIENT_NUMBER` in `.env`
-- `server/whatsapp.mjs` — `sendMessage(text)` wraps the Cloud API `POST /messages` call
-- Trigger: `POST /api/admin/reports/send-whatsapp` accepts `{ reportId }`, fetches the
-  stored report payload, formats as text summary, sends via WhatsApp
-- Admin UI: "Send via WhatsApp" button on each saved report in `admin-management-reports.tsx`
+The delivery/export and session-hardening design continues in [the continuation](./2026-10-02-crm-gap-fix-design-continuation.md).
 
-### E2 — PDF export
-- Use the browser's `window.print()` with a `@media print` stylesheet for clean single-column
-  report layout; no server-side PDF library needed
-- Add a `<button onClick={() => window.print()}>Export PDF</button>` to every report view
-- `@media print` CSS added to `admin.css`: hides sidebar, nav, buttons; formats tables cleanly
-
-### E3 — CSV export
-- For tabular reports (by product, salesperson, customer, region): add a "Download CSV" button
-- Pure client-side: convert the JSON array to CSV string, trigger `<a download>` with a Blob URL
-- Helper: `src/lib/csv.ts` — `exportCsv(rows: Record<string, unknown>[], filename: string)`
-
-### E4 — End-of-day automated activity summary
-- `server/scheduler.mjs` — uses `node:timers` `setInterval` to run the EOD job every hour;
-  checks if current time is 19:00-20:00 IST; if so, generates activity summaries for all
-  checked-in salespeople and stores them as `generated_reports` entries with type `eod_summary`
-- If WhatsApp is configured, sends the consolidated team summary to management
-- Scheduler is started from `server/index.mjs`
-
-### E5 — Session hardening (minimum viable)
-- Password minimum length: 8 characters; checked at `POST /api/auth/password` (change) and
-  `POST /api/admin/users` (create)
-
-... (truncated to stay under 200 lines)
+> Current project status (19 October 2026): See the [production readiness report](../../../PSSPL_FINAL_PRODUCTION_READINESS_REPORT.md) for the latest verified work and blockers; earlier findings in this document retain their original date.

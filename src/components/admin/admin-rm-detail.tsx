@@ -1,4 +1,5 @@
-"use client";
+﻿"use client";
+import { reportDateRange } from "@/lib/business-date";
 import { useState } from "react";
 import Link from "next/link";
 import { AdminPage, AdminState } from "./admin-shell";
@@ -36,30 +37,7 @@ const TABS: Array<{ id: Tab; label: string }> = [
 type Period = "today" | "week" | "month" | "fytd";
 
 function periodDates(period: Period): { from: string; to: string } {
-  const now = new Date();
-  const pad = (n: number) => String(n).padStart(2, "0");
-  const toStr = (d: Date) =>
-    `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
-  const today = toStr(now);
-
-  if (period === "today") return { from: today, to: today };
-
-  if (period === "week") {
-    const day = now.getDay();
-    const start = new Date(now);
-    start.setDate(now.getDate() - ((day + 6) % 7));
-    return { from: toStr(start), to: today };
-  }
-
-  if (period === "month") {
-    return { from: `${now.getFullYear()}-${pad(now.getMonth() + 1)}-01`, to: today };
-  }
-
-  const fyStart =
-    now.getMonth() >= 3
-      ? new Date(now.getFullYear(), 3, 1)
-      : new Date(now.getFullYear() - 1, 3, 1);
-  return { from: toStr(fyStart), to: today };
+  return reportDateRange(period === "fytd" ? "fy" : period === "week" ? "weekToDate" : period);
 }
 
 /* ── helpers ── */
@@ -78,7 +56,7 @@ function monthsAgoColor(dateStr: string | null | undefined): string {
 }
 
 /* ── Monthly Target vs Actual Chart ── */
-function TargetVsActualMonthlyChart({ rows }: { rows?: Array<{ month: string; label: string; target: number; actual: number; achievementPercent: number }> }) {
+function TargetVsActualMonthlyChart({ rows }: { rows?: Array<{ month: string; label: string; target: number | null; actual: number; achievementPercent: number | null }> }) {
   const [active, setActive] = useState<number | null>(null);
 
   if (!rows || rows.length === 0) {
@@ -90,12 +68,12 @@ function TargetVsActualMonthlyChart({ rows }: { rows?: Array<{ month: string; la
   }
 
   const highestActual = Math.max(...rows.map((r) => r.actual), 1);
-  const highestTarget = Math.max(...rows.map((r) => r.target), 1);
+  const highestTarget = Math.max(...rows.map((r) => r.target ?? 0), 1);
   const ceiling = Math.max(highestActual, highestTarget) * 1.15;
 
   const totalActual = rows.reduce((s, r) => s + r.actual, 0);
-  const totalTarget = rows.reduce((s, r) => s + r.target, 0);
-  const avgAchievement = totalTarget > 0 ? Math.round((totalActual / totalTarget) * 100) : 0;
+  const totalTarget = rows.reduce((s, r) => s + (r.target ?? 0), 0);
+  const avgAchievement = totalTarget > 0 ? Math.round((totalActual / totalTarget) * 100) : null;
   const bestMonth = rows.reduce((best, r) => r.actual > best.actual ? r : best, rows[0]);
 
   const chartHeight = 230;
@@ -155,8 +133,8 @@ function TargetVsActualMonthlyChart({ rows }: { rows?: Array<{ month: string; la
         </div>
         <div>
           <span style={{ fontSize: 11, color: "#64748b", fontWeight: 600 }}>Overall Target Pace</span>
-          <div style={{ fontSize: 15, fontWeight: 800, color: avgAchievement >= 100 ? "#16a34a" : "#d97706" }}>
-            {avgAchievement}% achieved
+          <div style={{ fontSize: 15, fontWeight: 800, color: avgAchievement != null && avgAchievement >= 100 ? "#16a34a" : "#d97706" }}>
+            {avgAchievement == null ? "Target data unavailable" : `${avgAchievement}% achieved`}
           </div>
         </div>
         <div>
@@ -190,20 +168,20 @@ function TargetVsActualMonthlyChart({ rows }: { rows?: Array<{ month: string; la
             const targetX = groupX - barWidth - 1.5;
             const actualX = groupX + 1.5;
 
-            const targetY = getY(row.target);
+            const targetY = getY(row.target ?? 0);
             const targetH = Math.max(2, chartHeight - bottom - targetY);
 
             const actualY = getY(row.actual);
             const actualH = Math.max(2, chartHeight - bottom - actualY);
 
-            const isMet = row.achievementPercent >= 100;
+            const isMet = row.achievementPercent != null && row.achievementPercent >= 100;
             const actualColor = isMet ? "#16a34a" : "#0284c7";
             const isHovered = active === index;
 
             return (
               <g key={row.month}>
                 {/* Target Bar */}
-                <rect
+                {row.target != null && <rect
                   x={targetX}
                   y={targetY}
                   width={barWidth}
@@ -211,7 +189,7 @@ function TargetVsActualMonthlyChart({ rows }: { rows?: Array<{ month: string; la
                   rx="3"
                   fill="#94a3b8"
                   opacity={isHovered ? 1 : 0.8}
-                />
+                />}
 
                 {/* Actual Bar */}
                 <rect
@@ -225,7 +203,7 @@ function TargetVsActualMonthlyChart({ rows }: { rows?: Array<{ month: string; la
                 />
 
                 {/* % text */}
-                {row.actual > 0 && (
+                  {row.actual > 0 && row.achievementPercent != null && (
                   <text
                     x={actualX + barWidth / 2}
                     y={actualY - 6}
@@ -289,18 +267,18 @@ function TargetVsActualMonthlyChart({ rows }: { rows?: Array<{ month: string; la
             </div>
             <div style={{ display: "flex", justifyContent: "space-between", gap: 12, marginBottom: 3 }}>
               <span style={{ color: "#94a3b8" }}>Target:</span>
-              <strong>{formatRupees(selected.target)}</strong>
+            <strong>{selected.target == null ? "Data unavailable" : formatRupees(selected.target)}</strong>
             </div>
             <div style={{ display: "flex", justifyContent: "space-between", gap: 12, marginBottom: 3 }}>
               <span style={{ color: "#94a3b8" }}>Actual Sales:</span>
-              <strong style={{ color: selected.achievementPercent >= 100 ? "#4ade80" : "#38bdf8" }}>
+              <strong style={{ color: (selected.achievementPercent ?? 0) >= 100 ? "#4ade80" : "#38bdf8" }}>
                 {formatRupees(selected.actual)}
               </strong>
             </div>
             <div style={{ display: "flex", justifyContent: "space-between", gap: 12, borderTop: "1px solid #334155", paddingTop: 4, marginTop: 4 }}>
               <span style={{ color: "#94a3b8" }}>Achievement:</span>
-              <strong style={{ color: selected.achievementPercent >= 100 ? "#4ade80" : "#fbbf24" }}>
-                {selected.achievementPercent}%
+              <strong style={{ color: (selected.achievementPercent ?? 0) >= 100 ? "#4ade80" : "#fbbf24" }}>
+                {selected.achievementPercent == null ? "Data unavailable" : `${selected.achievementPercent}%`}
               </strong>
             </div>
           </div>
@@ -524,16 +502,17 @@ function ThrustProductsCard({
 
 /* ── Report Card "Performance" tab ── */
 function ReportCardTab({ data, kpi, period, onSelectTab }: { data: any; kpi: any; period: Period; onSelectTab?: (tab: Tab) => void }) {
-  const target = kpi.targetValue ?? 0;
+  const target = kpi.targetValue;
   const actual = kpi.actualSalesValue ?? 0;
-  const pct = kpi.achievementPercent ?? (target > 0 ? Math.min(100, Math.round((actual / target) * 100)) : 0);
-  const remaining = Math.max(0, target - actual);
+  const pct = kpi.achievementPercent;
+  const pctValue = pct ?? 0;
+  const remaining = target == null ? null : Math.max(0, target - actual);
 
   const isToday = period === "today";
   const isWeek = period === "week";
   const isMonth = period === "month";
   const isFytd = period === "fytd";
-  const isUnder = !isToday && pct < 50;
+  const isUnder = pct != null && !isToday && pct < 50;
 
   const targetLabel = isToday
     ? "Daily Target"
@@ -544,30 +523,30 @@ function ReportCardTab({ data, kpi, period, onSelectTab }: { data: any; kpi: any
     : "FYTD Target";
 
   // Determine status label, badge theme, subtitle and icon
-  let statusLabel = "On Track";
-  let statusSub = `${Math.round(pct)}% of target achieved`;
-  let statusTheme: "green" | "amber" | "red" | "blue" = "green";
+  let statusLabel = "Data unavailable";
+  let statusSub = "No reliable target is mapped for this reporting period.";
+  let statusTheme: "green" | "amber" | "red" | "blue" = "blue";
 
-  if (isToday) {
-    if (actual >= target && target > 0) {
+  if (pct != null && isToday) {
+    if (target != null && actual >= target && target > 0) {
       statusLabel = "Daily Quota Met";
       statusSub = `${formatRupees(actual)} billed today (${Math.round(pct)}% pace)`;
       statusTheme = "green";
     } else if (actual > 0) {
       statusLabel = "Daily Billing Active";
       statusSub = `${formatRupees(actual)} billed today · Quota: ${formatRupees(target)}`;
-      statusTheme = pct >= 50 ? "green" : "amber";
+      statusTheme = pctValue >= 50 ? "green" : "amber";
     } else {
       statusLabel = "Daily Invoicing Open";
       statusSub = `No billing logged today · Daily quota: ${formatRupees(target)}`;
       statusTheme = "blue";
     }
-  } else if (isWeek) {
-    if (pct >= 80) {
+  } else if (pct != null && isWeek) {
+    if (pctValue >= 80) {
       statusLabel = "Weekly On Track";
       statusSub = `${Math.round(pct)}% of weekly quota achieved`;
       statusTheme = "green";
-    } else if (pct >= 40) {
+    } else if (pctValue >= 40) {
       statusLabel = "Weekly In Progress";
       statusSub = `${Math.round(pct)}% achieved · Target: ${formatRupees(target)}`;
       statusTheme = "amber";
@@ -576,13 +555,13 @@ function ReportCardTab({ data, kpi, period, onSelectTab }: { data: any; kpi: any
       statusSub = `${Math.round(pct)}% achieved · Target: ${formatRupees(target)}`;
       statusTheme = "red";
     }
-  } else {
+  } else if (pct != null) {
     // Month or FYTD
-    if (pct >= 80) {
+    if (pctValue >= 80) {
       statusLabel = "On Track";
       statusSub = `${Math.round(pct)}% of target achieved`;
       statusTheme = "green";
-    } else if (pct >= 50) {
+    } else if (pctValue >= 50) {
       statusLabel = "Moderate Pace";
       statusSub = `${Math.round(pct)}% of target achieved`;
       statusTheme = "amber";
@@ -666,38 +645,18 @@ function ReportCardTab({ data, kpi, period, onSelectTab }: { data: any; kpi: any
     ? (data?.isAnchoredToLatestCycle ? `This Month (${data.latestActiveMonth ? data.latestActiveMonth + " active ledger" : "Latest Cycle"})` : "This Month")
     : "FY to Date";
 
-  /* top dealers from actualSales — group by customer */
-  const dealerMap: Record<string, number> = {};
-  (data.actualSales ?? []).forEach((s: any) => {
-    dealerMap[s.customerName] = (dealerMap[s.customerName] ?? 0) + s.amount;
-  });
-  const topDealers = Object.entries(dealerMap)
-    .sort((a, b) => b[1] - a[1])
-    .slice(0, 5)
-    .map(([name, val]) => ({ dealerName: name, salesValue: val }));
-  const dealerTotal = topDealers.reduce((s, d) => s + d.salesValue, 0) || 1;
-  const totalActualSales = Object.values(dealerMap).reduce((s, v) => s + v, 0) || 1;
-  const top5Total = topDealers.reduce((s, d) => s + d.salesValue, 0);
-  const totalDealersCount = Object.keys(dealerMap).length;
-  const dependencyPct = totalActualSales > 1 ? Math.round((top5Total / totalActualSales) * 100) : 0;
-  const newCustomersCount = Math.floor(totalDealersCount * 0.1);
+  const topDealers: Array<{ dealerName: string; salesValue: number }> = data.topDealers ?? [];
+  const dealerTotal = kpi.actualSalesValue || 0;
+  const totalDealersCount = data.activeDealerCount ?? 0;
+  const dependencyPct = data.topFiveDealerConcentrationPercent;
+  const newCustomersCount = data.newCustomersCount;
 
   /* product performance — slice TOP 5 for summary card */
   const allProducts = data.topProducts ?? [];
   const topProducts = allProducts.slice(0, 5);
   const productTotal = allProducts.reduce((s: number, p: any) => s + p.salesValue, 0) || 1;
 
-  /* dormant: customers who have NOT appeared in actualSales but have history */
-  const activeDealerNames = new Set((data.actualSales ?? []).map((s: any) => s.customerName));
-  const dormant = (data.customerVisits ?? [])
-    .filter((v: any) => !activeDealerNames.has(v.customerName))
-    .reduce((acc: any[], v: any) => {
-      if (!acc.find((x: any) => x.dealerName === v.customerName)) {
-        acc.push({ dealerName: v.customerName, lastInvoice: null });
-      }
-      return acc;
-    }, [])
-    .slice(0, 5);
+  const dormant = data.dormantDealers ?? [];
 
   return (
     <div style={{ fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" }}>
@@ -770,7 +729,7 @@ function ReportCardTab({ data, kpi, period, onSelectTab }: { data: any; kpi: any
                 </span>
                 <span>•</span>
                 <span>📅 Period: <strong style={{ color: "#0f172a" }}>{periodLabel}</strong></span>
-                {target > 0 && (
+                {target != null && target > 0 && (
                   <>
                     <span>•</span>
                     <span>🎯 {targetLabel}: <strong style={{ color: "#0f172a" }}>{formatRupees(target)}</strong></span>
@@ -943,20 +902,20 @@ function ReportCardTab({ data, kpi, period, onSelectTab }: { data: any; kpi: any
         <div style={{ background: dependencyPct > 80 ? "#fff1f2" : "#f8fafc", border: `1.5px solid ${dependencyPct > 80 ? "#fda4af" : "#cbd5e1"}`, borderRadius: 12, padding: "16px" }}>
           <h4 style={{ margin: "0 0 4px", fontSize: 13, color: dependencyPct > 80 ? "#9f1239" : "#334155", textTransform: "uppercase", fontWeight: 800 }}>Revenue Dependency Risk</h4>
           <p style={{ margin: 0, fontSize: 14, fontWeight: 600, color: "#0f172a" }}>
-            {dependencyPct}% of sales come from top {Math.min(5, totalDealersCount)} dealers <span style={{ fontWeight: 400, color: "#64748b" }}>(out of {totalDealersCount} total active)</span>
+            {dependencyPct === null ? "Unavailable" : `${dependencyPct}% of sales come from the top ${Math.min(5, totalDealersCount)} dealers`} <span style={{ fontWeight: 400, color: "#64748b" }}>(out of {totalDealersCount} total active)</span>
           </p>
         </div>
         <div style={{ background: "#f0fdf4", border: "1.5px solid #86efac", borderRadius: 12, padding: "16px" }}>
           <h4 style={{ margin: "0 0 4px", fontSize: 13, color: "#166534", textTransform: "uppercase", fontWeight: 800 }}>New Acquisition</h4>
           <p style={{ margin: 0, fontSize: 14, fontWeight: 600, color: "#0f172a" }}>
-            {newCustomersCount} new customers <span style={{ fontWeight: 400, color: "#64748b" }}>added in the last 6 months</span>
+            {newCustomersCount === null ? "Data unavailable" : newCustomersCount} new customers <span title={data.newCustomersUnavailableReason ?? ""} style={{ fontWeight: 400, color: "#64748b" }}>added in the last 6 months{data.newCustomersUnavailableReason ? ` — ${data.newCustomersUnavailableReason}` : ""}</span>
           </p>
         </div>
       </div>
 
       {/* ── 6 KPI cards ── */}
       <div className="rm-kpi-grid">
-        <KpiCard icon="🎯" iconBg="#e0f2fe" label="Monthly Target" value={target > 0 ? formatRupees(target) : "Not set"} />
+        <KpiCard icon="🎯" iconBg="#e0f2fe" label={targetLabel} value={target == null ? "Data unavailable" : formatRupees(target)} />
         <KpiCard icon="📊" iconBg="#dcfce7" label="Actual Sales" value={formatRupees(actual)} />
         {/* Achievement */}
         <div style={kpiCardStyle}>
@@ -964,9 +923,9 @@ function ReportCardTab({ data, kpi, period, onSelectTab }: { data: any; kpi: any
             <span style={{ width: 30, height: 30, borderRadius: 8, background: "#fef3c7", display: "grid", placeItems: "center", fontSize: 14, fontWeight: 700, color: "#d97706" }}>%</span>
             <span style={{ fontSize: 12, color: "#475569", fontWeight: 700 }}>Achievement</span>
           </div>
-          <strong style={{ fontSize: 22, fontWeight: 800, color: isUnder ? "#dc2626" : "#16a34a" }}>{Math.round(pct)}%</strong>
+          <strong style={{ fontSize: 22, fontWeight: 800, color: isUnder ? "#dc2626" : "#16a34a" }}>{pct == null ? "Data unavailable" : `${Math.round(pct)}%`}</strong>
           <div style={{ marginTop: 8, height: 6, borderRadius: 4, background: "#f1f5f9", overflow: "hidden" }}>
-            <div style={{ height: "100%", width: `${Math.min(100, pct)}%`, background: isUnder ? "#dc2626" : "#16a34a", borderRadius: 4, transition: "width .5s" }} />
+            <div style={{ height: "100%", width: `${Math.min(100, pct ?? 0)}%`, background: isUnder ? "#dc2626" : "#16a34a", borderRadius: 4, transition: "width .5s" }} />
           </div>
         </div>
         {/* Customers Visited */}
@@ -978,7 +937,7 @@ function ReportCardTab({ data, kpi, period, onSelectTab }: { data: any; kpi: any
           <strong style={{ fontSize: 22, fontWeight: 800, color: "#0f172a" }}>{formatNumber(kpi.visitsCompleted)}</strong>
           <small style={{ fontSize: 11, color: "#64748b", fontWeight: 600, display: "block", marginTop: 2 }}>of {formatNumber(kpi.visitsPlanned)} planned</small>
         </div>
-        <KpiCard icon="📞" iconBg="#ffedd5" label="Customers Covered" value={formatNumber(kpi.customersCovered)} />
+        <KpiCard icon="📞" iconBg="#ffedd5" label="Calls logged" value={formatNumber(kpi.callsLogged ?? 0)} />
         {/* Follow-ups */}
         <div style={kpiCardStyle}>
           <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
@@ -988,6 +947,18 @@ function ReportCardTab({ data, kpi, period, onSelectTab }: { data: any; kpi: any
           <strong style={{ fontSize: 22, fontWeight: 800, color: kpi.followUpsOpen > 0 ? "#dc2626" : "#0f172a" }}>{formatNumber(kpi.followUpsOpen)}</strong>
           {kpi.followUpsOverdue > 0 && <small style={{ fontSize: 11, color: "#dc2626", fontWeight: 700, display: "block", marginTop: 2 }}>{kpi.followUpsOverdue} overdue</small>}
         </div>
+      </div>
+
+      <div className="rm-2col-grid" style={{ marginBottom: 18 }}>
+        {[{ label: "Month to date", value: data.monthlyPerformance }, { label: "Financial year to date", value: data.ytdPerformance }].map(({ label, value }: any) => (
+          <div key={label} style={{ ...cardStyle, padding: 14 }}>
+            <strong>{label}</strong><div style={{ display: "flex", justifyContent: "space-between", gap: 12, marginTop: 8 }}>
+              <span>Actual: {value?.actual == null ? "Data unavailable" : formatRupees(value.actual)}</span>
+              <span>Target: {value?.target == null ? "Data unavailable" : formatRupees(value.target)}</span>
+              <b>{value?.achievementPercent == null ? "Data unavailable" : `${value.achievementPercent}%`}</b>
+            </div>
+          </div>
+        ))}
       </div>
 
       {/* ── Row 2: Sales chart + Field Activity + Pipeline ── */}
@@ -1000,7 +971,7 @@ function ReportCardTab({ data, kpi, period, onSelectTab }: { data: any; kpi: any
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 6 }}>
               <span style={{ fontSize: 12, fontWeight: 700, color: "#475569" }}>Target Achievement</span>
               <span style={{ fontSize: 14, fontWeight: 800, color: isUnder ? "#dc2626" : "#16a34a" }}>
-                {pct}% <span style={{ fontSize: 11, fontWeight: 600, color: "#64748b" }}>({formatRupees(actual)})</span>
+                {pct == null ? "Data unavailable" : `${pct}%`} <span style={{ fontSize: 11, fontWeight: 600, color: "#64748b" }}>({formatRupees(actual)})</span>
               </span>
             </div>
             
@@ -1009,7 +980,7 @@ function ReportCardTab({ data, kpi, period, onSelectTab }: { data: any; kpi: any
               <div
                 style={{
                   height: "100%",
-                  width: `${Math.min(100, Math.max(1, pct))}%`,
+                  width: `${Math.min(100, Math.max(1, pct ?? 0))}%`,
                   background: isUnder
                     ? "linear-gradient(90deg, #ef4444 0%, #dc2626 100%)"
                     : "linear-gradient(90deg, #22c55e 0%, #16a34a 100%)",
@@ -1022,7 +993,7 @@ function ReportCardTab({ data, kpi, period, onSelectTab }: { data: any; kpi: any
             <div style={{ display: "flex", justifyContent: "space-between", marginTop: 10, padding: "8px 12px", background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: 8, fontSize: 12 }}>
               <div>
                 <span style={{ color: "#64748b", fontWeight: 600 }}>Target: </span>
-                <strong style={{ color: "#0f172a", fontWeight: 800 }}>{formatRupees(target)}</strong>
+                <strong style={{ color: "#0f172a", fontWeight: 800 }}>{target == null ? "Data unavailable" : formatRupees(target)}</strong>
               </div>
               <div>
                 <span style={{ color: "#64748b", fontWeight: 600 }}>Actual: </span>
@@ -1034,7 +1005,7 @@ function ReportCardTab({ data, kpi, period, onSelectTab }: { data: any; kpi: any
           <div style={{ marginTop: 12, padding: "10px 14px", background: "#fef2f2", border: "1.5px solid #fecaca", borderRadius: 10, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
             <div>
               <span style={{ fontSize: 11, fontWeight: 800, color: "#991b1b", textTransform: "uppercase", letterSpacing: ".04em" }}>Remaining to Target</span>
-              <div style={{ fontSize: 18, fontWeight: 800, color: "#991b1b", marginTop: 1 }}>{formatRupees(remaining)}</div>
+              <div style={{ fontSize: 18, fontWeight: 800, color: "#991b1b", marginTop: 1 }}>{remaining == null ? "Data unavailable" : formatRupees(remaining)}</div>
             </div>
             <span style={{ fontSize: 20 }}>⚠️</span>
           </div>
@@ -1102,7 +1073,7 @@ function ReportCardTab({ data, kpi, period, onSelectTab }: { data: any; kpi: any
                 return (
                   <tr key={i} style={{ borderTop: "1px solid #f1f5f9" }}>
                     <td style={{ padding: "8px 4px", color: "#64748b", fontWeight: 600 }}>{i + 1}</td>
-                    <td style={{ padding: "8px 4px", fontWeight: 700, color: "#0f172a" }}>{d.dealerName}</td>
+                    <td style={{ padding: "8px 4px", fontWeight: 700, color: "#0f172a" }}><Link href={`/admin/customers?search=${encodeURIComponent(d.dealerName)}`}>{d.dealerName}</Link></td>
                     <td style={{ padding: "8px 4px", textAlign: "right", color: "#0f172a", fontWeight: 700 }}>{formatRupees(d.salesValue)}</td>
                     <td style={{ padding: "8px 4px", textAlign: "right", color: "#475569", fontWeight: 600 }}>{pctShare}%</td>
                     <td style={{ padding: "8px 4px", width: 60 }}>
@@ -1119,7 +1090,8 @@ function ReportCardTab({ data, kpi, period, onSelectTab }: { data: any; kpi: any
 
         {/* Dormant Dealers */}
         <div style={cardStyle}>
-          <p style={cardTitleStyle}>🕐 Dormant Dealers (No purchase this period)</p>
+          <p style={cardTitleStyle}>🕐 Dormant dealers (no invoice for {data.reportingThresholds?.dormantDays ?? 90}+ days)</p>
+          {data.reportingThresholds?.provisional && <small style={{ color: "#a16207" }}>Inactivity threshold is provisional; configure RM_DORMANT_INACTIVITY_DAYS.</small>}
           <table style={{ width: "100%", borderCollapse: "collapse", marginTop: 12, fontSize: 12.5 }}>
             <thead>
               <tr style={{ color: "#475569" }}>
@@ -1130,24 +1102,29 @@ function ReportCardTab({ data, kpi, period, onSelectTab }: { data: any; kpi: any
             <tbody>
               {dormant.length === 0 ? (
                 <tr>
-                  <td colSpan={2} style={{ textAlign: "center", color: "#16a34a", padding: "24px 0", fontWeight: 700 }}>
+                  <td colSpan={2} style={{ textAlign: "center", color: data.ownershipMapping === "verified" ? "#16a34a" : "#a16207", padding: "24px 0", fontWeight: 700 }}>
                     <div style={{ background: "#f0fdf4", border: "1px solid #bbf7d0", borderRadius: 8, padding: "10px", display: "inline-block" }}>
-                      ✓ No dormant dealers
+                      {data.ownershipMapping === "verified" ? "✓ No dormant dealers" : "Data unavailable until RM ownership is mapped"}
                     </div>
                   </td>
                 </tr>
               ) : dormant.map((d: any, i: number) => (
                 <tr key={i} style={{ borderTop: "1px solid #f1f5f9" }}>
-                  <td style={{ padding: "9px 4px", fontWeight: 700, color: "#0f172a" }}>{d.dealerName}</td>
+                  <td style={{ padding: "9px 4px", fontWeight: 700, color: "#0f172a" }}><Link href={`/admin/customers?search=${encodeURIComponent(d.dealerName ?? d.name)}`}>{d.dealerName ?? d.name}</Link></td>
                   <td style={{ padding: "9px 4px", textAlign: "right" }}>
                     <span style={{ background: monthsAgoColor(d.lastInvoice) + "18", color: monthsAgoColor(d.lastInvoice), border: `1px solid ${monthsAgoColor(d.lastInvoice)}33`, borderRadius: 6, padding: "3px 8px", fontSize: 11, fontWeight: 700 }}>
-                      {monthsAgoLabel(d.lastInvoice)}
+                      {monthsAgoLabel(d.lastInvoiceDate ?? d.lastInvoice)}
                     </span>
                   </td>
                 </tr>
               ))}
             </tbody>
           </table>
+          <h5 style={{ margin: "16px 0 6px" }}>Previously billed, no sales in selected period ({data.dealerIntelligence?.noSalesInSelectedPeriod?.length ?? 0})</h5>
+          {(data.dealerIntelligence?.noSalesInSelectedPeriod ?? []).slice(0, 8).map((dealer: any) => <p key={dealer.id} style={{ margin: "5px 0", fontSize: 12 }}><Link href={`/admin/customers?search=${encodeURIComponent(dealer.name)}`}>{dealer.name}</Link> · last invoice {dealer.lastInvoiceDate ?? "—"} · {dealer.followUpOpportunity}</p>)}
+          <h5 style={{ margin: "16px 0 6px" }}>Declining vs prior comparable period ({data.dealerIntelligence?.declining?.length ?? 0})</h5>
+          {(data.dealerIntelligence?.declining ?? []).slice(0, 8).map((dealer: any) => <p key={dealer.id} style={{ margin: "5px 0", fontSize: 12 }}><Link href={`/admin/customers?search=${encodeURIComponent(dealer.name)}`}>{dealer.name}</Link> · down {dealer.declinePercent}% · {formatRupees(dealer.previousSalesValue)} to {formatRupees(dealer.salesValue)}</p>)}
+          <small style={{ display: "block", marginTop: 10, color: "#64748b" }}>{data.dealerIntelligence?.insufficientHistory?.length ?? 0} dealer records do not have enough invoice history for a comparable trend or inactivity finding.</small>
         </div>
 
         {/* Product Performance (Top 5) */}
@@ -1200,43 +1177,7 @@ function ReportCardTab({ data, kpi, period, onSelectTab }: { data: any; kpi: any
 
 /* ── AI Insight panel ── */
 function InsightPanel({ data }: { data: any }) {
-  const kpi = data.kpi;
-  const topProduct = data.topProducts?.[0];
-  const overdueCount = data.pipeline?.filter((p: any) => p.isOverdue).length ?? 0;
-
-  const lines: string[] = [];
-  lines.push(
-    `${data.name} completed ${formatNumber(kpi.visitsCompleted)} customer visits` +
-    (kpi.customersCovered > 0 ? `, covering ${formatNumber(kpi.customersCovered)} unique customers` : "") +
-    " during the selected period."
-  );
-
-  if (kpi.expectedOrdersValue > 0 || kpi.actualSalesValue > 0) {
-    lines.push(
-      `The RM generated ${formatRupees(kpi.expectedOrdersValue)} in expected orders, while actual Tally sales stand at ${formatRupees(kpi.actualSalesValue)}.`
-    );
-  }
-
-  if (topProduct) {
-    lines.push(`${topProduct.name} is the strongest product, contributing ${formatRupees(topProduct.salesValue)} in sales.`);
-  }
-
-  const concerns: string[] = [];
-  if (kpi.achievementPercent !== null && kpi.achievementPercent < 50) {
-    concerns.push(`target achievement is critically low at ${formatPercent(kpi.achievementPercent)}`);
-  }
-  if (kpi.followUpsOpen > 0) {
-    concerns.push(`${formatNumber(kpi.followUpsOpen)} follow-up${kpi.followUpsOpen > 1 ? "s" : ""} remain open`);
-  }
-  if (overdueCount > 0) {
-    concerns.push(`${formatNumber(overdueCount)} pipeline order${overdueCount > 1 ? "s" : ""} are overdue`);
-  }
-  if (concerns.length > 0) {
-    lines.push(`Main concern${concerns.length > 1 ? "s" : ""}: ${concerns.join("; ")}.`);
-    lines.push("Management should review overdue follow-ups and pipeline conversion.");
-  } else if (kpi.achievementPercent !== null && kpi.achievementPercent >= 90) {
-    lines.push("Performance is on track. Continue monitoring pipeline for sustained growth.");
-  }
+  const insights = data.managementInsights ?? [];
 
   return (
     <div style={{ fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" }}>
@@ -1250,17 +1191,22 @@ function InsightPanel({ data }: { data: any }) {
         <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 8 }}>
           <span style={{ fontSize: 20 }}>🤖</span>
           <h3 style={{ margin: 0, fontSize: 16, fontWeight: 800, color: "#1e3a8a" }}>
-            AI Executive Diagnostic &amp; Field Intelligence
+            Evidence-based management insights
           </h3>
         </div>
         <p style={{ margin: 0, fontSize: 13, color: "#334155", lineHeight: 1.6 }}>
-          Automated algorithmic synthesis combining real-time CRM field operations, order pipelines, and reconciled Tally accounting records.
+          Deterministic findings from the selected period and authorized RM/team records. Threshold-based rules are marked provisional until configured.
         </p>
       </div>
 
       <div className="rm-insight" style={{ background: "#ffffff", border: "1px solid #e2e8f0", borderRadius: "12px", padding: "18px 20px" }}>
-        {lines.map((line, i) => (
-          <p key={i} style={{ margin: "0 0 12px", lineHeight: 1.6, fontSize: 13.5, color: "#1e293b" }}>{line}</p>
+        {insights.length === 0 ? <p className="admin-placeholder">No configured management alerts were triggered for this period. This does not assert that performance is problem-free.</p> : insights.map((item: any) => (
+          <article key={item.id} style={{ padding: "12px 0", borderBottom: "1px solid #e2e8f0" }}>
+            <strong>{item.title}</strong><p style={{ margin: "5px 0", color: "#334155" }}>{item.metric} · {item.period?.from} to {item.period?.to}</p>
+            <p style={{ margin: 0, color: "#475569" }}>Suggested action: {item.action}</p>
+            {item.thresholdsProvisional && <small style={{ color: "#a16207" }}>Alert thresholds are provisional.</small>}
+            {item.href && <p style={{ margin: "6px 0 0" }}><Link href={item.href}>Open supporting records</Link></p>}
+          </article>
         ))}
       </div>
     </div>
@@ -1269,65 +1215,13 @@ function InsightPanel({ data }: { data: any }) {
 
 /* ── Dedicated Manager Action Plan Tab ── */
 function ManagerActionPlanTab({ data, kpi }: { data: any; kpi: any }) {
-  const target = kpi.targetValue ?? 0;
-  const actual = kpi.actualSalesValue ?? 0;
-  const pct = kpi.achievementPercent ?? (target > 0 ? Math.min(100, Math.round((actual / target) * 100)) : 0);
-  const isUnder = pct < 50;
-
-  const dealerMap: Record<string, number> = {};
-  (data.actualSales ?? []).forEach((s: any) => {
-    dealerMap[s.customerName] = (dealerMap[s.customerName] ?? 0) + s.amount;
-  });
-  const totalActualSales = Object.values(dealerMap).reduce((s, v) => s + v, 0) || 1;
-  const topDealers = Object.entries(dealerMap).sort((a, b) => b[1] - a[1]).slice(0, 5);
-  const top5Total = topDealers.reduce((s, d) => s + d[1], 0);
-  const dependencyPct = totalActualSales > 1 ? Math.round((top5Total / totalActualSales) * 100) : 0;
-  const totalDealersCount = Object.keys(dealerMap).length;
-
-  const activeDealerNames = new Set((data.actualSales ?? []).map((s: any) => s.customerName));
-  const dormant = (data.customerVisits ?? []).filter((v: any) => !activeDealerNames.has(v.customerName));
-
-  const actions: Array<{ urgency: "high" | "medium" | "low"; title: string; detail: string; action: string }> = [];
-  if (pct < 50) {
-    actions.push({
-      urgency: "high",
-      title: "Intervene on Target Shortfall",
-      detail: `Current target achievement is only ${Math.round(pct)}%. The gap to target is ${formatRupees(Math.max(0, target - actual))}.`,
-      action: "Mandate daily deal inspection with the RM on high-value pipeline opportunities.",
-    });
-  }
-  if (dependencyPct > 70 && totalDealersCount > 0) {
-    actions.push({
-      urgency: "high",
-      title: "Mitigate Key Account Dependency",
-      detail: `${dependencyPct}% of revenue originates from just top ${Math.min(5, totalDealersCount)} accounts.`,
-      action: "Set strict quota for expanding mid-tier and tier-2 customer accounts this quarter.",
-    });
-  }
-  if (dormant.length > 0) {
-    actions.push({
-      urgency: "medium",
-      title: "Reactivate Dormant Accounts",
-      detail: `${dormant.length} dealers have recent field visit history but generated ₹0 billing in this period.`,
-      action: "Schedule joint executive visits or commercial review calls to unlock pending orders.",
-    });
-  }
-  if (kpi.followUpsOverdue > 0) {
-    actions.push({
-      urgency: "medium",
-      title: "Clear Overdue CRM Follow-ups",
-      detail: `${kpi.followUpsOverdue} customer follow-ups have exceeded their committed deadline.`,
-      action: "Ensure RM contacts all overdue leads before scheduling fresh exploratory visits.",
-    });
-  }
-  if (actions.length === 0) {
-    actions.push({
-      urgency: "low",
-      title: "Maintain Performance Momentum",
-      detail: "RM is meeting performance milestones with healthy dealer coverage.",
-      action: "Conduct standard weekly cadence and explore cross-sell opportunities for newly launched products.",
-    });
-  }
+  const pct = kpi.achievementPercent;
+  const isUnder = pct != null && pct < 80;
+  const actions: Array<{ urgency: "high" | "medium"; title: string; detail: string; action: string; href: string | null; thresholdsProvisional: boolean }> = (data.managementInsights ?? []).map((item: any) => ({
+    ...item,
+    urgency: item.severity === "high" ? "high" : "medium",
+    detail: item.metric,
+  }));
 
   return (
     <div style={{ fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" }}>
@@ -1348,7 +1242,7 @@ function ManagerActionPlanTab({ data, kpi }: { data: any; kpi: any }) {
               Action Plan for {data.name}
             </h2>
             <p style={{ margin: "4px 0 0", fontSize: 13, color: "#475569" }}>
-              Specific supervisory recommendations based on live field logs, pipeline health, and Tally actuals.
+              Recommendations are tied to the supporting metric, selected period, and linked records.
             </p>
           </div>
           <span style={{
@@ -1359,7 +1253,7 @@ function ManagerActionPlanTab({ data, kpi }: { data: any; kpi: any }) {
             background: isUnder ? "#dc2626" : "#16a34a",
             color: "#ffffff",
           }}>
-            {isUnder ? "⚠️ Action Required" : "✅ Performance Stable"}
+            {pct == null ? "Data unavailable" : isUnder ? "Review required" : actions.length ? "Review findings" : "No alerts triggered"}
           </span>
         </div>
       </div>
@@ -1412,8 +1306,11 @@ function ManagerActionPlanTab({ data, kpi }: { data: any; kpi: any }) {
               <strong style={{ color: "#0369a1", marginRight: 6 }}>Direct Action:</strong>
               {act.action}
             </div>
+            {act.thresholdsProvisional && <small style={{ display: "block", marginTop: 6, color: "#a16207" }}>Threshold is provisional until configured.</small>}
+            {act.href && <p style={{ margin: "8px 0 0" }}><Link href={act.href}>Open supporting records</Link></p>}
           </div>
         ))}
+        {actions.length === 0 && <p className="admin-placeholder">No configured alerts were triggered for this period. This does not certify that performance is problem-free.</p>}
       </div>
 
       {/* Field Visit Notes & Accountability */}
@@ -1464,7 +1361,9 @@ export function AdminRmDetail({ rmId }: { rmId: string }) {
 
   const { data, loading, error, reload } = useAdminData(
     () => adminApi.rmDetail(rmId, from, to),
-    [rmId, from, to]
+    [rmId, from, to],
+    undefined,
+    true
   );
 
   const kpi = data?.kpi;
@@ -1496,7 +1395,7 @@ export function AdminRmDetail({ rmId }: { rmId: string }) {
         title={data?.name ?? "RM Sales Activity"}
         description={
           data
-            ? [data.region, "Complete view of sales, activity, customers and next action"].filter(Boolean).join(" · ")
+            ? [data.region, data.territory, data.ownershipMapping !== "verified" ? `Sales attribution ${data.ownershipMapping}` : null, "Sales, activity, dealers and next actions"].filter(Boolean).join(" · ")
             : "Loading…"
         }
         actions={
@@ -1665,11 +1564,11 @@ export function AdminRmDetail({ rmId }: { rmId: string }) {
                         </div>
                         <div>
                           <dt>Invoices</dt>
-                          <dd>{formatNumber(data.actualSales.length)}</dd>
+                          <dd>{formatNumber(data.salesInvoiceCount ?? kpi.salesInvoiceCount ?? data.actualSales.length)}</dd>
                         </div>
                         <div>
                           <dt>Avg invoice</dt>
-                          <dd>{data.actualSales.length > 0 ? formatRupees(kpi.actualSalesValue / data.actualSales.length) : "—"}</dd>
+                          <dd>{(data.salesInvoiceCount ?? kpi.salesInvoiceCount ?? data.actualSales.length) > 0 ? formatRupees(kpi.actualSalesValue / (data.salesInvoiceCount ?? kpi.salesInvoiceCount ?? data.actualSales.length)) : "—"}</dd>
                         </div>
                       </dl>
                     </div>
@@ -1678,6 +1577,7 @@ export function AdminRmDetail({ rmId }: { rmId: string }) {
                     <p className="admin-placeholder">No Tally invoices found for this RM in the selected period.</p>
                   ) : (
                     <div className="admin-table-wrap">
+                      {data.salesInvoiceCount > data.actualSales.length && <p className="admin-muted">Showing the 50 most recent invoices of {formatNumber(data.salesInvoiceCount)} eligible invoices; totals above include the full period.</p>}
                       <table className="admin-table">
                         <thead>
                           <tr>

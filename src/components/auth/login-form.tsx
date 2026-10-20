@@ -1,7 +1,7 @@
 "use client";
 import { FormEvent, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { authApi, getSessionUser, hasSession, homePathFor, saveSession, saveSessionUser } from "@/lib/api";
+import { authApi, getSessionUser, hasSession, homePathFor, saveSession, saveSessionUser, clearSession } from "@/lib/api";
 import { PssplLogo } from "@/components/common/psspl-logo";
 
 export function LoginForm() {
@@ -10,12 +10,15 @@ export function LoginForm() {
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
 
-  useEffect(() => { if (hasSession()) router.replace(homePathFor(getSessionUser()?.role)); }, [router]);
+  useEffect(() => {
+    if (hasSession()) { router.replace(homePathFor(getSessionUser()?.role)); return; }
+    authApi.me().then(({ user }) => { saveSessionUser(user); router.replace(homePathFor(user.role)); }).catch(() => {});
+  }, [router]);
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault(); setError(""); setLoading(true);
     const form = new FormData(event.currentTarget);
-    try { const result = await authApi.login(String(form.get("email")), String(form.get("password"))); saveSession(result.token); saveSessionUser(result.user); router.replace(homePathFor(result.user.role)); }
+    try { const result = await authApi.login(String(form.get("email")), String(form.get("password"))); clearSession(); if (result.token) saveSession(result.token); saveSessionUser(result.user); router.replace(homePathFor(result.user.role)); }
     catch (cause) { setError(cause instanceof Error ? cause.message : "Unable to sign in"); }
     finally { setLoading(false); }
   }
@@ -69,6 +72,8 @@ export function LoginForm() {
               {loading && <span className="login-sr-only">Signing in</span>}
             </button>
           </form>
+
+          <p className="login-copy"><a href="/forgot-password">Forgot your password?</a></p>
 
         </div>
       </section>

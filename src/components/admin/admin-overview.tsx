@@ -103,8 +103,9 @@ function AttentionCard({ tone, chip, title, detail, href, action }: { tone: "war
 
 export function AdminOverview() {
   const [financialYear, setFinancialYear] = useState("");
-  const overview = useAdminData(() => adminApi.overview(financialYear || undefined), [financialYear]);
-  const alerts = useAdminData(() => adminApi.alerts(), []);
+  const overview = useAdminData(() => adminApi.overview(financialYear || undefined), [financialYear], undefined, true);
+  const alerts = useAdminData(() => adminApi.alerts(), [], undefined, true);
+  const management = useAdminData(() => adminApi.managementAttention(financialYear || undefined), [financialYear], `admin-management-attention-${financialYear || "default"}`, true);
   const data = overview.data;
 
   const summaryLine = (() => {
@@ -152,6 +153,77 @@ export function AdminOverview() {
       const unassigned = data.customers.unassigned;
       const notCheckedIn = Math.max(team.length - data.fieldActivity.checkedInToday, 0);
       const overdue = alerts.data?.summary.overdueFollowUps ?? 0;
+      const managementTeam = management.data?.team ?? [];
+      const performanceRows = [...managementTeam].sort((a, b) => {
+        const aScore = a.monthlyPerformance.achievementPercent ?? a.ytdPerformance.achievementPercent;
+        const bScore = b.monthlyPerformance.achievementPercent ?? b.ytdPerformance.achievementPercent;
+        if (aScore == null && bScore != null) return 1;
+        if (aScore != null && bScore == null) return -1;
+        return aScore == null || bScore == null ? a.name.localeCompare(b.name) : aScore - bScore;
+      });
+      const missingTargetRms = managementTeam.filter((rm) => rm.ownershipMapping === "verified" && rm.monthlyPerformance.target === null && rm.ytdPerformance.target === null);
+      const actions = [
+        ...managementTeam.flatMap((rm) => rm.actions.filter((item) => item.kind === "target-risk").map((item) => ({
+          key: item.id, tone: "critical" as const, priority: 0,
+          title: `${rm.name} · ${item.metric}`,
+          detail: `${item.actual == null ? "Sales unavailable" : formatRupees(item.actual)} actual against ${item.target == null ? "target unavailable" : formatRupees(item.target)} target. ${item.action}`,
+          href: item.href, action: "Open RM report card",
+        }))),
+        ...(alerts.data?.overdueFollowUps ?? []).slice(0, 5).map((item) => ({
+          key: `followup-${item.id}`, tone: "critical" as const, priority: 1,
+          title: `${item.customer || item.title} · ${item.daysOverdue} days overdue`,
+          detail: `Owner: ${item.fullName}. Follow-up “${item.title}” was due ${item.dueDate}.`,
+          href: "/admin/alerts", action: "Review follow-up",
+        })),
+        ...(management.data?.dealerActions ?? []).map((item) => ({
+          key: item.id, tone: "warn" as const, priority: 2,
+          title: `${item.dealerName} · ${item.title}`,
+          detail: `${item.rmName} · ${item.metric} during ${item.period.from} to ${item.period.to}. ${item.action}`,
+          href: item.href, action: "Open dealer record",
+        })),
+        ...(managementTeam.flatMap((rm) => rm.actions.filter((item) => item.kind === "dealer-concentration").map((item) => ({
+          key: item.id, tone: "warn" as const, priority: 4,
+          title: `${rm.name} · ${item.title}`,
+          detail: `${item.metric} for ${item.period.from} to ${item.period.to}. Top dealers: ${rm.concentrationTopDealers.map((dealer) => dealer.name).join(", ") || "unavailable"}. ${item.action}`,
+          href: item.href, action: "Open RM report card",
+        })))),
+        ...(management.data?.visits.pastScheduled ?? []).slice(0, 5).map((item) => ({
+          key: `past-visit-${item.id}`, tone: "warn" as const, priority: 3,
+          title: `${item.customerName} · scheduled visit not recorded complete`,
+          detail: `${item.rmName} / ${item.ownerName} · ${item.scheduledAt}. ${item.action}`,
+          href: item.href, action: "Review visit record",
+        })),
+        ...(management.data?.visits.pendingToday ?? []).filter((item) => !item.pastScheduledTime).slice(0, 3).map((item) => ({
+          key: `pending-visit-${item.id}`, tone: "warn" as const, priority: 3,
+          title: `${item.customerName} · visit planned today`,
+          detail: `${item.rmName} / ${item.ownerName} · ${item.scheduledAt}. ${item.action}`,
+          href: item.href, action: "Review visit plan",
+        })),
+        ...managementTeam.filter((rm) => rm.ownershipMapping !== "verified").map((rm) => ({
+          key: `mapping-${rm.id}`, tone: "warn" as const, priority: 5,
+          title: `${rm.name} · RM ownership ${rm.ownershipMapping}`,
+          detail: "RM sales and dealer attribution are withheld until the active CRM team mapping is unique and verified.",
+          href: "/admin/team", action: "Review team mapping",
+        })),
+        ...(data.customers.unassigned > 0 ? [{
+          key: "unmapped-customers", tone: "warn" as const, priority: 5,
+          title: `${formatNumber(data.customers.unassigned)} customers lack a verified owner`,
+          detail: "Sales attribution is incomplete for these accounts. Assign an owner only after confirming the CRM relationship.",
+          href: "/admin/customers", action: "Review customer ownership",
+        }] : []),
+        ...(!data.tally.connected ? [{
+          key: "tally-unavailable", tone: "critical" as const, priority: 6,
+          title: "Tally connector is not connected",
+          detail: data.tally.message || "Current accounting figures may be stale. Confirm connector health before acting on revenue metrics.",
+          href: "/admin/reports", action: "Review sales report",
+        }] : []),
+        ...(management.data?.sync.needsReview ? [{
+          key: `tally-sync-${management.data.sync.latestRun?.id}`, tone: "critical" as const, priority: 6,
+          title: `Latest Tally sync requires review (${management.data.sync.latestRun?.status})`,
+          detail: `Sync started ${management.data.sync.latestRun?.startedAt}; revenue freshness should be verified before management decisions.`,
+          href: "/admin/reports", action: "Review sync status",
+        }] : []),
+      ].sort((a, b) => a.priority - b.priority).filter((item, index, rows) => rows.findIndex((candidate) => candidate.key === item.key) === index).slice(0, 16);
       return <>
         <section className="kpis" aria-label="Executive summary">
           <KpiCard icon="revenue" label="Revenue" value={formatRupees(data.sales.actual)}
@@ -241,6 +313,41 @@ export function AdminOverview() {
               detail={overdue ? "Customer commitments need action" : "Follow-ups are currently on track"}
               href="/admin/alerts" action="Review follow-ups" />
           </div>
+        </section>
+        <section className="attention-panel" aria-label="Prioritized management actions">
+          <header>
+            <div><h2>Today’s management actions <span className="attention-count">{actions.length}</span></h2>
+              <p>Prioritized from Tally and saved CRM records{management.data?.thresholds.provisional ? " · configured review thresholds are provisional" : ""}</p></div>
+            <Link href="/admin/team">Review team →</Link>
+          </header>
+          {management.loading && <p className="command-data-note">Loading RM performance and activity…</p>}
+          {management.error && <p className="command-data-note" role="alert">Management data could not be loaded: {management.error} <button type="button" onClick={management.reload}>Retry</button></p>}
+          {missingTargetRms.length > 0 && <p className="command-data-note">{missingTargetRms.length} RM{missingTargetRms.length === 1 ? " has" : "s have"} no comparable target and are excluded from performance ranking. Review targets in Users &amp; access.</p>}
+          {management.data && !actions.length ? <p className="command-data-note">No matching actions were returned by the current data sources.</p> :
+            <div className="attention-grid">{actions.map((item) => <AttentionCard key={item.key} tone={item.tone} chip={item.priority === 0 ? "RM performance" : item.priority === 1 ? "Overdue" : item.priority === 2 ? "Dealer" : item.priority === 3 ? "Visit" : item.priority === 4 ? "Concentration" : item.priority === 5 ? "Mapping" : "Tally"} title={item.title} detail={item.detail} href={item.href} action={item.action} />)}</div>}
+          {!data.tally.lastSyncAt && <p className="command-data-note">Tally sync time is unavailable; financial figures should be reviewed for freshness.</p>}
+        </section>
+        <section className="command-products" aria-label="RM MTD and FYTD performance">
+          <header><div><p>Authoritative Tally performance · {management.data?.financialYear ? formatFinancialYear(management.data.financialYear) : "selected financial year"}</p><h2>RM MTD and FYTD comparison</h2></div><Link href="/admin/team">Full team report →</Link></header>
+          {management.data && <div className="admin-table-wrap"><table className="admin-table">
+            <thead><tr><th>RM</th><th className="numeric">MTD actual / target</th><th className="numeric">MTD achieved</th><th className="numeric">FYTD actual / target</th><th className="numeric">FYTD achieved</th><th>Mapping</th></tr></thead>
+            <tbody>{performanceRows.map((rm) => <tr key={rm.id}>
+              <td><Link href={`/admin/team/${encodeURIComponent(rm.id)}?from=${encodeURIComponent(management.data!.period.fyFrom)}&to=${encodeURIComponent(management.data!.period.to)}&fy=${encodeURIComponent(management.data!.financialYear)}`}>{rm.name}</Link></td>
+              <td className="numeric">{rm.monthlyPerformance.actual == null ? "Unavailable" : formatRupees(rm.monthlyPerformance.actual)} / {rm.monthlyPerformance.target == null ? "No target" : formatRupees(rm.monthlyPerformance.target)}</td>
+              <td className="numeric">{rm.monthlyPerformance.achievementPercent == null ? <span className="admin-muted">Unavailable</span> : formatPercent(rm.monthlyPerformance.achievementPercent)}</td>
+              <td className="numeric">{rm.ytdPerformance.actual == null ? "Unavailable" : formatRupees(rm.ytdPerformance.actual)} / {rm.ytdPerformance.target == null ? "No target" : formatRupees(rm.ytdPerformance.target)}</td>
+              <td className="numeric">{rm.ytdPerformance.achievementPercent == null ? <span className="admin-muted">Unavailable</span> : formatPercent(rm.ytdPerformance.achievementPercent)}</td>
+              <td>{rm.ownershipMapping === "verified" ? "Verified" : rm.ownershipMapping}</td>
+            </tr>)}</tbody>
+          </table></div>}
+        </section>
+        <section className="attention-panel" aria-label="Planned customer visits">
+          <header><div><p>Saved activity · {management.data?.asOf ?? "today"}</p><h2>Planned customer visits</h2></div><Link href="/admin/activity">Review all activity →</Link></header>
+          {management.data && <>
+            <p className="command-data-note">{management.data.visits.completedToday} completed of {management.data.visits.scheduledToday} scheduled today. A past scheduled time with no completion is flagged for owner confirmation; it is not assumed to be a no-show.</p>
+            {management.data.visits.byRm.length > 0 && <div className="attention-grid">{management.data.visits.byRm.filter((rm) => rm.plannedToday || rm.completedToday || rm.pastScheduled).map((rm) => <article className="attention-card is-warn" key={rm.rmId ?? rm.rmName}><strong>{rm.rmName}</strong><small>{rm.completedToday} completed / {rm.plannedToday + rm.completedToday} scheduled today · {rm.pastScheduled} past scheduled time awaiting confirmation</small></article>)}</div>}
+            {!management.data.visits.pastScheduled.length && !management.data.visits.pendingToday.length && <p className="command-data-note">No incomplete planned visits are recorded for today or earlier dates.</p>}
+          </>}
         </section>
       </>;
     })()}</AdminState>

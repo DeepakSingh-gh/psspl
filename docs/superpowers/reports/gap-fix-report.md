@@ -1,5 +1,11 @@
 # PSSPL CRM — Gap Fix Implementation & Real Data Verification Report
 
+## Follow-up status ? 16 October 2026
+
+This report retains its original implementation history. Current RM login opens the shared My Day / Customer DB workspace, and /rm redirects there. Admin RM report tabs now start with Manager Action Plan (default) and AI Insights, followed by Report Card, Customer Visits, Pipeline, Actual Sales, Products and Follow-ups. These frontend changes are published in commits 6c585c1 and 87eae1e.
+
+The current source separates AI context from provider calls, reports provider/configuration failures as HTTP 503, and optimizes My Day queries and JSON transfer. Local provider checks and 25-scope aggregate comparisons passed. Backend rollout to Render remains pending live SQLite preservation; earlier statements about completed implementation do not establish that this backend revision is live. See [release evidence](./2026-10-16-production-source-sync.md) and [performance measurements](./2026-10-16-my-day-performance.md). This documentation refresh is local only.
+
 **Date:** 2026-10-07  
 **Context:** This report verifies the completion of the gap fix plan to bring the prototype up to the requirements stated in the PSSPL CRM Concept Document, along with complete ingestion of actual client Excel workbooks and AI Executive Intelligence enhancements.
 
@@ -170,26 +176,7 @@ All core high-priority gaps from the initial concept analysis have been implemen
 
 ---
 
-## 2. Real Client Data Ingestion
 
-All sample mock data has been replaced with actual operational records imported via `scripts/import_psspldata.py`:
+Data-ingestion and operational verification details continue in [the report continuation](./gap-fix-report-continued.md).
 
-| Dataset | Source Workbook | Ingested Records | Impact |
-| :--- | :--- | :--- | :--- |
-| **Customers / Dealers** | `6) Dealer Summary Apr, 2023 to May, 2024.xlsx` | **171 Parties** | Actual dealers (Protec Finish, Metfin Systems, Schneider Electric, etc.) with real cities, destination codes, and ledger balances. |
-| **Product Master** | `8) PSS Product Analysis I 2022-23 (005).xlsx` | **666 Products** | Real chemical catalog (ACID CU SLT, SILVER POTASSIUM CYANIDE, ULTEC 3005, ANTHRACITE, etc.) with UOM and pricing. |
-| **Customer Sales Matrix** | `6) Dealer Summary...xlsx` | **868 Records** | 14-month actual historical billing records. |
-| **Product Sales Matrix** | `8) PSS Product Analysis...xlsx` | **3,483 Records** | Monthly quantity and sales values per product. |
-| **RM Comparisons** | `10) COMPARISON OF PRODUCT WITH QTY.xlsx` | **1,896 Records** | Product qty and value comparison across all 12 RMs. |
-| **RM Targets** | `9) PSS Sales Incentive Calculations-24-25.xlsx` | **144 Targets** | Month-wise targets in Lakhs for 12 RMs. |
-| **Sales Executives** | `9) PSS Sales Incentive Calculations-24-25.xlsx` | **39 Reps** | Real field reps mapped with their codes and RMs. |
-| **Live Invoices** | Derived from real billing | **868 Invoices / 1,730 Lines** | **Rs 35.47 Crore** in sales backing all executive charts. |
-| **User Directory** | Synced with RMs & Sales Reps | **17 Users** | Admin, 12 Regional Managers, and field salespeople ready for immediate sign-in. |
-
----
-
-## 3. Operational Verification
-
-1. **Build Validation:** `npm run build` & `npx tsc --noEmit` completed with zero TypeScript or lint errors.
-2. **Server Health:** Express API on port 4000 and Next.js frontend on port 3000 verified with status `200 OK`.
-3. **AI Intelligence Validation:** Verified executive insight card formatting, metric highlight pills, integrated search button, and live database context retrieval.
+> Current project status (19 October 2026): See the [production readiness report](../../../PSSPL_FINAL_PRODUCTION_READINESS_REPORT.md) for the latest verified work and blockers; earlier findings in this document retain their original date.

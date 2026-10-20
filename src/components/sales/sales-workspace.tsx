@@ -5,12 +5,14 @@ import { useRouter } from "next/navigation";
 import { ApiError, authApi, clearSession, salesApi, salesFeaturesApi, transcribeSpeech } from "@/lib/api";
 import { SalesSidebar } from "./sales-sidebar";
 import { SalesAskAi } from "./sales-ask-ai";
+import { VoiceMicButton } from "@/components/common/voice-mic-button";
 import { LeadBoard } from "./lead-board";
 import { formatRupees } from "@/lib/format";
 import type { CompleteVisitPayload, SalesDay, Visit } from "@/types/sales";
 
 const VISIT_TAGS = ["sample_required", "quotation_required", "technical_support", "complaint"] as const;
 type Tab = "visits" | "pipeline" | "requests";
+const indiaDate = (date = new Date()) => new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Kolkata", year: "numeric", month: "2-digit", day: "2-digit" }).format(date);
 
 // ─── Animated Custom Select ────────────────────────────────────────────────
 function AnimatedSelect({ name, value, onChange, options, placeholder, disabled, required }: {
@@ -131,7 +133,7 @@ export function SalesWorkspace() {
   const [uvCustomer, setUvCustomer] = useState("");
   const [uvPurpose, setUvPurpose] = useState("New requirement");
   const [uvPriority, setUvPriority] = useState("high");
-  const [uvDate, setUvDate] = useState(new Date().toISOString().slice(0, 10));
+  const [uvDate, setUvDate] = useState(indiaDate());
   const [uvTime, setUvTime] = useState(new Date().toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" }));
   const watchId = useRef<number | null>(null);
   const lastPingAt = useRef(0);
@@ -148,10 +150,14 @@ export function SalesWorkspace() {
   const [savingFollowUp, setSavingFollowUp] = useState(false);
   const [followUpModalError, setFollowUpModalError] = useState("");
   const [checkingIn, setCheckingIn] = useState(false);
+  const [savingCall, setSavingCall] = useState(false);
+  const [callNotes, setCallNotes] = useState("");
+  const [visitNotes, setVisitNotes] = useState("");
   const [dictatingId, setDictatingId] = useState<string | null>(null);
   const dictationRecorderRef = useRef<MediaRecorder | null>(null);
 
   async function startDictation(id: string) {
+    if (!window.confirm("Confirm that you have permission to record and transcribe this speech.")) return;
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       const mr = new MediaRecorder(stream);
@@ -186,7 +192,20 @@ export function SalesWorkspace() {
     setError(cause instanceof Error ? cause.message : "Something went wrong");
   }
 
-  useEffect(() => { salesApi.getMyDay().then((day) => { setData(day); if (day.salesperson.trackingActive) startTracking(); }).catch(handleError).finally(() => setLoading(false)); }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  async function refreshMyDay() {
+    const day = await salesApi.getMyDay();
+    setData(day);
+    if (day.salesperson.trackingActive) startTracking();
+  }
+  useEffect(() => {
+    refreshMyDay().catch(handleError).finally(() => setLoading(false));
+    const refresh = (event: Event) => {
+      const request = event as CustomEvent<{ tasks: Promise<unknown>[] }>;
+      request.detail.tasks.push(refreshMyDay().catch((cause) => { handleError(cause); throw cause; }));
+    };
+    window.addEventListener("psspl:refresh-data", refresh);
+    return () => window.removeEventListener("psspl:refresh-data", refresh);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => () => { if (watchId.current !== null) navigator.geolocation.clearWatch(watchId.current); }, []);
   useEffect(() => { if (tab === "requests") salesFeaturesApi.requests().then(setRequests).catch(() => {}); }, [tab]);
 
@@ -195,12 +214,12 @@ export function SalesWorkspace() {
 
   async function performCheckIn(coords?: { latitude: number; longitude: number; accuracy?: number }) {
     try {
-      const day = await salesApi.checkIn(coords ? { latitude: coords.latitude, longitude: coords.longitude } : undefined);
+      const day = await salesApi.checkIn(coords ? { latitude: coords.latitude, longitude: coords.longitude, accuracy: coords.accuracy } : undefined);
       setData(day);
       if (coords) {
         salesFeaturesApi.location({ latitude: coords.latitude, longitude: coords.longitude, accuracy: coords.accuracy }).catch(() => {});
         startTracking();
-      }
+      } else setError("Checked in without GPS coordinates; GPS permission was denied or location was unavailable.");
     } catch (e) {
       handleError(e);
     } finally {
@@ -228,7 +247,18 @@ export function SalesWorkspace() {
 
   async function openVisit(visit: Visit) {
     if (visit.status === "completed") return;
-    try { if (visit.status === "planned") setData(await salesApi.startVisit(visit.id)); setSelectedVisit({ ...visit, status: "in_progress" }); setSelectedTags([]); }
+    try {
+      if (visit.status === "planned") {
+        let position: { latitude: number; longitude: number; accuracy?: number } | undefined;
+        if (navigator.geolocation) position = await new Promise((resolve) => navigator.geolocation.getCurrentPosition(
+          ({ coords }) => resolve({ latitude: coords.latitude, longitude: coords.longitude, accuracy: coords.accuracy }),
+          () => resolve(undefined), { enableHighAccuracy: true, timeout: 8000 },
+        ));
+        setData(await salesApi.startVisit(visit.id, position));
+        if (!position) setError("Visit started without GPS coordinates; location was unavailable or permission was denied.");
+      }
+      setSelectedVisit({ ...visit, status: "in_progress" }); setSelectedTags([]); setVisitNotes(visit.notes || "");
+    }
     catch (e) { handleError(e); }
   }
 
@@ -243,8 +273,8 @@ export function SalesWorkspace() {
       expectedOrderDate: String(form.get("expectedOrderDate") || ""),
       nextFollowUp: String(form.get("nextFollowUp")),
       nextFollowUpType: (form.get("nextFollowUpType") as "call" | "visit") || "call",
-      nextFollowUpNotes: String(form.get("nextFollowUpNotes") || form.get("notes") || ""),
-      notes: String(form.get("notes") || ""),
+      nextFollowUpNotes: String(form.get("nextFollowUpNotes") || visitNotes || ""),
+      notes: visitNotes,
       visitTags: tags,
     };
     setSaving(true);
@@ -303,6 +333,27 @@ export function SalesWorkspace() {
       setSavingFollowUp(false);
     }
   }
+  async function handleLogCall(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const formElement = event.currentTarget;
+    const form = new FormData(formElement);
+    setSavingCall(true);
+    try {
+      await salesFeaturesApi.addCall({
+        customerId: String(form.get("customerId") || ""),
+        direction: String(form.get("direction") || "outgoing") as "incoming" | "outgoing",
+        purpose: String(form.get("purpose") || "").trim(),
+        outcome: String(form.get("outcome") || "").trim(),
+        notes: String(form.get("notes") || "").trim(),
+        followUpDate: String(form.get("followUpDate") || "") || undefined,
+      });
+      setData(await salesApi.getMyDay());
+      formElement.reset();
+      setCallNotes("");
+      setError("Call activity saved. CRM logs are user-entered and are not verified by a phone carrier.");
+    } catch (e) { handleError(e); }
+    finally { setSavingCall(false); }
+  }
   async function logout() { try { await authApi.logout(); } catch {} clearSession(); router.replace("/login"); }
 
   function startTracking() {
@@ -313,12 +364,12 @@ export function SalesWorkspace() {
         if (Date.now() - lastPingAt.current < 30000) return;
         lastPingAt.current = Date.now();
         salesFeaturesApi.location({ latitude: coords.latitude, longitude: coords.longitude, accuracy: coords.accuracy }).catch(() => {});
-      }, () => {}, { enableHighAccuracy: false, maximumAge: 30000, timeout: 60000 });
+      }, () => { setTracking(false); setError("GPS tracking is unavailable. Check your location permission and network; recorded coordinates may be incomplete."); }, { enableHighAccuracy: false, maximumAge: 30000, timeout: 60000 });
       setTracking(true);
     } catch {}
   }
   function stopTracking() { if (watchId.current !== null) navigator.geolocation.clearWatch(watchId.current); watchId.current = null; setTracking(false); }
-  async function finishCheckOut(position?: GeolocationPosition) { try { const payload = position ? { latitude: position.coords.latitude, longitude: position.coords.longitude, accuracy: position.coords.accuracy } : undefined; await salesFeaturesApi.checkOut(payload); stopTracking(); setData(await salesApi.getMyDay()); setError("Checked out successfully. Today's movement route has been saved."); } catch (e) { handleError(e); } }
+  async function finishCheckOut(position?: GeolocationPosition) { try { const payload = position ? { latitude: position.coords.latitude, longitude: position.coords.longitude, accuracy: position.coords.accuracy } : undefined; const result = await salesFeaturesApi.checkOut(payload); stopTracking(); setData(await salesApi.getMyDay()); setError(result.gpsCaptured ? "Checked out successfully; the final GPS coordinates were stored with the reported accuracy." : "Checked out successfully without a final GPS fix. Previously captured route points, if any, remain saved."); } catch (e) { handleError(e); } }
   function checkOut() { if (navigator.geolocation) navigator.geolocation.getCurrentPosition(finishCheckOut, () => finishCheckOut(), { enableHighAccuracy: true, timeout: 10000 }); else finishCheckOut(); }
   async function addUnplanned(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -348,6 +399,7 @@ export function SalesWorkspace() {
   }
 
   async function startVoiceNote() {
+    if (!window.confirm("Confirm that the customer has been informed and agrees to this visit recording.")) return;
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       const mr = new MediaRecorder(stream); chunksRef.current = [];
@@ -355,8 +407,11 @@ export function SalesWorkspace() {
       mr.onstop = async () => {
         stream.getTracks().forEach((t) => t.stop());
         const blob = new Blob(chunksRef.current, { type: "audio/webm" });
+        if (!blob.size) { setError("No audio was captured. You can retry the recording."); setRecording(false); return; }
+        if (blob.size > 25 * 1024 * 1024) { setError("Recording exceeds the 25 MB upload limit. Record a shorter note and retry."); setRecording(false); return; }
         if (voiceNoteVisitId) {
-          await salesFeaturesApi.uploadVoiceNote(voiceNoteVisitId, blob, "webm");
+          try { await salesFeaturesApi.uploadVoiceNote(voiceNoteVisitId, blob, "webm"); setVoiceNoteVisitId(null); }
+          catch (e) { handleError(e); }
           setError("Voice note saved ✓");
         }
         setRecording(false); setVoiceNoteVisitId(null);
@@ -370,7 +425,7 @@ export function SalesWorkspace() {
   if (!data) return <main className="state-screen error">Unable to load the CRM. {error}</main>;
 
   
-  const todayStr = new Date().toISOString().slice(0, 10);
+  const todayStr = indiaDate();
   const dueFollowUps = data.followUps.filter((f) => !f.dueDate || f.dueDate <= todayStr);
   const upcomingFollowUps = data.followUps.filter((f) => f.dueDate && f.dueDate > todayStr);
   const followUpGroups = [
@@ -393,26 +448,14 @@ const tabStyle = (t: Tab): React.CSSProperties => ({
           <p>GOOD MORNING</p>
           <h2>{data.salesperson.name}</h2>
           <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap", marginTop: "4px", marginBottom: "6px" }}>
-            {data.salesperson.rmCode && (
+            {data.salesperson.employeeCode && (
               <span style={{ background: "#eff6ff", border: "1px solid #bfdbfe", color: "#1d4ed8", padding: "1px 8px", borderRadius: "6px", fontSize: "11px", fontWeight: 700 }}>
-                🏷️ RM Code: <strong>{data.salesperson.rmCode}</strong>
+                🏷️ Employee code: <strong>{data.salesperson.employeeCode}</strong>
               </span>
             )}
-            <span style={{ background: "#eff6ff", border: "1px solid #bfdbfe", color: "#1d4ed8", padding: "1px 8px", borderRadius: "6px", fontSize: "11px", fontWeight: 700 }}>
-              📍 Operating from: {data.salesperson.operatingFrom || "Gurugram"}
-            </span>
-
+            {data.salesperson.managerName && <span style={{ background: "#eff6ff", border: "1px solid #bfdbfe", color: "#1d4ed8", padding: "1px 8px", borderRadius: "6px", fontSize: "11px", fontWeight: 700 }}>👤 Reports to: {data.salesperson.managerName}</span>}
           </div>
-          {data.salesperson.teamExecutiveCities && data.salesperson.teamExecutiveCities.length > 0 && (
-            <div style={{ display: "flex", alignItems: "center", gap: "4px", flexWrap: "wrap", marginTop: "4px" }}>
-              <span style={{ fontSize: "10.5px", color: "rgba(255,255,255,0.8)", fontWeight: 600 }}>👥 Coverage:</span>
-              {data.salesperson.teamExecutiveCities.map((c, i) => (
-                <span key={i} style={{ background: "rgba(255,255,255,0.15)", borderRadius: "10px", padding: "0 6px", fontSize: "10px", color: "#fff", fontWeight: 500 }}>
-                  {c}
-                </span>
-              ))}
-            </div>
-          )}
+          {(data.salesperson.region || data.salesperson.territory) && <span style={{ display: "block", marginTop: "4px", fontSize: "12px", color: "rgba(255,255,255,0.85)" }}>{[data.salesperson.region, data.salesperson.territory].filter(Boolean).join(" · ")}</span>}
           <span style={{ display: "block", marginTop: "6px" }}>Plan your visits, capture discussions and close every follow-up.</span>
         </div>
         <div className="checkin"><div><b>{data.salesperson.checkedOutAt ? `Checked out · ${data.salesperson.checkedOutAt}` : data.salesperson.checkedInAt ? `Checked in · ${data.salesperson.checkedInAt}` : "Not checked in"}</b><small>{tracking ? "Live movement tracking active · route points saved automatically" : data.salesperson.checkedOutAt ? "Working day completed and route saved" : "Check in with location permission to begin tracking"}</small></div><button disabled={checkingIn || (Boolean(data.salesperson.checkedInAt) && !data.salesperson.checkedOutAt)} onClick={handleCheckIn} style={{ opacity: (Boolean(data.salesperson.checkedInAt) && !data.salesperson.checkedOutAt) ? 0.75 : 1 }}>{checkingIn ? "Checking In…" : (data.salesperson.checkedInAt && !data.salesperson.checkedOutAt) ? "Checked In" : "Check In"}</button>{data.salesperson.trackingActive && <button className="secondary-action" onClick={checkOut}>Check Out</button>}</div>
@@ -420,15 +463,39 @@ const tabStyle = (t: Tab): React.CSSProperties => ({
       <section className="metrics">
         <Metric label="Today's visits" value={String(data.visits.length)} detail={`${data.visits.length - completed} remaining`} />
         <Metric label="Completed" value={String(completed)} detail="Updates RM automatically" />
+        <Metric label="Expected today" value={`₹${(data.summary.expectedOrderValueToday / 100000).toFixed(1)} L`} detail={`${data.summary.expectedOrderCountToday} saved expectations`} />
         <Metric label="Order Expected" value={`₹${(data.summary.expectedOrderValue / 100000).toFixed(1)} L`} detail={`${data.summary.expectedOrderCount} customer commitments`} />
         <Metric
           label="Monthly target"
           value={data.performance.achievement ? `${data.performance.achievement}%` : achievement === null ? "No target" : `${achievement}%`}
           detail={data.performance.actualRupees && data.performance.targetRupees
             ? `₹${(data.performance.actualRupees / 100000).toFixed(2)} L of ₹${(data.performance.targetRupees / 100000).toFixed(2)} L`
-            : `₹${data.performance.actual} Cr of ₹${data.performance.target} Cr`}
+            : data.performance.target > 0
+              ? `₹${data.performance.actual} Cr of ₹${data.performance.target} Cr`
+              : "Monthly target not configured"}
         />
       </section>
+
+      <section className="panel call-log-panel" style={{ marginTop: "1rem", padding: "1.25rem" }}>
+        <h2 style={{ marginTop: 0 }}>Log a customer call</h2>
+        <p style={{ color: "var(--color-muted)", marginTop: 0 }}>Saved customer interaction; call connection is not technically verified.</p>
+        <form className="call-log-form" onSubmit={handleLogCall}>
+          <label>Customer<select name="customerId" required defaultValue=""><option value="" disabled>Select assigned customer</option>{data.referenceData.customers.map((customer) => <option key={customer.id} value={customer.id}>{customer.name}</option>)}</select></label>
+          <label>Call direction<select name="direction" defaultValue="outgoing"><option value="outgoing">Outgoing</option><option value="incoming">Incoming</option></select></label>
+          <label>Purpose<input name="purpose" required maxLength={200} placeholder="e.g. Product enquiry" /></label>
+          <label>Outcome<input name="outcome" required maxLength={300} placeholder="e.g. Quote requested" /></label>
+          <label>Follow-up date <span>(optional)</span><input name="followUpDate" type="date" /></label>
+          <label className="call-notes-field">Notes <span>(optional)</span><span className="call-notes-input"><textarea name="notes" value={callNotes} onChange={(event) => setCallNotes(event.target.value)} maxLength={2000} placeholder="Add notes or dictate a summary" rows={2} /><VoiceMicButton title="Dictate call notes" onTranscript={(text) => setCallNotes((previous) => previous ? `${previous} ${text}` : text)} /></span></label>
+          <button type="submit" disabled={savingCall || !data.referenceData.customers.length}>{savingCall ? "Saving call…" : "Save call"}</button>
+        </form>
+        <div className="call-log-recent"><b>Calls logged today: {data.summary.loggedCalls}</b>
+          {data.calls.length > 0 && <ul>{data.calls.slice(0, 5).map((call) => <li key={call.id}>{new Date(call.occurredAt).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit", timeZone: "Asia/Kolkata" })} · {call.direction} · {call.customer} · {call.purpose}{call.notes ? ` · ${call.notes}` : ""}</li>)}</ul>}
+        </div>
+      </section>
+      <details className="panel attendance-details" style={{ marginTop: "1rem", padding: "1rem 1.25rem" }}>
+        <summary><span><b>Recent attendance</b><small>View your latest check-in and location records</small></span><span aria-hidden="true">⌄</span></summary>
+        {data.attendanceHistory.length === 0 ? <p>No saved attendance history.</p> : <ul>{data.attendanceHistory.slice(0, 7).map((entry) => <li key={entry.businessDate}>{entry.businessDate} · In {new Date(entry.checkInAt).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit", timeZone: "Asia/Kolkata" })}{entry.checkOutAt ? ` · Out ${new Date(entry.checkOutAt).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit", timeZone: "Asia/Kolkata" })}` : " · Still checked in"} · {entry.latitude === null || entry.longitude === null ? "No GPS coordinates recorded" : `GPS coordinates recorded${entry.gpsAccuracyMeters == null ? "; accuracy unavailable" : `; reported accuracy ${entry.gpsAccuracyMeters} m`}`}</li>)}</ul>}
+      </details>
 
       {/* Voice note prompt */}
       {voiceNoteVisitId && !selectedVisit && (
@@ -441,7 +508,7 @@ const tabStyle = (t: Tab): React.CSSProperties => ({
         </div>
       )}
 
-      <section className="workspace-grid"><article className="workspace-card route-card"><div className="card-title"><div><p>TODAY&apos;S ROUTE</p><h3>Customer visits</h3></div><span>{data.visits.length} scheduled</span></div><div className="visit-list">{data.visits.map((visit, index) => <VisitRow key={visit.id} visit={visit} index={index} onOpen={openVisit} onEdit={(v) => { const va = v as any; setEditingUnplannedVisit(v); setUvPurpose(v.purpose || "New requirement"); setUvPriority(v.priority || "high"); setUvDate(va.scheduledAt ? va.scheduledAt.slice(0, 10) : new Date().toISOString().slice(0, 10)); setUvTime(va.scheduledAt ? va.scheduledAt.slice(11, 16) : new Date().toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })); setModalError(""); setShowUnplanned(true); }} onDelete={async (id) => { if(window.confirm('Delete this visit?')) { try { await salesApi.deleteVisit(id); setData(await salesApi.getMyDay()); } catch(e) { handleError(e); } } }} />)}</div><button className="outline-button" onClick={() => { setEditingUnplannedVisit(null); setUvCustomer(""); setUvPurpose("New requirement"); setUvPriority("high"); setUvDate(new Date().toISOString().slice(0, 10)); setUvTime(new Date().toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })); setModalError(""); setShowUnplanned(true); }}>+ Add unplanned visit</button></article>
+      <section className="workspace-grid"><article className="workspace-card route-card"><div className="card-title"><div><p>TODAY&apos;S ROUTE</p><h3>Customer visits</h3></div><span>{data.visits.length} scheduled</span></div><div className="visit-list">{data.visits.map((visit, index) => <VisitRow key={visit.id} visit={visit} index={index} onOpen={openVisit} onEdit={(v) => { const va = v as any; setEditingUnplannedVisit(v); setUvPurpose(v.purpose || "New requirement"); setUvPriority(v.priority || "high"); setUvDate(va.scheduledAt ? va.scheduledAt.slice(0, 10) : indiaDate()); setUvTime(va.scheduledAt ? va.scheduledAt.slice(11, 16) : new Date().toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", timeZone: "Asia/Kolkata" })); setModalError(""); setShowUnplanned(true); }} onDelete={async (id) => { if(window.confirm('Delete this visit?')) { try { await salesApi.deleteVisit(id); setData(await salesApi.getMyDay()); } catch(e) { handleError(e); } } }} />)}</div><button className="outline-button" onClick={() => { setEditingUnplannedVisit(null); setUvCustomer(""); setUvPurpose("New requirement"); setUvPriority("high"); setUvDate(indiaDate()); setUvTime(new Date().toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", timeZone: "Asia/Kolkata" })); setModalError(""); setShowUnplanned(true); }}>+ Add unplanned visit</button></article>
           {followUpGroups.map(group => (
           <article key={group.title} className="workspace-card" id={group.id} style={{ overflow: "visible", marginTop: group.id === "upcoming-followups" ? "1rem" : 0 }}>
             <div className="card-title">
@@ -705,7 +772,7 @@ const tabStyle = (t: Tab): React.CSSProperties => ({
           </label>
           <label>Next follow-up date<input name="nextFollowUp" type="date" required /></label>
         </div>
-        <label>Discussion notes / Description<textarea name="nextFollowUpNotes" className="followup-textarea" rows={3} placeholder="Write down today's follow-up discussion points & outcome..." /></label>
+        <label>Discussion notes / Description<div style={{ display: "flex", alignItems: "flex-start", gap: "0.35rem" }}><textarea name="nextFollowUpNotes" value={visitNotes} onChange={(event) => setVisitNotes(event.target.value)} className="followup-textarea" rows={3} placeholder="Type or dictate visit discussion notes and outcome..." /><VoiceMicButton title="Dictate visit notes" onTranscript={(text) => setVisitNotes((previous) => previous ? `${previous} ${text}` : text)} /></div></label>
         <button disabled={saving}>{saving ? "Saving..." : "Save & Complete Visit"}</button>
       </form></section></div>}
 
@@ -728,16 +795,6 @@ const tabStyle = (t: Tab): React.CSSProperties => ({
                   {data.referenceData.customers.map((c) => (
                     <option key={c.id} value={c.id}>{c.name} · {c.city}</option>
                   ))}
-                  {/* Hardcoded dummy data for demo */}
-                  <option value="dummy-1">JMD Traders · Delhi</option>
-                  <option value="dummy-2">Rico Chemicals · Mumbai</option>
-                  <option value="dummy-3">2 Daughters · Pune</option>
-                  <option value="dummy-4">Aashirwad Chemicals · Delhi</option>
-                  <option value="dummy-5">Naveen Aqua Chemicals · Bangalore</option>
-                  <option value="dummy-6">F.S. Auto Industries · Chennai</option>
-                  <option value="dummy-7">Pm Trading Co. · Delhi</option>
-                  <option value="dummy-8">Sarvotion Enterprises · Noida</option>
-                  <option value="dummy-9">Maa Enterprises · Gurugram</option>
                 </select>
               </label>
               <label>Follow-up Title<input name="title" placeholder="e.g. Discuss revised quotation" required /></label>
@@ -749,7 +806,7 @@ const tabStyle = (t: Tab): React.CSSProperties => ({
                     <option value="visit">🚗 Field Visit</option>
                   </select>
                 </label>
-                <label>Due Date<input name="dueDate" type="date" required defaultValue={new Date().toISOString().slice(0, 10)} /></label>
+                <label>Due Date<input name="dueDate" type="date" required defaultValue={indiaDate()} /></label>
               </div>
               <label>Discussion Description / Notes
                 <div style={{ position: "relative", marginTop: "0.25rem" }}>

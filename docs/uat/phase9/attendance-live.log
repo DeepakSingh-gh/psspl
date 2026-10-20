@@ -1,0 +1,43 @@
+TAP version 13
+# (node:21744) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# Subtest: persisted attendance revision detects check-in, check-out, aliases, edits and deletion
+ok 1 - persisted attendance revision detects check-in, check-out, aliases, edits and deletion
+  ---
+  duration_ms: 1.7784
+  type: 'test'
+  ...
+# Subtest: multiple views share one poll and only refresh when the revision changes
+ok 2 - multiple views share one poll and only refresh when the revision changes
+  ---
+  duration_ms: 0.6265
+  type: 'test'
+  ...
+# Subtest: hidden tabs skip network and resuming immediately checks for changes
+ok 3 - hidden tabs skip network and resuming immediately checks for changes
+  ---
+  duration_ms: 0.3448
+  type: 'test'
+  ...
+# Subtest: requests do not overlap and pending results are ignored after unsubscribe
+ok 4 - requests do not overlap and pending results are ignored after unsubscribe
+  ---
+  duration_ms: 0.2778
+  type: 'test'
+  ...
+# Subtest: temporary errors retain the baseline and retry detects the next change
+ok 5 - temporary errors retain the baseline and retry detects the next change
+  ---
+  duration_ms: 0.4006
+  type: 'test'
+  ...
+1..5
+# tests 5
+# suites 0
+# pass 5
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 484.6639
+

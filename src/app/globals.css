@@ -75,7 +75,7 @@ button, input, select, textarea { font: inherit; }
 .user-card strong, .user-card small { display: block; }
 .user-card small { font-size: 12px; color: rgba(180,220,248,0.85); }
 
-.sales-main { min-width: 0; padding: 0 32px 48px; }
+.sales-main { min-width: 0; width: 100%; max-width: 1720px; margin-inline: auto; padding: 0 32px 48px; }
 .sales-header { height: 90px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(0,124,186,0.08); margin-bottom: 4px; }
 .sales-header p, .welcome-card p, .card-title p, .visit-modal > p { font-size: 10.5px; letter-spacing: 0.14em; font-weight: 800; color: var(--honolulu-blue); margin: 0; text-transform: uppercase; }
 .sales-header h1 { margin: 4px 0 0; font-size: 26px; font-weight: 700; color: var(--black); letter-spacing: -0.02em; }
@@ -143,9 +143,34 @@ button, input, select, textarea { font: inherit; }
 
 .workspace-grid { display: grid; grid-template-columns: 1.3fr 0.7fr; gap: 16px; }
 .workspace-card { padding: 20px 22px; }
+.sales-main > .panel { border: 1px solid rgba(0,124,186,0.10); border-radius: var(--radius-card); box-shadow: var(--shadow-card); background: #fff; }
+.call-log-panel h2 { margin-bottom: 5px; font-size: 20px; }
+.call-log-panel > p { margin-bottom: 18px; font-size: 13px; line-height: 1.5; }
+.call-log-form { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px 16px; align-items: end; }
+.call-log-form > label { display: grid; gap: 6px; color: #34495a; font-size: 12px; font-weight: 700; }
+.call-log-form > label > span { display: inline; color: #72808c; font-size: 11px; font-weight: 500; }
+.call-log-form input, .call-log-form select, .call-log-form textarea {
+  width: 100%; min-width: 0; min-height: 42px; padding: 9px 11px; border: 1px solid #cbd7e0;
+  border-radius: 9px; background: #fff; color: #142b3a; font-size: 13px; outline: none;
+}
+.call-log-form input:focus, .call-log-form select:focus, .call-log-form textarea:focus { border-color: var(--honolulu-blue); box-shadow: 0 0 0 3px rgba(0,124,186,.12); }
+.call-log-form .call-notes-field { grid-column: span 2; }
+.call-notes-input { display: flex; align-items: center; gap: 8px; }
+.call-notes-input textarea { resize: vertical; }
+.call-log-form > button { min-height: 42px; padding: 10px 18px; border: 0; border-radius: 9px; background: var(--honolulu-blue); color: #fff; font-size: 13px; font-weight: 700; cursor: pointer; }
+.call-log-form > button:disabled { opacity: .55; cursor: not-allowed; }
+.call-log-recent { margin-top: 18px; padding-top: 14px; border-top: 1px solid #e5edf2; color: #465867; font-size: 12px; }
+.call-log-recent ul { display: grid; gap: 5px; margin: 10px 0 0; padding-left: 18px; line-height: 1.5; }
+.attendance-details summary { display: flex; justify-content: space-between; align-items: center; gap: 12px; cursor: pointer; list-style: none; }
+.attendance-details summary::-webkit-details-marker { display: none; }
+.attendance-details summary span:first-child { display: grid; gap: 4px; }
+.attendance-details summary b { color: #17384d; font-size: 14px; }
+.attendance-details summary small { color: #71808c; font-size: 12px; }
+.attendance-details[open] summary { padding-bottom: 12px; border-bottom: 1px solid #e5edf2; }
+.attendance-details ul { display: grid; gap: 7px; margin-bottom: 4px; padding-left: 20px; color: #52616e; font-size: 12px; line-height: 1.5; }
 .route-card { grid-row: span 2; }
 
-.card-title { display: flex; justify-content: space-between; align-items: start; margin-bottom: 2px; }
+.card-title { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 2px; }
 .card-title h3 { margin: 4px 0 0; font-size: 17px; color: var(--black); font-weight: 700; letter-spacing: -0.01em; }
 .card-title > span { background: linear-gradient(135deg, #e8f4fd, #dbeefa); color: var(--honolulu-blue); padding: 5px 10px; border-radius: 99px; font-size: 11.5px; font-weight: 700; border: 1px solid rgba(0,124,186,0.15); }
 .card-title > strong { font-size: 26px; color: var(--honolulu-blue); font-weight: 700; }
@@ -267,6 +292,7 @@ button, input, select, textarea { font: inherit; }
   .workspace-grid { grid-template-columns: 1fr; }
   .route-card { grid-row: auto; }
   .sales-main { padding: 0 20px 40px; }
+  .call-log-form { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 
 @media(max-width: 680px) {
@@ -286,6 +312,8 @@ button, input, select, textarea { font: inherit; }
   .visit-row { grid-template-columns: 36px 1fr; }
   .visit-row button { grid-column: 2; }
   .form-row { grid-template-columns: 1fr; }
+  .call-log-form { grid-template-columns: 1fr; gap: 12px; }
+  .call-log-form .call-notes-field { grid-column: auto; }
 }
 
 /* Premium Follow-up Description Box Styles */
@@ -456,3 +484,36 @@ em.overdue {
 
 /* Spinner for loading buttons */
 @keyframes spin { to { transform: rotate(360deg); } }
+/* One fixed refresh control shared by every app route. Keep it below modal overlays. */
+.page-refresh-button {
+  position: fixed;
+  right: max(20px, env(safe-area-inset-right));
+  bottom: max(20px, env(safe-area-inset-bottom));
+  z-index: 19;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 11px 16px;
+  border: 1px solid #00699e;
+  border-radius: 12px;
+  background: #007cba;
+  color: #fff;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1.3;
+  box-shadow: 0 4px 16px rgba(0, 61, 91, 0.2);
+  cursor: pointer;
+}
+.page-refresh-button svg { width: 18px; height: 18px; flex-shrink: 0; }
+.page-refresh-button:hover { background: #00699e; }
+.page-refresh-button:focus-visible { outline: 3px solid #7a00df; outline-offset: 3px; }
+.page-refresh-button:disabled { opacity: 0.75; cursor: wait; }
+@media (max-width: 600px) {
+  .page-refresh-button { right: max(12px, env(safe-area-inset-right)); bottom: max(12px, env(safe-area-inset-bottom)); padding: 10px 12px; }
+}
+@media print {
+  .page-refresh-button { display: none !important; }
+}

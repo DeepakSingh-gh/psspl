@@ -1,24 +1,15 @@
-import { db } from "./db.mjs";
 import pg from "pg";
-import fs from "node:fs";
-import path from "node:path";
-import { fileURLToPath } from "node:url";
 
-// Load .env
-const projectRoot = fileURLToPath(new URL("..", import.meta.url));
-const envPath = path.join(projectRoot, ".env");
-if (fs.existsSync(envPath)) {
-  const content = fs.readFileSync(envPath, "utf8");
-  for (const line of content.split("\n")) {
-    const trimmed = line.trim();
-    if (trimmed && !trimmed.startsWith("#")) {
-      const split = trimmed.split("=");
-      if (split.length >= 2) {
-        process.env[split[0].trim()] = split.slice(1).join("=").trim().replace(/^"|"$/g, '');
-      }
-    }
-  }
-}
+// Explicit business-data allowlist. Authentication, connector secrets, pairing
+// codes, audit trails and transient staged payloads are intentionally excluded.
+const REPLICATED_TABLES = new Set([
+  "customer_activities", "expected_orders", "follow_ups",
+  "leads", "salesperson_profiles", "service_requests",
+  "tally_connectors", "tally_customer_monthly_sales", "tally_customers", "tally_invoice_lines",
+  "tally_invoices", "tally_party_payments", "tally_payments_live", "tally_product_monthly_sales",
+  "tally_products", "tally_purchase_lines", "tally_purchases", "tally_rm_product_sales",
+  "tally_rm_targets", "tally_salespeople", "tally_sync_runs", "thrust_products", "visit_products", "visits",
+]);
 
 const connectionString = process.env.DIRECT_URL;
 if (!connectionString) {
@@ -26,9 +17,11 @@ if (!connectionString) {
   process.exit(1);
 }
 
+const { db } = await import("./db.mjs");
+
 const pool = new pg.Pool({
   connectionString,
-  ssl: { rejectUnauthorized: false }
+  ssl: { rejectUnauthorized: true }
 });
 
 async function syncToSupabase() {
@@ -37,7 +30,8 @@ async function syncToSupabase() {
   
   try {
     console.log("Connected! Fetching SQLite tables...");
-    const tables = db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'").all();
+    const tables = db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'").all()
+      .filter(({ name }) => REPLICATED_TABLES.has(name));
     
     for (const { name: tableName } of tables) {
       console.log(`Syncing table: ${tableName}`);

@@ -2,7 +2,7 @@
 import { ReactNode, useEffect, useState, type FormEvent } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { ApiError, authApi, clearSession, hasSession } from "@/lib/api";
+import { ApiError, authApi, clearSession } from "@/lib/api";
 import { initialsOf } from "@/lib/format";
 import type { SessionUser } from "@/types/admin";
 import { HeaderAiAsk } from "./admin-ask-ai";
@@ -71,7 +71,6 @@ export function AdminShell({ children }: { children: ReactNode }) {
 
   // The API authorises every admin request; this only decides what to render.
   useEffect(() => {
-    if (!hasSession()) { router.replace("/login"); return; }
     let cancelled = false;
     authApi.me()
       .then((result) => {

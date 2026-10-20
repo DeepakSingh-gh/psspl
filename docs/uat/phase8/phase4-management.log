@@ -1,0 +1,63 @@
+TAP version 13
+# (node:33916) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/Users/deepa/psspl/src/lib/admin-performance.ts is not specified and it doesn't parse as CommonJS.
+# Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+# To eliminate this warning, add "type": "module" to C:\\Users\\deepa\\psspl\\package.json.
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# Subtest: RM ranking orders verified achievement and keeps missing targets separate
+ok 1 - RM ranking orders verified achievement and keeps missing targets separate
+  ---
+  duration_ms: 1.6972
+  type: 'test'
+  ...
+# Subtest: ranking never substitutes sales value for a missing target score
+ok 2 - ranking never substitutes sales value for a missing target score
+  ---
+  duration_ms: 0.1857
+  type: 'test'
+  ...
+# Subtest: dealer concentration uses the top five actual attributed invoices and nulls empty totals
+ok 3 - dealer concentration uses the top five actual attributed invoices and nulls empty totals
+  ---
+  duration_ms: 0.3802
+  type: 'test'
+  ...
+# Subtest: dealer decline needs comparable prior invoice evidence; missing history is not decline
+ok 4 - dealer decline needs comparable prior invoice evidence; missing history is not decline
+  ---
+  duration_ms: 1.3103
+  type: 'test'
+  ...
+# Subtest: MTD and FYTD metrics expose absent targets instead of estimating achievement
+ok 5 - MTD and FYTD metrics expose absent targets instead of estimating achievement
+  ---
+  duration_ms: 0.2737
+  type: 'test'
+  ...
+# Subtest: planned visits become past-scheduled only after their saved time and stay distinct from pending
+ok 6 - planned visits become past-scheduled only after their saved time and stay distinct from pending
+  ---
+  duration_ms: 0.302
+  type: 'test'
+  ...
+# Subtest: duplicate management findings with the same stable issue id are published once
+ok 7 - duplicate management findings with the same stable issue id are published once
+  ---
+  duration_ms: 0.198
+  type: 'test'
+  ...
+# Subtest: Tally completion and failure states are distinguished without inventing a freshness SLA
+ok 8 - Tally completion and failure states are distinguished without inventing a freshness SLA
+  ---
+  duration_ms: 0.1165
+  type: 'test'
+  ...
+1..8
+# tests 8
+# suites 0
+# pass 8
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 195.4203
+
