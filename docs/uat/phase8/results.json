@@ -1,0 +1,129 @@
+{
+  "executedAt": "2026-10-18T16:25:36.487Z",
+  "results": [
+    {
+      "name": "phase1-security",
+      "command": "node --test scripts/phase1-security.test.mjs",
+      "exitCode": 0,
+      "signal": null,
+      "durationMs": 2175,
+      "pass": 10,
+      "fail": 0
+    },
+    {
+      "name": "phase2-tally-accuracy",
+      "command": "node --test scripts/phase2-tally-accuracy.test.mjs",
+      "exitCode": 0,
+      "signal": null,
+      "durationMs": 1454,
+      "pass": 6,
+      "fail": 0
+    },
+    {
+      "name": "phase3-rm-report",
+      "command": "node --test scripts/phase3-rm-report.test.mjs",
+      "exitCode": 0,
+      "signal": null,
+      "durationMs": 241,
+      "pass": 4,
+      "fail": 0
+    },
+    {
+      "name": "phase4-management",
+      "command": "node --test scripts/phase4-management.test.mjs",
+      "exitCode": 0,
+      "signal": null,
+      "durationMs": 339,
+      "pass": 8,
+      "fail": 0
+    },
+    {
+      "name": "phase5-field-workflows",
+      "command": "node --test scripts/phase5-field-workflows.test.mjs",
+      "exitCode": 0,
+      "signal": null,
+      "durationMs": 920,
+      "pass": 5,
+      "fail": 0
+    },
+    {
+      "name": "phase6-leads",
+      "command": "node --test scripts/phase6-leads.test.mjs",
+      "exitCode": 0,
+      "signal": null,
+      "durationMs": 1046,
+      "pass": 2,
+      "fail": 0
+    },
+    {
+      "name": "phase6-reports",
+      "command": "node --test scripts/phase6-reports.test.mjs",
+      "exitCode": 0,
+      "signal": null,
+      "durationMs": 1821,
+      "pass": 2,
+      "fail": 0
+    },
+    {
+      "name": "phase7-automation",
+      "command": "node --test scripts/phase7-automation.test.mjs",
+      "exitCode": 0,
+      "signal": null,
+      "durationMs": 1619,
+      "pass": 19,
+      "fail": 0
+    },
+    {
+      "name": "ai-provider",
+      "command": "node --test scripts/ai-provider.test.mjs",
+      "exitCode": 0,
+      "signal": null,
+      "durationMs": 216,
+      "pass": 7,
+      "fail": 0
+    },
+    {
+      "name": "attendance-live",
+      "command": "node --test scripts/attendance-live.test.mjs",
+      "exitCode": 0,
+      "signal": null,
+      "durationMs": 648,
+      "pass": 5,
+      "fail": 0
+    },
+    {
+      "name": "phase8-workflows",
+      "command": "node --test scripts/phase8-workflows.test.mjs",
+      "exitCode": 0,
+      "signal": null,
+      "durationMs": 3958,
+      "pass": 8,
+      "fail": 0
+    },
+    {
+      "name": "phase6-my-day",
+      "command": "node scripts/phase6-my-day.test.mjs",
+      "exitCode": 0,
+      "signal": null,
+      "durationMs": 646,
+      "pass": 0,
+      "fail": 0
+    },
+    {
+      "name": "typescript",
+      "command": "node node_modules/typescript/bin/tsc --noEmit --incremental false",
+      "exitCode": 0,
+      "signal": null,
+      "durationMs": 10748,
+      "pass": 0,
+      "fail": 0
+    }
+  ],
+  "preservation": {
+    "baselineFiles": 241,
+    "changedExistingFiles": [],
+    "manifest": "Temporary local manifest retained outside the repository"
+  },
+  "network": "Loopback-only real sockets/fetch; provider mocks may replace fetch",
+  "scratch": "C:\\Users\\deepa\\AppData\\Local\\Temp\\psspl-phase8-run-kLzLyX"
+}

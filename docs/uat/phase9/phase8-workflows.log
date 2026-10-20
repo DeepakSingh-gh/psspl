@@ -1,0 +1,81 @@
+TAP version 13
+# (node:12268) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# (node:11412) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# Subtest: real login validates credentials for all roles; protected routes deny unauthenticated requests
+ok 1 - real login validates credentials for all roles; protected routes deny unauthenticated requests
+  ---
+  duration_ms: 1069.1977
+  type: 'test'
+  ...
+# Subtest: admin invitation, verified delivery events, activation, expiry, reset and session revocation work securely
+ok 2 - admin invitation, verified delivery events, activation, expiry, reset and session revocation work securely
+  ---
+  duration_ms: 1518.1939
+  type: 'test'
+  ...
+# Subtest: admin can invite an inactive account created before email was configured
+ok 3 - admin can invite an inactive account created before email was configured
+  ---
+  duration_ms: 101.8091
+  type: 'test'
+  ...
+# Subtest: new RM activates with their own password and old links cannot override admin account changes
+ok 4 - new RM activates with their own password and old links cannot override admin account changes
+  ---
+  duration_ms: 722.1284
+  type: 'test'
+  ...
+# Subtest: sales day persists attendance, visit transitions, order, follow-up, call and checkout across real app routes
+ok 5 - sales day persists attendance, visit transitions, order, follow-up, call and checkout across real app routes
+  ---
+  duration_ms: 233.7494
+  type: 'test'
+  ...
+# Subtest: synthetic audio upload/download is protected and authenticated STT uses a mocked provider
+ok 6 - synthetic audio upload/download is protected and authenticated STT uses a mocked provider
+  ---
+  duration_ms: 88.4223
+  type: 'test'
+  ...
+# Subtest: manager team visibility and lead progression persist; admin reports reconcile net synthetic sales
+ok 7 - manager team visibility and lead progression persist; admin reports reconcile net synthetic sales
+  ---
+  duration_ms: 230.1452
+  type: 'test'
+  ...
+# Subtest: logout revokes the actual session and expired sessions deny further access
+ok 8 - logout revokes the actual session and expired sessions deny further access
+  ---
+  duration_ms: 10.7135
+  type: 'test'
+  ...
+# Subtest: fresh database login and My Day succeed without any schema compatibility shim
+ok 9 - fresh database login and My Day succeed without any schema compatibility shim
+  ---
+  duration_ms: 709.8259
+  type: 'test'
+  ...
+# Subtest: encrypted synthetic backup refuses a wrong restore key
+ok 10 - encrypted synthetic backup refuses a wrong restore key
+  ---
+  duration_ms: 183.2691
+  type: 'test'
+  ...
+# Subtest: India-time report preset retains the intended calendar day
+ok 11 - India-time report preset retains the intended calendar day
+  ---
+  duration_ms: 17.5892
+  type: 'test'
+  ...
+1..11
+# tests 11
+# suites 0
+# pass 11
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 5015.9168
+

@@ -1,0 +1,1293 @@
+{
+  "date": "2026-10-18",
+  "baseline": 142,
+  "counts": {
+    "COMPLETED": 28,
+    "PARTIALLY COMPLETED": 103,
+    "NOT IMPLEMENTED": 5,
+    "BROKEN": 1,
+    "NOT VERIFIED": 5
+  },
+  "verifiedCompletionPercent": 19.72,
+  "acceptance": "FAIL",
+  "rows": [
+    {
+      "id": "A01",
+      "module": "A",
+      "requirement": "Centralized admin dashboard",
+      "status": "PARTIALLY COMPLETED",
+      "finding": "Authenticated dashboard APIs pass; actual dashboard rendering/navigation and clean initialization remain unaccepted.",
+      "evidence": "E41",
+      "previousStatus": "COMPLETED"
+    },
+    {
+      "id": "A02",
+      "module": "A",
+      "requirement": "Revenue and sales target KPIs",
+      "status": "PARTIALLY COMPLETED",
+      "finding": "Net invoice and explicit target calculations pass P2/P4; earlier double-counting finding is superseded. Live control totals, target coverage and UI acceptance remain.",
+      "evidence": "E41",
+      "previousStatus": "BROKEN"
+    },
+    {
+      "id": "A03",
+      "module": "A",
+      "requirement": "Daily, monthly, and YTD performance tracking",
+      "status": "PARTIALLY COMPLETED",
+      "finding": "MTD/FYTD and fiscal-boundary fixtures pass; daily/all-screen period parity and date-preset defect UAT-02 remain.",
+      "evidence": "E41",
+      "previousStatus": "PARTIALLY COMPLETED"
+    },
+    {
+      "id": "A04",
+      "module": "A",
+      "requirement": "Field coverage and salesperson activity",
+      "status": "PARTIALLY COMPLETED",
+      "finding": "Visits, attendance and logged-call metrics persist in P5/P8; complete browser activity/coverage acceptance remains.",
+      "evidence": "E41",
+      "previousStatus": "PARTIALLY COMPLETED"
+    },
+    {
+      "id": "A05",
+      "module": "A",
+      "requirement": "GPS-based sales team location visibility",
+      "status": "PARTIALLY COMPLETED",
+      "finding": "Coordinates and accuracy are captured/validated synthetically; map rendering, GPS permission, staleness and device accuracy remain unverified.",
+      "evidence": "E41",
+      "previousStatus": "PARTIALLY COMPLETED"
+    },
+    {
+      "id": "A06",
+      "module": "A",
+      "requirement": "List of all Relationship Managers (RMs)",
+      "status": "PARTIALLY COMPLETED",
+      "finding": "RM directory and unique owner mapping are implemented; authoritative client roster and aliases require approval.",
+      "evidence": "E41",
+      "previousStatus": "PARTIALLY COMPLETED"
+    },
+    {
+      "id": "A07",
+      "module": "A",
+      "requirement": "Underperforming RMs displayed first",
+      "status": "PARTIALLY COMPLETED",
+      "finding": "Score-only ascending ranking and missing-target placement pass P4; displayed order requires browser acceptance.",
+      "evidence": "E41",
+      "previousStatus": "COMPLETED"
+    },
+    {
+      "id": "A08",
+      "module": "A",
+      "requirement": "RM performance ranking based on target achievement",
+      "status": "PARTIALLY COMPLETED",
+      "finding": "Target-based ranking replaces revenue fallback and passes P4; live targets/mapping and displayed ranking require acceptance.",
+      "evidence": "E41",
+      "previousStatus": "PARTIALLY COMPLETED"
+    },
+    {
+      "id": "A09",
+      "module": "A",
+      "requirement": "Daily management action list",
+      "status": "PARTIALLY COMPLETED",
+      "finding": "Evidence-linked prioritized management actions exist and P4 helpers pass; thresholds and browser workflow remain pending.",
+      "evidence": "E41",
+      "previousStatus": "PARTIALLY COMPLETED"
+    },
+    {
+      "id": "A10",
+      "module": "A",
+      "requirement": "\"Needs Your Attention\" section",
+      "status": "PARTIALLY COMPLETED",
+      "finding": "Attention APIs and deduplication pass P2/P4; attention-card rendering and client policy acceptance remain.",
+      "evidence": "E41",
+      "previousStatus": "COMPLETED"
+    },
+    {
+      "id": "A11",
+      "module": "A",
+      "requirement": "Clickable RM names opening detailed report cards",
+      "status": "PARTIALLY COMPLETED",
+      "finding": "Team links preserve financial year in source; actual click-through and report rendering are NOT VERIFIED.",
+      "evidence": "E41",
+      "previousStatus": "COMPLETED"
+    },
+    {
+      "id": "A12",
+      "module": "A",
+      "requirement": "Data consolidated from field sales and tele-sales",
+      "status": "PARTIALLY COMPLETED",
+      "finding": "Logged calls and visits now persist in P5/P8; telephony verification, complete consolidated UI and client scope remain pending.",
+      "evidence": "E41",
+      "previousStatus": "PARTIALLY COMPLETED"
+    },
+    {
+      "id": "B01",
+      "module": "B",
+      "requirement": "Monthly sales target vs actual sales",
+      "status": "PARTIALLY COMPLETED",
+      "finding": "MTD explicit target/actual and no-target behavior pass P2/P3; production target coverage and browser acceptance remain.",
+      "evidence": "E41",
+      "previousStatus": "PARTIALLY COMPLETED"
+    },
+    {
+      "id": "B02",
+      "module": "B",
+      "requirement": "Year-to-date sales target vs actual sales",
+      "status": "PARTIALLY COMPLETED",
+      "finding": "FYTD actual/target agrees with management attention in P2; production target coverage and period acceptance remain.",
+      "evidence": "E41",
+      "previousStatus": "PARTIALLY COMPLETED"
+    },
+    {
+      "id": "B03",
+      "module": "B",
+      "requirement": "Sales achievement percentage",
+      "status": "PARTIALLY COMPLETED",
+      "finding": "Shared explicit-lakh target calculation passes P2/P3; mixed-unit profile targets are withheld. Client target reconciliation remains.",
+      "evidence": "E41",
+      "previousStatus": "PARTIALLY COMPLETED"
+    },
+    {
+      "id": "B04",
+      "module": "B",
+      "requirement": "Sales performance trends",
+      "status": "PARTIALLY COMPLETED",
+      "finding": "Zero-sales months and comparable-period product trends implemented; full chart rendering and live history remain unverified.",
+      "evidence": "E41",
+      "previousStatus": "PARTIALLY COMPLETED"
+    },
+    {
+      "id": "B05",
+      "module": "B",
+      "requirement": "Total customer visits",
+      "status": "PARTIALLY COMPLETED",
+      "finding": "Admin detail now counts team-owned visits by business date without the old customer OR predicate; source reviewed, full report/device acceptance remains.",
+      "evidence": "E41",
+      "previousStatus": "PARTIALLY COMPLETED"
+    },
+    {
+      "id": "B06",
+      "module": "B",
+      "requirement": "Total customer calls",
+      "status": "PARTIALLY COMPLETED",
+      "finding": "Admin detail now counts call/incoming/outgoing activities and P5/P8 verify call persistence; report-card browser acceptance remains.",
+      "evidence": "E41",
+      "previousStatus": "PARTIALLY COMPLETED"
+    },
+    {
+      "id": "B07",
+      "module": "B",
+      "requirement": "Planned visits vs completed visits",
+      "status": "PARTIALLY COMPLETED",
+      "finding": "Persisted planned/completed classification passes P4/P5/P8; no-show semantics and report-card rendering remain pending.",
+      "evidence": "E41",
+      "previousStatus": "PARTIALLY COMPLETED"
+    },
+    {
+      "id": "B08",
+      "module": "B",
+      "requirement": "Pending and overdue follow-ups",
+      "status": "PARTIALLY COMPLETED",
+      "finding": "Overdue binding and insights pass P2; current-state follow-up/history limitations and browser acceptance remain.",
+      "evidence": "E41",
+      "previousStatus": "PARTIALLY COMPLETED"
+    },
+    {
+      "id": "B09",
+      "module": "B",
+      "requirement": "Top 5 dealers by revenue",
+      "status": "PARTIALLY COMPLETED",
+      "finding": "Full eligible dealer population, beyond 50 detail rows, is verified by P2; real dealer control totals remain unverified.",
+      "evidence": "E41",
+      "previousStatus": "PARTIALLY COMPLETED"
+    },
+    {
+      "id": "B10",
+      "module": "B",
+      "requirement": "Total active dealers",
+      "status": "PARTIALLY COMPLETED",
+      "finding": "Distinct eligible invoice customer counts pass P2; authoritative dealer identities and actual report rendering remain unverified.",
+      "evidence": "E41",
+      "previousStatus": "PARTIALLY COMPLETED"
+    },
+    {
+      "id": "B11",
+      "module": "B",
+      "requirement": "Dormant/inactive dealers based on invoice history",
+      "status": "PARTIALLY COMPLETED",
+      "finding": "Invoice-history dormancy and insufficient-history rules pass P3; approved age threshold and complete live history remain.",
+      "evidence": "E41",
+      "previousStatus": "PARTIALLY COMPLETED"
+    },
+    {
+      "id": "B12",
+      "module": "B",
+      "requirement": "New customers added in the last 6 months",
+      "status": "NOT IMPLEMENTED",
+      "finding": "Customer creation timestamp/origin is absent; API intentionally returns null. Six-month new-customer metric is not implemented; obsolete fabricated-estimate defect removed.",
+      "evidence": "E41",
+      "previousStatus": "BROKEN"
+    },
+    {
+      "id": "B13",
+      "module": "B",
+      "requirement": "Revenue concentration across dealers",
+      "status": "PARTIALLY COMPLETED",
+      "finding": "Complete-population top-five concentration reconciles in P2/P3; live accounting denominator and UI remain unverified.",
+      "evidence": "E41",
+      "previousStatus": "PARTIALLY COMPLETED"
+    },
+    {
+      "id": "B14",
+      "module": "B",
+      "requirement": "Top-selling products",
+      "status": "PARTIALLY COMPLETED",
+      "finding": "Authoritative signed product aggregates pass P2; live invoice-line coverage and report/PDF acceptance remain.",
+      "evidence": "E41",
+      "previousStatus": "PARTIALLY COMPLETED"
+    },
+    {
+      "id": "B15",
+      "module": "B",
+      "requirement": "Product-wise sales performance",
+      "status": "PARTIALLY COMPLETED",
+      "finding": "Comparable-period product intelligence includes prior-only products; live mapping/line coverage and charts remain unverified.",
+      "evidence": "E41",
+      "previousStatus": "PARTIALLY COMPLETED"
+    },
+    {
+      "id": "B16",
+      "module": "B",
+      "requirement": "Identification of underperforming dealers",
+      "status": "PARTIALLY COMPLETED",
+      "finding": "History-based decline/dormancy classification passes P3/P4; approved thresholds, history completeness and client acceptance remain.",
+      "evidence": "E41",
+      "previousStatus": "PARTIALLY COMPLETED"
+    },
+    {
+      "id": "B17",
+      "module": "B",
+      "requirement": "Actionable recommendations for improving RM performance",
+      "status": "PARTIALLY COMPLETED",
+      "finding": "Server evidence-backed review actions pass P3/P4; action owner/due-date/closure tracking and business policy are incomplete.",
+      "evidence": "E41",
+      "previousStatus": "PARTIALLY COMPLETED"
+    },
+    {
+      "id": "B18",
+      "module": "B",
+      "requirement": "Detailed drill-down from admin dashboard to RM report card",
+      "status": "PARTIALLY COMPLETED",
+      "finding": "Linked RM report endpoint passes P2; click-through, tabs and rendered PDF/browser output remain NOT VERIFIED.",
+      "evidence": "E41",
+      "previousStatus": "COMPLETED"
+    },
+    {
+      "id": "C01",
+      "module": "C",
+      "requirement": "RM/SE login and authentication",
+      "status": "PARTIALLY COMPLETED",
+      "finding": "Real HTTP login/logout and expiry pass P8 for all roles; browser login/session UX remains NOT VERIFIED.",
+      "evidence": "E41",
+      "previousStatus": "COMPLETED"
+    },
+    {
+      "id": "C02",
+      "module": "C",
+      "requirement": "Daily check-in and check-out",
+      "status": "PARTIALLY COMPLETED",
+      "finding": "Actual-app check-in/check-out, duplicate guards and saved state pass P8; physical-device and browser acceptance remain.",
+      "evidence": "E41",
+      "previousStatus": "COMPLETED"
+    },
+    {
+      "id": "C03",
+      "module": "C",
+      "requirement": "GPS location capture",
+      "status": "PARTIALLY COMPLETED",
+      "finding": "Valid coordinates/accuracy persist and invalid coordinates are rejected in P5/P8; physical GPS and permission states remain unverified.",
+      "evidence": "E41",
+      "previousStatus": "PARTIALLY COMPLETED"
+    },
+    {
+      "id": "C04",
+      "module": "C",
+      "requirement": "Date and time tracking",
+      "status": "COMPLETED",
+      "finding": "India business-date tracking passes P5; actual-app attendance, visit and call persistence passes P8. Narrow timestamp requirement verified synthetically.",
+      "evidence": "E41",
+      "previousStatus": "COMPLETED"
+    },
+    {
+      "id": "C05",
+      "module": "C",
+      "requirement": "GPS verification for physical customer visits",
+      "status": "NOT IMPLEMENTED",
+      "finding": "No approved customer coordinates, distance rule or physical-visit geofence verification exists.",
+      "evidence": "E41",
+      "previousStatus": "NOT IMPLEMENTED"
+    },
+    {
+      "id": "C06",
+      "module": "C",
+      "requirement": "Customer visit creation and logging",
+      "status": "PARTIALLY COMPLETED",
+      "finding": "Create/start/complete, owner denial and repeat guards pass actual-app P8; browser/device visit forms remain unverified.",
+      "evidence": "E41",
+      "previousStatus": "COMPLETED"
+    },
+    {
+      "id": "C07",
+      "module": "C",
+      "requirement": "Customer call logging",
+      "status": "PARTIALLY COMPLETED",
+      "finding": "Incoming/outgoing call persistence, daily counts and follow-ups pass P5/P8; UI acceptance remains. Entries are not carrier-verified calls.",
+      "evidence": "E41",
+      "previousStatus": "COMPLETED"
+    },
+    {
+      "id": "C08",
+      "module": "C",
+      "requirement": "Mandatory logging of visits and calls",
+      "status": "NOT IMPLEMENTED",
+      "finding": "Mandatory daily visit/call completeness gate and approved logging policy are absent.",
+      "evidence": "E41",
+      "previousStatus": "NOT IMPLEMENTED"
+    },
+    {
+      "id": "C09",
+      "module": "C",
+      "requirement": "Customer selection and details",
+      "status": "PARTIALLY COMPLETED",
+      "finding": "Owner/team access passes P1/P8; customer list still slices to 100 and search/list browser coverage remains pending.",
+      "evidence": "E41",
+      "previousStatus": "PARTIALLY COMPLETED"
+    },
+    {
+      "id": "C10",
+      "module": "C",
+      "requirement": "Product selection",
+      "status": "PARTIALLY COMPLETED",
+      "finding": "Product reference and saved visit product are wired and P8 completion passes; actual product-selector interaction remains unverified.",
+      "evidence": "E41",
+      "previousStatus": "COMPLETED"
+    },
+    {
+      "id": "C11",
+      "module": "C",
+      "requirement": "Visit purpose",
+      "status": "COMPLETED",
+      "finding": "Purpose required by creation endpoint and saved through actual-app P8 visit workflow; narrow persisted-field requirement verified.",
+      "evidence": "E41",
+      "previousStatus": "COMPLETED"
+    },
+    {
+      "id": "C12",
+      "module": "C",
+      "requirement": "Visit outcome",
+      "status": "COMPLETED",
+      "finding": "Required outcome is validated and saved by actual-app P8 completion; invalid state/repeated completion are rejected.",
+      "evidence": "E41",
+      "previousStatus": "COMPLETED"
+    },
+    {
+      "id": "C13",
+      "module": "C",
+      "requirement": "Expected order value",
+      "status": "COMPLETED",
+      "finding": "Nonnegative expected-order validation and saved value/day totals pass P5/P8 with synthetic value 2500.",
+      "evidence": "E41",
+      "previousStatus": "COMPLETED"
+    },
+    {
+      "id": "C14",
+      "module": "C",
+      "requirement": "Next follow-up date",
+      "status": "COMPLETED",
+      "finding": "Date-only follow-up validation, creation and owner-protected completion pass P5/P8; malformed dates are rejected.",
+      "evidence": "E41",
+      "previousStatus": "COMPLETED"
+    },
+    {
+      "id": "C15",
+      "module": "C",
+      "requirement": "Voice recording for interactions",
+      "status": "PARTIALLY COMPLETED",
+      "finding": "Synthetic byte upload/download passes P8 with owner/team protection; microphone, codec and actual recording acceptance remain NOT VERIFIED.",
+      "evidence": "E41",
+      "previousStatus": "PARTIALLY COMPLETED"
+    },
+    {
+      "id": "C16",
+      "module": "C",
+      "requirement": "Speech-to-text transcription",
+      "status": "PARTIALLY COMPLETED",
+      "finding": "Authenticated multipart STT returns a mocked transcript in P8; actual audio recognition/language/accuracy is NOT VERIFIED.",
+      "evidence": "E41",
+      "previousStatus": "PARTIALLY COMPLETED"
+    },
+    {
+      "id": "C17",
+      "module": "C",
+      "requirement": "English transcription/translation where required",
+      "status": "NOT IMPLEMENTED",
+      "finding": "No explicit English translation pipeline or accepted language/translation policy exists.",
+      "evidence": "E41",
+      "previousStatus": "NOT IMPLEMENTED"
+    },
+    {
+      "id": "C18",
+      "module": "C",
+      "requirement": "Original audio file storage",
+      "status": "PARTIALLY COMPLETED",
+      "finding": "Original synthetic bytes round-trip through protected storage in P8; durable production audio storage, retention and backup remain unverified.",
+      "evidence": "E41",
+      "previousStatus": "PARTIALLY COMPLETED"
+    },
+    {
+      "id": "C19",
+      "module": "C",
+      "requirement": "Mandatory voice-to-text notes where specified",
+      "status": "NOT IMPLEMENTED",
+      "finding": "Mandatory voice-to-text submission is not enforced; recording/transcription remains optional.",
+      "evidence": "E41",
+      "previousStatus": "NOT IMPLEMENTED"
+    },
+    {
+      "id": "C20",
+      "module": "C",
+      "requirement": "Daily activity summary",
+      "status": "BROKEN",
+      "finding": "UAT-01: fresh initialized database login succeeds but My Day returns HTTP 500 because profile columns are absent. Seed-compatible fixture summary passes; clean-start path is BROKEN.",
+      "evidence": "E41",
+      "previousStatus": "PARTIALLY COMPLETED"
+    },
+    {
+      "id": "C21",
+      "module": "C",
+      "requirement": "Planned vs actual visits",
+      "status": "COMPLETED",
+      "finding": "Planned/completed/pending counts pass P4/P5 and actual-app P8 completion persists one completed visit.",
+      "evidence": "E41",
+      "previousStatus": "COMPLETED"
+    },
+    {
+      "id": "C22",
+      "module": "C",
+      "requirement": "Daily expected order summary",
+      "status": "COMPLETED",
+      "finding": "India-day expected-order value/count passes P5/P8; synthetic completed visit produces daily value 2500 without historical commitments.",
+      "evidence": "E41",
+      "previousStatus": "COMPLETED"
+    },
+    {
+      "id": "C23",
+      "module": "C",
+      "requirement": "Overdue follow-up notifications",
+      "status": "PARTIALLY COMPLETED",
+      "finding": "Scoped overdue/due reminder payloads pass P7; browser visibility and any external notification acceptance remain pending.",
+      "evidence": "E41",
+      "previousStatus": "PARTIALLY COMPLETED"
+    },
+    {
+      "id": "C24",
+      "module": "C",
+      "requirement": "Support requests for samples, quotations, and technical assistance",
+      "status": "PARTIALLY COMPLETED",
+      "finding": "Service-request source/API and owner checks exist; complete sample/quote/support form acceptance remains unverified.",
+      "evidence": "E41",
+      "previousStatus": "COMPLETED"
+    },
+    {
+      "id": "D01",
+      "module": "D",
+      "requirement": "Lead creation",
+      "status": "PARTIALLY COMPLETED",
+      "finding": "Owned lead creation/validation passes P6L/P8; actual create form remains unverified.",
+      "evidence": "E41",
+      "previousStatus": "COMPLETED"
+    },
+    {
+      "id": "D02",
+      "module": "D",
+      "requirement": "Lead assignment to RM/SE",
+      "status": "PARTIALLY COMPLETED",
+      "finding": "Admin/RM team-limited reassignment and salesperson denial pass P6L; assignment selector interaction remains unverified.",
+      "evidence": "E41",
+      "previousStatus": "COMPLETED"
+    },
+    {
+      "id": "D03",
+      "module": "D",
+      "requirement": "Kanban pipeline interface",
+      "status": "PARTIALLY COMPLETED",
+      "finding": "Kanban groups and stage controls are present in lead-board source; actual drag/button/layout acceptance remains NOT VERIFIED.",
+      "evidence": "E41",
+      "previousStatus": "COMPLETED"
+    },
+    {
+      "id": "D04",
+      "module": "D",
+      "requirement": "Lead stage updates",
+      "status": "COMPLETED",
+      "finding": "Actual-app P8 progresses six stages with RM authorization and other-user denial; persisted stage update semantics verified.",
+      "evidence": "E41",
+      "previousStatus": "COMPLETED"
+    },
+    {
+      "id": "D05",
+      "module": "D",
+      "requirement": "Stage history tracking",
+      "status": "COMPLETED",
+      "finding": "Actual-app P8 verifies six actor/time stage-history entries; P6L verifies no-op and scope behavior. Pre-migration history is not reconstructed.",
+      "evidence": "E41",
+      "previousStatus": "COMPLETED"
+    },
+    {
+      "id": "D06",
+      "module": "D",
+      "requirement": "Follow-up scheduling",
+      "status": "PARTIALLY COMPLETED",
+      "finding": "next_action_date persists and validates; lead changes do not synchronize a linked follow-up/reminder lifecycle.",
+      "evidence": "E41",
+      "previousStatus": "PARTIALLY COMPLETED"
+    },
+    {
+      "id": "D07",
+      "module": "D",
+      "requirement": "Expected order value",
+      "status": "COMPLETED",
+      "finding": "Nonnegative lead expected value persists and negative inputs are rejected in P6L; narrow stored-value requirement verified.",
+      "evidence": "E41",
+      "previousStatus": "COMPLETED"
+    },
+    {
+      "id": "D08",
+      "module": "D",
+      "requirement": "Won/Lost tracking",
+      "status": "PARTIALLY COMPLETED",
+      "finding": "Won/Lost enums and actor/time transition history exist; closure reason/date fields and reopening policy remain incomplete.",
+      "evidence": "E41",
+      "previousStatus": "PARTIALLY COMPLETED"
+    },
+    {
+      "id": "D09",
+      "module": "D",
+      "requirement": "Lead conversion reporting",
+      "status": "PARTIALLY COMPLETED",
+      "finding": "Scoped won-of-decided conversion passes P6L/P8; browser summary and client denominator approval remain pending.",
+      "evidence": "E41",
+      "previousStatus": "COMPLETED"
+    },
+    {
+      "id": "DS01",
+      "module": "D",
+      "requirement": "Pipeline stage: Lead",
+      "status": "COMPLETED",
+      "finding": "Lead is present in API stage enum, persisted lead model and source labels; P6L/P8 verify stage semantics. This row certifies the named stage, not browser Kanban acceptance (D03).",
+      "evidence": "E41",
+      "previousStatus": "COMPLETED"
+    },
+    {
+      "id": "DS02",
+      "module": "D",
+      "requirement": "Pipeline stage: Technical Discussion",
+      "status": "COMPLETED",
+      "finding": "Technical Discussion is present in API stage enum, persisted lead model and source labels; P6L/P8 verify stage semantics. This row certifies the named stage, not browser Kanban acceptance (D03).",
+      "evidence": "E41",
+      "previousStatus": "COMPLETED"
+    },
+    {
+      "id": "DS03",
+      "module": "D",
+      "requirement": "Pipeline stage: Sample",
+      "status": "COMPLETED",
+      "finding": "Sample is present in API stage enum, persisted lead model and source labels; P6L/P8 verify stage semantics. This row certifies the named stage, not browser Kanban acceptance (D03).",
+      "evidence": "E41",
+      "previousStatus": "COMPLETED"
+    },
+    {
+      "id": "DS04",
+      "module": "D",
+      "requirement": "Pipeline stage: Quotation",
+      "status": "COMPLETED",
+      "finding": "Quotation is present in API stage enum, persisted lead model and source labels; P6L/P8 verify stage semantics. This row certifies the named stage, not browser Kanban acceptance (D03).",
+      "evidence": "E41",
+      "previousStatus": "COMPLETED"
+    },
+    {
+      "id": "DS05",
+      "module": "D",
+      "requirement": "Pipeline stage: Follow-up",
+      "status": "COMPLETED",
+      "finding": "Follow-up is present in API stage enum, persisted lead model and source labels; P6L/P8 verify stage semantics. This row certifies the named stage, not browser Kanban acceptance (D03).",
+      "evidence": "E41",
+      "previousStatus": "COMPLETED"
+    },
+    {
+      "id": "DS06",
+      "module": "D",
+      "requirement": "Pipeline stage: Order Expected",
+      "status": "COMPLETED",
+      "finding": "Order Expected is present in API stage enum, persisted lead model and source labels; P6L/P8 verify stage semantics. This row certifies the named stage, not browser Kanban acceptance (D03).",
+      "evidence": "E41",
+      "previousStatus": "COMPLETED"
+    },
+    {
+      "id": "DS07",
+      "module": "D",
+      "requirement": "Pipeline stage: Won",
+      "status": "COMPLETED",
+      "finding": "Won is present in API stage enum, persisted lead model and source labels; P6L/P8 verify stage semantics. This row certifies the named stage, not browser Kanban acceptance (D03).",
+      "evidence": "E41",
+      "previousStatus": "COMPLETED"
+    },
+    {
+      "id": "DS08",
+      "module": "D",
+      "requirement": "Pipeline stage: Lost",
+      "status": "COMPLETED",
+      "finding": "Lost is present in API stage enum, persisted lead model and source labels; P6L/P8 verify stage semantics. This row certifies the named stage, not browser Kanban acceptance (D03).",
+      "evidence": "E41",
+      "previousStatus": "COMPLETED"
+    },
+    {
+      "id": "E01",
+      "module": "E",
+      "requirement": "Tally data import",
+      "status": "PARTIALLY COMPLETED",
+      "finding": "Connector ingestion implementation exists; actual import workflow and authoritative live reconciliation remain unverified.",
+      "evidence": "E41",
+      "previousStatus": "PARTIALLY COMPLETED"
+    },
+    {
+      "id": "E02",
+      "module": "E",
+      "requirement": "Support for initial exported Tally data",
+      "status": "PARTIALLY COMPLETED",
+      "finding": "Workbook import exists but reconstructs invoice allocations; these projections are excluded from authoritative metrics, not accepted as real vouchers.",
+      "evidence": "E41",
+      "previousStatus": "PARTIALLY COMPLETED"
+    },
+    {
+      "id": "E03",
+      "module": "E",
+      "requirement": "Live Tally synchronization, if implemented",
+      "status": "NOT VERIFIED",
+      "finding": "No authorized live Tally agent/exchange was exercised. Server source is insufficient for live-sync acceptance.",
+      "evidence": "E41",
+      "previousStatus": "NOT VERIFIED"
+    },
+    {
+      "id": "E04",
+      "module": "E",
+      "requirement": "Sales invoice extraction",
+      "status": "PARTIALLY COMPLETED",
+      "finding": "Signed eligible sales/credit-note reporting passes P2/P8; cancellation state and full extraction/import acceptance remain incomplete.",
+      "evidence": "E41",
+      "previousStatus": "PARTIALLY COMPLETED"
+    },
+    {
+      "id": "E05",
+      "module": "E",
+      "requirement": "Customer/dealer master extraction",
+      "status": "PARTIALLY COMPLETED",
+      "finding": "Customer parsing/master source exists; durable company identity, owner mapping and approved live master reconciliation remain.",
+      "evidence": "E41",
+      "previousStatus": "PARTIALLY COMPLETED"
+    },
+    {
+      "id": "E06",
+      "module": "E",
+      "requirement": "Product master extraction",
+      "status": "PARTIALLY COMPLETED",
+      "finding": "Product parsing/master source exists; unit/rate/company mapping and complete live master reconciliation remain.",
+      "evidence": "E41",
+      "previousStatus": "PARTIALLY COMPLETED"
+    },
+    {
+      "id": "E07",
+      "module": "E",
+      "requirement": "Product-wise sales",
+      "status": "PARTIALLY COMPLETED",
+      "finding": "Signed complete product-line aggregates pass P2/P6R/P8; actual line completeness and mapping require approved Tally reconciliation.",
+      "evidence": "E41",
+      "previousStatus": "PARTIALLY COMPLETED"
+    },
+    {
+      "id": "E08",
+      "module": "E",
+      "requirement": "Customer-wise sales",
+      "status": "PARTIALLY COMPLETED",
+      "finding": "Full filtered customer aggregates beyond 100 groups pass P6R; authoritative live customer totals remain unverified.",
+      "evidence": "E41",
+      "previousStatus": "PARTIALLY COMPLETED"
+    },
+    {
+      "id": "E09",
+      "module": "E",
+      "requirement": "RM-wise sales attribution",
+      "status": "PARTIALLY COMPLETED",
+      "finding": "Owner/team attribution and cross-team exclusion pass P2/P7; live roster/aliases and effective-dated historical ownership remain unresolved.",
+      "evidence": "E41",
+      "previousStatus": "PARTIALLY COMPLETED"
+    },
+    {
+      "id": "E10",
+      "module": "E",
+      "requirement": "Distributor-wise reporting",
+      "status": "PARTIALLY COMPLETED",
+      "finding": "Admin Sales Reports dealer-type predicate is implemented and exercised by P6R; distributor taxonomy and cross-screen acceptance remain.",
+      "evidence": "E41",
+      "previousStatus": "PARTIALLY COMPLETED"
+    },
+    {
+      "id": "E11",
+      "module": "E",
+      "requirement": "Territory-wise reporting",
+      "status": "PARTIALLY COMPLETED",
+      "finding": "Admin report territory predicate is exercised by P6R; approved territory mapping and cross-screen UI acceptance remain.",
+      "evidence": "E41",
+      "previousStatus": "PARTIALLY COMPLETED"
+    },
+    {
+      "id": "E12",
+      "module": "E",
+      "requirement": "Sales manager-wise reporting",
+      "status": "PARTIALLY COMPLETED",
+      "finding": "RM/team scope and report totals pass P2/P6R/P7; live manager mapping and report rendering remain unverified.",
+      "evidence": "E41",
+      "previousStatus": "PARTIALLY COMPLETED"
+    },
+    {
+      "id": "E13",
+      "module": "E",
+      "requirement": "Direct customer reporting",
+      "status": "PARTIALLY COMPLETED",
+      "finding": "Customer/dealer filtering exists; distinct direct-customer taxonomy and approved segmentation remain unverified.",
+      "evidence": "E41",
+      "previousStatus": "PARTIALLY COMPLETED"
+    },
+    {
+      "id": "E14",
+      "module": "E",
+      "requirement": "Historical sales data",
+      "status": "PARTIALLY COMPLETED",
+      "finding": "Historical authoritative fixtures can be reported; reconstructed workbook history is excluded and complete genuine history remains unverified.",
+      "evidence": "E41",
+      "previousStatus": "PARTIALLY COMPLETED"
+    },
+    {
+      "id": "E15",
+      "module": "E",
+      "requirement": "Sync error handling",
+      "status": "PARTIALLY COMPLETED",
+      "finding": "Status/error and unavailable-data handling pass P4/P7; actual ingest interruption/recovery and live monitoring remain unverified.",
+      "evidence": "E41",
+      "previousStatus": "PARTIALLY COMPLETED"
+    },
+    {
+      "id": "E16",
+      "module": "E",
+      "requirement": "Duplicate record prevention",
+      "status": "PARTIALLY COMPLETED",
+      "finding": "Stable IDs/upsert/chunk checks exist; import replay, company collisions and staged overwrite/line replacement need dedicated ingestion tests.",
+      "evidence": "E41",
+      "previousStatus": "PARTIALLY COMPLETED"
+    },
+    {
+      "id": "E17",
+      "module": "E",
+      "requirement": "Data freshness indicators",
+      "status": "PARTIALLY COMPLETED",
+      "finding": "Missing/old/failed sync states pass P4/P7; browser indicators and approved freshness SLA remain unverified.",
+      "evidence": "E41",
+      "previousStatus": "COMPLETED"
+    },
+    {
+      "id": "E18",
+      "module": "E",
+      "requirement": "Mapping between Tally customers and CRM customers",
+      "status": "PARTIALLY COMPLETED",
+      "finding": "Owner-ID mapping governs authorized customers in P1/P8; durable cross-source/company identity and live mapping approval remain.",
+      "evidence": "E41",
+      "previousStatus": "PARTIALLY COMPLETED"
+    },
+    {
+      "id": "E19",
+      "module": "E",
+      "requirement": "Mapping between Tally sales and individual RMs",
+      "status": "PARTIALLY COMPLETED",
+      "finding": "Unique CRM owner/team attribution passes P2/P7; shared alias parity, historical reassignment and real control totals remain.",
+      "evidence": "E41",
+      "previousStatus": "PARTIALLY COMPLETED"
+    },
+    {
+      "id": "F01",
+      "module": "F",
+      "requirement": "Distributor-wise performance",
+      "status": "PARTIALLY COMPLETED",
+      "finding": "Dealer-type filter now passes P6R; distributor classification, complete performance UX and client acceptance remain.",
+      "evidence": "E41",
+      "previousStatus": "PARTIALLY COMPLETED"
+    },
+    {
+      "id": "F02",
+      "module": "F",
+      "requirement": "Product-wise performance",
+      "status": "PARTIALLY COMPLETED",
+      "finding": "100-group aggregate cap is removed and signed product totals pass P6R; actual line coverage and charts remain unverified.",
+      "evidence": "E41",
+      "previousStatus": "PARTIALLY COMPLETED"
+    },
+    {
+      "id": "F03",
+      "module": "F",
+      "requirement": "Territory-wise performance",
+      "status": "PARTIALLY COMPLETED",
+      "finding": "Territory filter exists in Admin Sales Reports and passes P6R; all-screen territory parity/mapping remains incomplete.",
+      "evidence": "E41",
+      "previousStatus": "PARTIALLY COMPLETED"
+    },
+    {
+      "id": "F04",
+      "module": "F",
+      "requirement": "Sales manager-wise performance",
+      "status": "PARTIALLY COMPLETED",
+      "finding": "Manager/team report filter passes P6R; consistent client-approved targets and browser acceptance remain.",
+      "evidence": "E41",
+      "previousStatus": "PARTIALLY COMPLETED"
+    },
+    {
+      "id": "F05",
+      "module": "F",
+      "requirement": "RM-wise performance",
+      "status": "PARTIALLY COMPLETED",
+      "finding": "RM target/actual and attention/card parity pass P2/P3; production mappings/targets and report rendering remain unverified.",
+      "evidence": "E41",
+      "previousStatus": "PARTIALLY COMPLETED"
+    },
+    {
+      "id": "F06",
+      "module": "F",
+      "requirement": "Direct customer-wise performance",
+      "status": "PARTIALLY COMPLETED",
+      "finding": "Complete customer aggregates pass P6R; explicit direct-customer taxonomy and segmentation remain unverified.",
+      "evidence": "E41",
+      "previousStatus": "PARTIALLY COMPLETED"
+    },
+    {
+      "id": "F07",
+      "module": "F",
+      "requirement": "Date-range filters",
+      "status": "PARTIALLY COMPLETED",
+      "finding": "Explicit backend date/FY filters pass P6R; UAT-02 reproduces India-midnight UTC shift in UI presets. Cross-screen period parity remains.",
+      "evidence": "E41",
+      "previousStatus": "PARTIALLY COMPLETED"
+    },
+    {
+      "id": "F08",
+      "module": "F",
+      "requirement": "Region filters",
+      "status": "PARTIALLY COMPLETED",
+      "finding": "Report region grouping exists; a report-wide region selector and consistent propagation are not established. Territory filter is not region parity.",
+      "evidence": "E41",
+      "previousStatus": "PARTIALLY COMPLETED"
+    },
+    {
+      "id": "F09",
+      "module": "F",
+      "requirement": "Product filters",
+      "status": "PARTIALLY COMPLETED",
+      "finding": "Product filter reaches complete backend aggregates and passes P6R; browser selection/export and all-screen parity remain unverified.",
+      "evidence": "E41",
+      "previousStatus": "PARTIALLY COMPLETED"
+    },
+    {
+      "id": "F10",
+      "module": "F",
+      "requirement": "Salesperson filters",
+      "status": "PARTIALLY COMPLETED",
+      "finding": "Salesperson/RM team filter passes P6R; actual UI selection and legacy-screen parity remain unverified.",
+      "evidence": "E41",
+      "previousStatus": "PARTIALLY COMPLETED"
+    },
+    {
+      "id": "F11",
+      "module": "F",
+      "requirement": "Customer filters",
+      "status": "PARTIALLY COMPLETED",
+      "finding": "Customer filter passes P6R/P8, including net value 900; actual UI/export interaction remains unverified.",
+      "evidence": "E41",
+      "previousStatus": "PARTIALLY COMPLETED"
+    },
+    {
+      "id": "F12",
+      "module": "F",
+      "requirement": "Daily reports",
+      "status": "PARTIALLY COMPLETED",
+      "finding": "Daily CRM activity and daily automation pass P5/P7/P8; complete daily sales report UI and approved period semantics remain.",
+      "evidence": "E41",
+      "previousStatus": "PARTIALLY COMPLETED"
+    },
+    {
+      "id": "F13",
+      "module": "F",
+      "requirement": "Monthly reports",
+      "status": "PARTIALLY COMPLETED",
+      "finding": "Monthly aggregation/scheduling fixtures pass P2/P7; UI date presets are defective and real monthly control totals remain unverified.",
+      "evidence": "E41",
+      "previousStatus": "PARTIALLY COMPLETED"
+    },
+    {
+      "id": "F14",
+      "module": "F",
+      "requirement": "YTD reports",
+      "status": "PARTIALLY COMPLETED",
+      "finding": "April-March and FYTD fixture boundaries pass P2/P7; UI preset defect, partial target coverage and live acceptance remain.",
+      "evidence": "E41",
+      "previousStatus": "PARTIALLY COMPLETED"
+    },
+    {
+      "id": "F15",
+      "module": "F",
+      "requirement": "Graphs and visualizations",
+      "status": "PARTIALLY COMPLETED",
+      "finding": "API-backed chart source exists; no actual browser chart or mobile layout was executed.",
+      "evidence": "E41",
+      "previousStatus": "COMPLETED"
+    },
+    {
+      "id": "F16",
+      "module": "F",
+      "requirement": "Detailed drill-down views",
+      "status": "PARTIALLY COMPLETED",
+      "finding": "Detail APIs and RM report-card drill-down endpoint pass P2; actual dialogs, links and expansions remain unverified.",
+      "evidence": "E41",
+      "previousStatus": "COMPLETED"
+    },
+    {
+      "id": "F17",
+      "module": "F",
+      "requirement": "Exportable reports",
+      "status": "PARTIALLY COMPLETED",
+      "finding": "Complete filtered aggregates and saved summaries pass P6R; CSV escaping is source-reviewed. Actual downloads, HTML .xls interpretation and complete paginated print/PDF remain unverified/incomplete.",
+      "evidence": "E41",
+      "previousStatus": "PARTIALLY COMPLETED"
+    },
+    {
+      "id": "F18",
+      "module": "F",
+      "requirement": "Actionable insights based on actual data",
+      "status": "PARTIALLY COMPLETED",
+      "finding": "Grounded server metrics and deterministic review actions pass P3/P4/P7; business thresholds and actionable workflow/client acceptance remain.",
+      "evidence": "E41",
+      "previousStatus": "PARTIALLY COMPLETED"
+    },
+    {
+      "id": "G01",
+      "module": "G",
+      "requirement": "Ask AI / natural-language business query feature",
+      "status": "PARTIALLY COMPLETED",
+      "finding": "Authorized scoped evidence selection and explicit periods pass mocked P7; broader BI and browser/live-provider acceptance remain.",
+      "evidence": "E41",
+      "previousStatus": "PARTIALLY COMPLETED"
+    },
+    {
+      "id": "G02",
+      "module": "G",
+      "requirement": "AI answers based on authorized CRM/Tally data",
+      "status": "PARTIALLY COMPLETED",
+      "finding": "Server-rendered facts reject fabricated provider values and cross-team context in P7; actual provider and live Tally evidence coverage remain unverified.",
+      "evidence": "E41",
+      "previousStatus": "PARTIALLY COMPLETED"
+    },
+    {
+      "id": "G03",
+      "module": "G",
+      "requirement": "Voice-to-text via an actual speech recognition service",
+      "status": "PARTIALLY COMPLETED",
+      "finding": "STT now requires authentication and P8 verifies mocked success; obsolete unauthenticated-endpoint finding removed. Real service accuracy remains unverified.",
+      "evidence": "E41",
+      "previousStatus": "PARTIALLY COMPLETED"
+    },
+    {
+      "id": "G04",
+      "module": "G",
+      "requirement": "AI-generated performance observations",
+      "status": "PARTIALLY COMPLETED",
+      "finding": "Grounded performance evidence/review rules pass P7; broader provider observations and client acceptance remain incomplete.",
+      "evidence": "E41",
+      "previousStatus": "PARTIALLY COMPLETED"
+    },
+    {
+      "id": "G05",
+      "module": "G",
+      "requirement": "AI-based actionable RM coaching suggestions",
+      "status": "PARTIALLY COMPLETED",
+      "finding": "Deterministic evidence-backed RM review suggestions pass P7; open-ended coaching and approved policy acceptance remain incomplete.",
+      "evidence": "E41",
+      "previousStatus": "PARTIALLY COMPLETED"
+    },
+    {
+      "id": "G06",
+      "module": "G",
+      "requirement": "Automated scheduled reports",
+      "status": "PARTIALLY COMPLETED",
+      "finding": "Persistent daily/monthly generation, restart catch-up, claims and bounded retries pass P7; approved live cadence and operations remain unverified.",
+      "evidence": "E41",
+      "previousStatus": "PARTIALLY COMPLETED"
+    },
+    {
+      "id": "G07",
+      "module": "G",
+      "requirement": "WhatsApp report delivery",
+      "status": "NOT VERIFIED",
+      "finding": "Mocked approved-template transport and signed callbacks pass P7; real opt-in/template/account/provider delivery is NOT VERIFIED.",
+      "evidence": "E41",
+      "previousStatus": "NOT VERIFIED"
+    },
+    {
+      "id": "G08",
+      "module": "G",
+      "requirement": "Notifications for pending and overdue follow-ups",
+      "status": "PARTIALLY COMPLETED",
+      "finding": "Scoped pending/due/overdue and visit payloads pass P7; actual notification UX and external delivery remain unverified.",
+      "evidence": "E41",
+      "previousStatus": "PARTIALLY COMPLETED"
+    },
+    {
+      "id": "G09",
+      "module": "G",
+      "requirement": "Data access controls for AI features",
+      "status": "PARTIALLY COMPLETED",
+      "finding": "Authenticated role-specific AI routes, cross-team denials and per-account throttling pass P7; clustered quotas and production acceptance remain.",
+      "evidence": "E41",
+      "previousStatus": "PARTIALLY COMPLETED"
+    },
+    {
+      "id": "H01",
+      "module": "H",
+      "requirement": "Secure authentication",
+      "status": "PARTIALLY COMPLETED",
+      "finding": "Scrypt login/logout/expiry passes P8; production admin seeding fails closed without a password in source. Browser token handling, HTTPS and configuration acceptance remain.",
+      "evidence": "E41",
+      "previousStatus": "PARTIALLY COMPLETED"
+    },
+    {
+      "id": "H02",
+      "module": "H",
+      "requirement": "Role-based access controls",
+      "status": "PARTIALLY COMPLETED",
+      "finding": "Unauthenticated, wrong-role and object-scope denials pass P1/P7/P8, including STT; complete deployment/endpoint security acceptance remains.",
+      "evidence": "E41",
+      "previousStatus": "PARTIALLY COMPLETED"
+    },
+    {
+      "id": "H03",
+      "module": "H",
+      "requirement": "Restriction of access to sensitive sales/customer data",
+      "status": "PARTIALLY COMPLETED",
+      "finding": "Customer, lead, follow-up, AI and audio owner/team denials pass P1/P7/P8; broader data inventory and deployment verification remain.",
+      "evidence": "E41",
+      "previousStatus": "PARTIALLY COMPLETED"
+    },
+    {
+      "id": "H04",
+      "module": "H",
+      "requirement": "Secure handling of Tally data",
+      "status": "PARTIALLY COMPLETED",
+      "finding": "Hashed bearer tokens and authoritative-source restrictions exist; request HMAC is not implemented and full connector ingestion/security lifecycle remains unverified.",
+      "evidence": "E41",
+      "previousStatus": "PARTIALLY COMPLETED"
+    },
+    {
+      "id": "H05",
+      "module": "H",
+      "requirement": "Encryption in transit",
+      "status": "PARTIALLY COMPLETED",
+      "finding": "Replication source now enforces certificate validation; prior insecure-TLS finding is superseded. Actual deployed HTTPS/origin/TLS enforcement remains unverified.",
+      "evidence": "E41",
+      "previousStatus": "PARTIALLY COMPLETED"
+    },
+    {
+      "id": "H06",
+      "module": "H",
+      "requirement": "Appropriate protection for stored sensitive data",
+      "status": "PARTIALLY COMPLETED",
+      "finding": "Password/session hashes and encrypted synthetic backups pass P1/P8; SQLite/audio storage protection, baseline handling and retention remain production decisions.",
+      "evidence": "E41",
+      "previousStatus": "PARTIALLY COMPLETED"
+    },
+    {
+      "id": "H07",
+      "module": "H",
+      "requirement": "Logs and audit trails",
+      "status": "PARTIALLY COMPLETED",
+      "finding": "Admin audit and Phase 7 redaction exist; complete login/denial/field/export audit coverage and operational monitoring remain incomplete.",
+      "evidence": "E41",
+      "previousStatus": "PARTIALLY COMPLETED"
+    },
+    {
+      "id": "H08",
+      "module": "H",
+      "requirement": "Backup and recovery arrangements",
+      "status": "PARTIALLY COMPLETED",
+      "finding": "Synthetic encrypted restore, integrity, tamper/wrong-key/overwrite rejection pass P1/P8; durable destination, schedule, key escrow, RPO/RTO and full audio recovery remain unverified.",
+      "evidence": "E41",
+      "previousStatus": "PARTIALLY COMPLETED"
+    },
+    {
+      "id": "H09",
+      "module": "H",
+      "requirement": "Graceful handling of Tally connector downtime",
+      "status": "PARTIALLY COMPLETED",
+      "finding": "Cached metrics and disconnected/failed sync states are exercised; staged-ingest interruption/recovery remains unverified.",
+      "evidence": "E41",
+      "previousStatus": "PARTIALLY COMPLETED"
+    },
+    {
+      "id": "H10",
+      "module": "H",
+      "requirement": "System behavior when the CRM/backend becomes unavailable",
+      "status": "PARTIALLY COMPLETED",
+      "finding": "Frontend retry/error source and attendance monitor tests pass; offline queue and guaranteed unsaved-form recovery remain absent, and browser failure UX is unverified.",
+      "evidence": "E41",
+      "previousStatus": "PARTIALLY COMPLETED"
+    },
+    {
+      "id": "H11",
+      "module": "H",
+      "requirement": "Data export and portability",
+      "status": "PARTIALLY COMPLETED",
+      "finding": "Full filtered financial aggregates and backup restore exist; complete CRM/customer/audio portability and actual export downloads remain incomplete/unverified.",
+      "evidence": "E41",
+      "previousStatus": "PARTIALLY COMPLETED"
+    },
+    {
+      "id": "H12",
+      "module": "H",
+      "requirement": "Confidentiality controls",
+      "status": "PARTIALLY COMPLETED",
+      "finding": "Role scope, provider minimization and audit redaction pass synthetic tests; retention, device/storage policies and client confidentiality approval remain.",
+      "evidence": "E41",
+      "previousStatus": "PARTIALLY COMPLETED"
+    },
+    {
+      "id": "H13",
+      "module": "H",
+      "requirement": "Client data isolation, where applicable",
+      "status": "NOT VERIFIED",
+      "finding": "Single-client tenancy applicability and deployed client separation have no acceptance evidence; role/team isolation is not tenant isolation.",
+      "evidence": "E41",
+      "previousStatus": "NOT VERIFIED"
+    },
+    {
+      "id": "H14",
+      "module": "H",
+      "requirement": "Avoidance of production client data in development/testing without authorization",
+      "status": "NOT VERIFIED",
+      "finding": "This UAT uses disposable synthetic records only; historical authorization for bundled/imported client data in development is unavailable.",
+      "evidence": "E41",
+      "previousStatus": "NOT VERIFIED"
+    },
+    {
+      "id": "H15",
+      "module": "H",
+      "requirement": "NDA documentation/configuration evidence (no execution or legal-compliance inference)",
+      "status": "NOT VERIFIED",
+      "finding": "No executed NDA or independent contractual confidentiality evidence is available; technical controls cannot establish legal execution.",
+      "evidence": "E41",
+      "previousStatus": "NOT VERIFIED"
+    },
+    {
+      "id": "I01",
+      "module": "I",
+      "requirement": "RM/SE usage instructions",
+      "status": "COMPLETED",
+      "finding": "All three existing training SOPs were read in Phase 8 and contain the relevant task procedure, metric limits and practice/sign-off fields. Documentation authorship is complete; actual training and signed acceptance are pending.",
+      "evidence": "E41",
+      "previousStatus": "COMPLETED"
+    },
+    {
+      "id": "I02",
+      "module": "I",
+      "requirement": "Daily check-in procedure",
+      "status": "COMPLETED",
+      "finding": "All three existing training SOPs were read in Phase 8 and contain the relevant task procedure, metric limits and practice/sign-off fields. Documentation authorship is complete; actual training and signed acceptance are pending.",
+      "evidence": "E41",
+      "previousStatus": "COMPLETED"
+    },
+    {
+      "id": "I03",
+      "module": "I",
+      "requirement": "Customer visit logging procedure",
+      "status": "COMPLETED",
+      "finding": "All three existing training SOPs were read in Phase 8 and contain the relevant task procedure, metric limits and practice/sign-off fields. Documentation authorship is complete; actual training and signed acceptance are pending.",
+      "evidence": "E41",
+      "previousStatus": "COMPLETED"
+    },
+    {
+      "id": "I04",
+      "module": "I",
+      "requirement": "Call logging procedure",
+      "status": "COMPLETED",
+      "finding": "All three existing training SOPs were read in Phase 8 and contain the relevant task procedure, metric limits and practice/sign-off fields. Documentation authorship is complete; actual training and signed acceptance are pending.",
+      "evidence": "E41",
+      "previousStatus": "COMPLETED"
+    },
+    {
+      "id": "I05",
+      "module": "I",
+      "requirement": "Voice note procedure",
+      "status": "COMPLETED",
+      "finding": "All three existing training SOPs were read in Phase 8 and contain the relevant task procedure, metric limits and practice/sign-off fields. Documentation authorship is complete; actual training and signed acceptance are pending.",
+      "evidence": "E41",
+      "previousStatus": "COMPLETED"
+    },
+    {
+      "id": "I06",
+      "module": "I",
+      "requirement": "Lead pipeline usage instructions",
+      "status": "COMPLETED",
+      "finding": "All three existing training SOPs were read in Phase 8 and contain the relevant task procedure, metric limits and practice/sign-off fields. Documentation authorship is complete; actual training and signed acceptance are pending.",
+      "evidence": "E41",
+      "previousStatus": "COMPLETED"
+    },
+    {
+      "id": "I07",
+      "module": "I",
+      "requirement": "Follow-up procedure",
+      "status": "COMPLETED",
+      "finding": "All three existing training SOPs were read in Phase 8 and contain the relevant task procedure, metric limits and practice/sign-off fields. Documentation authorship is complete; actual training and signed acceptance are pending.",
+      "evidence": "E41",
+      "previousStatus": "COMPLETED"
+    },
+    {
+      "id": "I08",
+      "module": "I",
+      "requirement": "Admin dashboard user guide",
+      "status": "COMPLETED",
+      "finding": "All three existing training SOPs were read in Phase 8 and contain the relevant task procedure, metric limits and practice/sign-off fields. Documentation authorship is complete; actual training and signed acceptance are pending.",
+      "evidence": "E41",
+      "previousStatus": "COMPLETED"
+    },
+    {
+      "id": "I09",
+      "module": "I",
+      "requirement": "RM report card explanation",
+      "status": "COMPLETED",
+      "finding": "All three existing training SOPs were read in Phase 8 and contain the relevant task procedure, metric limits and practice/sign-off fields. Documentation authorship is complete; actual training and signed acceptance are pending.",
+      "evidence": "E41",
+      "previousStatus": "COMPLETED"
+    },
+    {
+      "id": "I10",
+      "module": "I",
+      "requirement": "Training SOP documentation",
+      "status": "COMPLETED",
+      "finding": "All three existing training SOPs were read in Phase 8 and contain the relevant task procedure, metric limits and practice/sign-off fields. Documentation authorship is complete; actual training and signed acceptance are pending.",
+      "evidence": "E41",
+      "previousStatus": "COMPLETED"
+    }
+  ]
+}

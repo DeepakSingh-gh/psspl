@@ -1,0 +1,174 @@
+{
+  "executedAt": "2026-10-19T12:44:25.917Z",
+  "results": [
+    {
+      "name": "db-isolation",
+      "command": "node --test scripts/db-isolation.test.mjs",
+      "exitCode": 0,
+      "signal": null,
+      "durationMs": 612,
+      "pass": 2,
+      "fail": 0
+    },
+    {
+      "name": "phase1-security",
+      "command": "node --test scripts/phase1-security.test.mjs",
+      "exitCode": 0,
+      "signal": null,
+      "durationMs": 1916,
+      "pass": 11,
+      "fail": 0
+    },
+    {
+      "name": "phase2-tally-accuracy",
+      "command": "node --test scripts/phase2-tally-accuracy.test.mjs",
+      "exitCode": 0,
+      "signal": null,
+      "durationMs": 922,
+      "pass": 7,
+      "fail": 0
+    },
+    {
+      "name": "phase3-rm-report",
+      "command": "node --test scripts/phase3-rm-report.test.mjs",
+      "exitCode": 0,
+      "signal": null,
+      "durationMs": 189,
+      "pass": 4,
+      "fail": 0
+    },
+    {
+      "name": "phase4-management",
+      "command": "node --test scripts/phase4-management.test.mjs",
+      "exitCode": 0,
+      "signal": null,
+      "durationMs": 213,
+      "pass": 8,
+      "fail": 0
+    },
+    {
+      "name": "phase5-field-workflows",
+      "command": "node --test scripts/phase5-field-workflows.test.mjs",
+      "exitCode": 0,
+      "signal": null,
+      "durationMs": 646,
+      "pass": 5,
+      "fail": 0
+    },
+    {
+      "name": "phase6-leads",
+      "command": "node --test scripts/phase6-leads.test.mjs",
+      "exitCode": 0,
+      "signal": null,
+      "durationMs": 1004,
+      "pass": 2,
+      "fail": 0
+    },
+    {
+      "name": "phase6-reports",
+      "command": "node --test scripts/phase6-reports.test.mjs",
+      "exitCode": 0,
+      "signal": null,
+      "durationMs": 843,
+      "pass": 2,
+      "fail": 0
+    },
+    {
+      "name": "phase7-automation",
+      "command": "node --test scripts/phase7-automation.test.mjs",
+      "exitCode": 0,
+      "signal": null,
+      "durationMs": 1104,
+      "pass": 19,
+      "fail": 0
+    },
+    {
+      "name": "ai-provider",
+      "command": "node --test scripts/ai-provider.test.mjs",
+      "exitCode": 0,
+      "signal": null,
+      "durationMs": 207,
+      "pass": 7,
+      "fail": 0
+    },
+    {
+      "name": "attendance-live",
+      "command": "node --test scripts/attendance-live.test.mjs",
+      "exitCode": 0,
+      "signal": null,
+      "durationMs": 539,
+      "pass": 5,
+      "fail": 0
+    },
+    {
+      "name": "phase8-workflows",
+      "command": "node --test scripts/phase8-workflows.test.mjs",
+      "exitCode": 0,
+      "signal": null,
+      "durationMs": 5081,
+      "pass": 11,
+      "fail": 0
+    },
+    {
+      "name": "phase9-recovery",
+      "command": "node --test scripts/phase9-recovery.test.mjs",
+      "exitCode": 0,
+      "signal": null,
+      "durationMs": 286,
+      "pass": 7,
+      "fail": 0
+    },
+    {
+      "name": "phase9b-browser",
+      "command": "node --test scripts/phase9b-browser.test.mjs",
+      "exitCode": 0,
+      "signal": null,
+      "durationMs": 73803,
+      "pass": 3,
+      "fail": 0
+    },
+    {
+      "name": "phase6-my-day",
+      "command": "node scripts/phase6-my-day.test.mjs",
+      "exitCode": 0,
+      "signal": null,
+      "durationMs": 706,
+      "pass": 0,
+      "fail": 0
+    },
+    {
+      "name": "typescript",
+      "command": "node node_modules/typescript/bin/tsc --noEmit --incremental false",
+      "exitCode": 0,
+      "signal": null,
+      "durationMs": 9298,
+      "pass": 0,
+      "fail": 0
+    }
+  ],
+  "testDatabaseIsolation": {
+    "enforcedBy": "server/db.mjs CRM_TEST_DATABASE_ROOT guard",
+    "root": "C:\\Users\\deepa\\AppData\\Local\\Temp",
+    "databasePathPerSuite": true
+  },
+  "preservation": {
+    "baselineFiles": 466,
+    "changedExistingFiles": [
+      "data/crm.sqlite-shm",
+      "data/crm.sqlite-wal",
+      "external-configured-db-wal",
+      "external-configured-db-shm"
+    ],
+    "applicationFilesChangedDuringRun": [],
+    "protectedDatabaseFilesChangedDuringWindow": [
+      "data/crm.sqlite-shm",
+      "data/crm.sqlite-wal",
+      "external-configured-db-wal",
+      "external-configured-db-shm"
+    ],
+    "attribution": "Suite database paths are isolated under OS temp; concurrent external process writes cannot be attributed by repository hashing alone",
+    "manifest": "Temporary local manifest retained outside the repository"
+  },
+  "network": "Loopback-only real sockets/fetch; provider mocks may replace fetch",
+  "scratch": "C:\\Users\\deepa\\AppData\\Local\\Temp\\psspl-phase9-run-3DKYjS"
+}

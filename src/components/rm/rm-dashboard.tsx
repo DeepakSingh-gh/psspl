@@ -1,4 +1,5 @@
 "use client";
+import { reportDateRange } from "@/lib/business-date";
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { authApi, clearSession, rmApi } from "@/lib/api";
@@ -34,12 +35,7 @@ const NavIcon = ({ name }: { name: string }) => (
 
 export function RmDashboard() {
   const router = useRouter();
-  const defaults = useMemo(() => {
-    const now = new Date();
-    const to = now.toISOString().slice(0, 10);
-    const year = now.getMonth() + 1 >= 4 ? now.getFullYear() : now.getFullYear() - 1;
-    return { from: `${year}-04-01`, to };
-  }, []);
+  const defaults = useMemo(() => reportDateRange("fy"), []);
   const [from, setFrom] = useState(defaults.from);
   const [to, setTo] = useState(defaults.to);
   const [range, setRange] = useState(defaults);
@@ -59,6 +55,18 @@ export function RmDashboard() {
       .then(setData)
       .catch((cause) => setError(cause instanceof Error ? cause.message : "Unable to load team"))
       .finally(() => setLoading(false));
+  }, [range]);
+
+  useEffect(() => {
+    const refresh = (event: Event) => {
+      const request = event as CustomEvent<{ tasks: Promise<unknown>[] }>;
+      const task = rmApi.dashboard(range.from, range.to)
+        .then((fresh) => { setData(fresh); setError(""); })
+        .catch((cause) => { setError(cause instanceof Error ? cause.message : "Unable to refresh team"); throw cause; });
+      request.detail.tasks.push(task);
+    };
+    window.addEventListener("psspl:refresh-data", refresh);
+    return () => window.removeEventListener("psspl:refresh-data", refresh);
   }, [range]);
 
   async function signOut() { try { await authApi.logout(); } catch {} clearSession(); router.replace("/login"); }

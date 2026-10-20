@@ -1,0 +1,59 @@
+TAP version 13
+# [AI] Gemini custom-model returned 404
+# [AI] Gemini gemini-2.5-flash returned 403
+# [AI] Gemini gemini-2.5-flash returned 429
+# [AI] OpenAI returned 429
+# Subtest: Ask AI provider configuration and failure handling
+    # Subtest: missing keys reject without making a request
+    ok 1 - missing keys reject without making a request
+      ---
+      duration_ms: 1.7581
+      type: 'test'
+      ...
+    # Subtest: Gemini uses a header key and combines response parts
+    ok 2 - Gemini uses a header key and combines response parts
+      ---
+      duration_ms: 24.7634
+      type: 'test'
+      ...
+    # Subtest: unavailable custom model falls back to the default
+    ok 3 - unavailable custom model falls back to the default
+      ---
+      duration_ms: 1.2525
+      type: 'test'
+      ...
+    # Subtest: Gemini failure falls back to OpenAI
+    ok 4 - Gemini failure falls back to OpenAI
+      ---
+      duration_ms: 0.7036
+      type: 'test'
+      ...
+# [AI] OpenAI request failed
+    # Subtest: provider failures are errors, never successful AI answers
+    ok 5 - provider failures are errors, never successful AI answers
+      ---
+      duration_ms: 0.4614
+      type: 'test'
+      ...
+    # Subtest: provider timeout aborts the request and returns unavailable
+    ok 6 - provider timeout aborts the request and returns unavailable
+      ---
+      duration_ms: 3.5662
+      type: 'test'
+      ...
+    1..6
+ok 1 - Ask AI provider configuration and failure handling
+  ---
+  duration_ms: 35.7909
+  type: 'test'
+  ...
+1..1
+# tests 7
+# suites 0
+# pass 7
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 136.1964
+

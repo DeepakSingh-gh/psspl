@@ -43,6 +43,10 @@ export function seedAdmin() {
   if (existing) return;
   if (db.prepare("SELECT COUNT(*) count FROM users WHERE role='admin'").get().count) return;
 
+  if (process.env.NODE_ENV === "production" && !process.env.CRM_ADMIN_PASSWORD) {
+    console.error("[auth] No admin account exists. Set CRM_ADMIN_EMAIL and CRM_ADMIN_PASSWORD through the deployment secret manager before initialization.");
+    return;
+  }
   const password = process.env.CRM_ADMIN_PASSWORD || "psspl-admin-2026";
   const id = "admin-001";
   db.prepare("INSERT INTO users (id,email,password_hash,role) VALUES (?,?,?,?)").run(id, email, passwordHash(password), "admin");
@@ -67,6 +71,8 @@ export function requireRole(...allowed) {
 const IDLE_HOURS = Number(process.env.CRM_SESSION_IDLE_HOURS) || 168;   // 7 days unused
 const MAX_DAYS = Number(process.env.CRM_SESSION_MAX_DAYS) || 30;        // hard ceiling
 const RENEW_AFTER_MS = 5 * 60 * 1000;                                   // throttle the write
+const COOKIE_AUTH = process.env.CRM_SESSION_COOKIE_ENABLED === "true";
+export const sessionCookieName = process.env.NODE_ENV === "production" ? "__Host-psspl_session" : "psspl_session";
 
 const idleDeadline = (from = Date.now()) => new Date(from + IDLE_HOURS * 60 * 60 * 1000).toISOString();
 
@@ -100,9 +106,23 @@ export function createSession(userId) {
 
 export function authenticate(req, res, next) {
   const authHeader = req.headers.authorization;
-  if (!authHeader || !authHeader.startsWith("Bearer ")) return res.status(401).json({ error: "Please sign in" });
-  const token = authHeader.slice(7).trim();
+  const bearer = authHeader?.startsWith("Bearer ") ? authHeader.slice(7).trim() : "";
+  const safeDecodeCookie = (value) => { try { return decodeURIComponent(value); } catch { return ""; } };
+  const cookies = Object.fromEntries(String(req.headers.cookie || "").split(";").map((part) => {
+    const index = part.indexOf("=");
+    return index < 0 ? ["", ""] : [part.slice(0, index).trim(), safeDecodeCookie(part.slice(index + 1).trim())];
+  }).filter(([key]) => key));
+  const cookieToken = COOKIE_AUTH ? cookies[sessionCookieName] : "";
+  const token = bearer || cookieToken;
   if (!token) return res.status(401).json({ error: "Please sign in" });
+  if (!bearer && cookieToken) {
+    if (["POST", "PUT", "PATCH", "DELETE"].includes(req.method)) {
+      const csrf = cookies.psspl_csrf;
+      const origin = req.get("origin");
+      const allowedOrigins = (process.env.CRM_ALLOWED_ORIGINS || "").split(",").map((value) => value.trim()).filter(Boolean);
+      if (!csrf || csrf !== req.get("x-csrf-token") || !origin || !allowedOrigins.includes(origin)) return res.status(403).json({ error: "Request verification failed" });
+    }
+  }
 
   const hash = createHash("sha256").update(token).digest("hex");
   const session = db.prepare(`SELECT u.id,u.email,u.role,s.expires_at,s.created_at FROM sessions s JOIN users u ON u.id=s.user_id WHERE s.token_hash=? AND u.active=1`).get(hash);
@@ -124,5 +144,6 @@ export function authenticate(req, res, next) {
 
   req.user = session;
   req.sessionTokenHash = hash;
+  req.authViaCookie = !bearer && Boolean(cookieToken);
   next();
 }

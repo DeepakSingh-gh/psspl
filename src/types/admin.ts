@@ -91,7 +91,31 @@ export interface TeamResponse {
   hasTargets: boolean;
 }
 
+export interface ManagementAttentionResponse {
+  financialYear: string;
+  period: { monthFrom: string; fyFrom: string; to: string };
+  asOf: string;
+  thresholds: { dormantDays: number; targetAlertPercent: number; concentrationAlertPercent: number; visitCompletionAlertPercent: number; provisional: boolean };
+  team: Array<{
+    id: string; name: string; ownershipMapping: "verified" | "unmapped" | "ambiguous";
+    monthlyPerformance: { from: string; to: string; label: string; actual: number | null; target: number | null; achievementPercent: number | null };
+    ytdPerformance: { from: string; to: string; label: string; actual: number | null; target: number | null; achievementPercent: number | null };
+    concentrationPercent: number | null;
+    concentrationTopDealers: Array<{ id: string; name: string; salesValue: number }>;
+    actions: Array<{ id: string; kind: string; severity: string; rmId: string; rmName: string; metric: string; actual?: number | null; target?: number | null; period: { from: string; to: string }; title: string; action: string; href: string; thresholdsProvisional: boolean }>;
+  }>;
+  dealerActions: Array<{ id: string; kind: "dormant-dealer" | "declining-dealer"; severity: string; rmId: string; rmName: string; dealerId: string; dealerName: string; metric: string; title: string; period: { from: string; to: string }; action: string; href: string; reportHref: string; thresholdsProvisional: boolean }>;
+  sync: { latestRun: { id: string; startedAt: string; completedAt: string | null; status: string; errorMessage: string | null } | null; needsReview: boolean };
+  visits: {
+    scheduledToday: number; completedToday: number;
+    pastScheduled: Array<{ id: string; rmId: string | null; rmName: string; userId: string; ownerName: string; customerId: string; customerName: string; businessDate: string; scheduledAt: string; status: string; pastScheduledTime: boolean; pendingToday: boolean; action: string; href: string }>;
+    pendingToday: Array<{ id: string; rmId: string | null; rmName: string; userId: string; ownerName: string; customerId: string; customerName: string; businessDate: string; scheduledAt: string; status: string; pastScheduledTime: boolean; pendingToday: boolean; action: string; href: string }>;
+    byRm: Array<{ rmId: string | null; rmName: string; plannedToday: number; completedToday: number; pendingToday: number; pastScheduled: number }>;
+  };
+}
+
 export interface SalesReportResponse {
+  filters: Record<string, string>;
   from: string;
   to: string;
   summary: { totalSales: number; invoiceCount: number; customerCount: number; averageInvoice: number; repeatCustomers: number; repeatCustomerPercent: number; unallocatedProductSales: number; unallocatedProductInvoices: number };
@@ -137,6 +161,8 @@ export interface ProductTrendRow {
 }
 
 export interface AdminAlertsResponse {
+  targetShortfallsAvailable?: boolean;
+  reminders?: { followUps: { pending: number; dueToday: number }; visits: { upcoming: number; pastScheduled: number }; managementAttention: Array<{ id: string; rmName: string; title: string; metric: string; action: string; thresholdsProvisional: boolean }> };
   asOf: string;
   summary: { total: number; missedCheckIns: number; overdueFollowUps: number; overdueOrders: number; inactiveCustomers: number; targetShortfalls: number };
   missedCheckIns: Array<{ userId: string; email: string; fullName: string; region: string; territory: string; managerName: string | null }>;
@@ -281,13 +307,17 @@ export interface AdminUser {
   email: string;
   role: UserRole;
   active: boolean;
+  invitationPending: boolean;
+  invitationEmailStatus: "not_configured" | "queued" | "processing" | "canceled" | "expired" | "accepted" | "sent" | "delivered" | "delivery_delayed" | "bounced" | "complained" | "failed" | "unknown" | "suppressed" | null;
   createdAt: string;
   employeeCode: string | null;
   fullName: string | null;
+  mobileNumber: string | null;
   region: string | null;
   territory: string | null;
   monthlyTarget: number | null;
   managerUserId: string | null;
+  managerName: string | null;
   activeSessions: number;
   visitCount: number;
 }
@@ -300,9 +330,11 @@ export interface UserListResponse {
 
 export interface CreateUserPayload {
   email: string;
-  password: string;
   role: UserRole;
   fullName: string;
+  mobileNumber?: string;
+  /** Optional for API compatibility; RM and salesperson creation uses a temporary password. */
+  initialPassword?: string;
   employeeCode?: string;
   region?: string;
   territory?: string;
@@ -310,7 +342,7 @@ export interface CreateUserPayload {
   managerUserId?: string | null;
 }
 
-export type UpdateUserPayload = Partial<Omit<CreateUserPayload, "email" | "password">> & { active?: boolean };
+export type UpdateUserPayload = Partial<Omit<CreateUserPayload, "email">> & { active?: boolean };
 
 export interface TerritoryRow {
   region: string;

@@ -10,7 +10,7 @@ function cleanKey(value) {
 function getGeminiKey() {
   const configured = cleanKey(process.env.GEMINI_API_KEY) || cleanKey(process.env["gemini api key"]);
   if (configured) return configured;
-  if (process.env.NODE_ENV === "production") return null;
+  if (process.env.NODE_ENV === "production" || process.env.NODE_ENV === "test") return null;
   try {
     const envPath = path.resolve(process.cwd(), ".env");
     if (fs.existsSync(envPath)) {

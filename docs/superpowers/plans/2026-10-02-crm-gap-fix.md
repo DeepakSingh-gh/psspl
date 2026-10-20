@@ -1,5 +1,11 @@
 # PSSPL CRM Gap Fix — Implementation Plan
 
+## Follow-up status ? 16 October 2026
+
+The completed task list below is historical. Current RM landing is /sales/my-day, and /rm redirects there; the sidebar has My Day and Customer DB. Admin RM detail prioritizes Manager Action Plan (default), then AI Insights, then the remaining tabs. The frontend corrections are live in GitHub/Vercel commit 87eae1e.
+
+AI provider handling is now separated into server/ai-provider.mjs with GEMINI_MODEL/default gemini-2.5-flash, optional OpenAI fallback, placeholder-key rejection and HTTP 503 failures. My Day customer-first aggregation, request-local RM directory reuse and compression are implemented and locally verified, but their backend rollout remains pending. See the [release report](../reports/2026-10-16-production-source-sync.md). This documentation update is local only; no task execution, seeding, push or deployment was performed.
+
 > **STATUS: COMPLETE (ALL TASKS IMPLEMENTED & VERIFIED WITH REAL CLIENT DATA)**
 
 **Goal:** Fix all client-requirement gaps in the PSSPL CRM prototype, closing every ❌ and upgrading every 🟡 from the gap analysis, including dual-mode follow-ups (Visit/Call), daily discussion notes, custom referral sources, and metric branding.
@@ -167,31 +173,7 @@
 
 ---
 
-## Task 3: RM Portal — Frontend Pages
 
-**Files:**
-- Modify: `src/lib/api.ts` (add `rmApi.customers`, `rmApi.customerDetail`, `rmApi.productTrends`, `rmApi.alerts`)
-- Create: `src/components/rm/rm-customers.tsx`
-- Create: `src/components/rm/rm-product-trends.tsx`
-- Create: `src/components/rm/rm-alerts.tsx`
-- Create: `src/app/rm/customers/page.tsx`
-- Create: `src/app/rm/products/page.tsx`
-- Create: `src/app/rm/alerts/page.tsx`
-- Modify: `src/app/rm/page.tsx` (RM home — KPI dashboard)
-- Modify: `src/components/rm/rm-dashboard.tsx` (update sidebar nav)
-- Modify: `src/components/rm/rm-home.tsx` (build the home KPIs)
+Frontend implementation tasks continue in [the frontend plan](./2026-10-02-crm-gap-fix-frontend.md).
 
-**Interfaces:**
-- Consumes: `GET /api/rm/customers`, `GET /api/rm/customers/:id`, `GET /api/rm/product-trends`, `GET /api/rm/alerts`, `GET /api/rm/dashboard`
-- Produces: RM navigation with 5 items; `RmCustomers`, `RmProductTrends`, `RmAlerts` exported components
-
-- [ ] **Step 1: Add RM API calls to `src/lib/api.ts`**
-
-  In the `rmApi` object add:
-  ```ts
-  customers: (q = "", page = 0) => get<{ total: number; items: unknown[] }>(`/rm/customers?q=${encodeURIComponent(q)}&page=${page}`),
-  customerDetail: (id: string) => get<unknown>(`/rm/customers/${id}`),
-  productTrends: () => get<unknown>(`/rm/product-trends`),
-  alerts: () => get<unknown>(`/rm/alerts`),
-
-... (truncated to stay under 200 lines)
+> Current project status (19 October 2026): See the [production readiness report](../../../PSSPL_FINAL_PRODUCTION_READINESS_REPORT.md) for the latest verified work and blockers; earlier findings in this document retain their original date.

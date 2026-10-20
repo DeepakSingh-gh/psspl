@@ -1,6 +1,14 @@
 # Database migrations
 
+## 16 October 2026 update
+
+The RM landing redirect, report tab ordering, AI-provider extraction and My Day performance work introduce no SQL migration or data rewrite. The overview query reuses existing invoice/customer indexes. Local regression checks matched product aggregates across 25 scopes; compressed and uncompressed RM/salesperson JSON matched exactly. No database import, seeding or migration was run for this documentation refresh.
+
+Source commits are published to GitHub and the frontend is live, but the new backend query/compression implementation is not yet rolled out to Render. Its Free filesystem is ephemeral: baseline restoration initializes a missing database and does not recover subsequent live edits. Preserve the live SQLite database before any backend deployment. This Markdown update is local only.
+
 Migration files are applied in filename order and recorded in the `schema_migrations` table.
+
+- `003_lead_stage_history.sql` adds an append-only stage-transition audit table. It records changes made after this migration is applied; existing leads retain their current stages and are not backfilled with invented history. Test only against a disposable database before deployment.
 
 - Never edit a migration after it has been shared.
 - Add a new numbered SQL file for every schema change, for example `002_add_customer_category.sql`.
@@ -23,5 +31,22 @@ Migration files are applied in filename order and recorded in the `schema_migrat
 Run migrations with `npm run db:migrate` or initialize with `npm run db:setup`.
 
 ### Cloud & Ephemeral Baseline Auto-Restore
-For ephemeral cloud environments (e.g., Render, Docker, or fresh developer clones), `server/db.mjs` automatically restores a full pre-seeded baseline dataset from `data/crm-baseline.sqlite.gz` (compressed 8.6 MB, expanding to 57 MB SQLite) if `data/crm.sqlite` is not present at server startup. All 171 customers, 666 products, and historical billing transactions are restored seamlessly without requiring external manual steps.
+For ephemeral cloud environments (e.g., Render, Docker, or fresh developer clones), `server/db.mjs` automatically restores a full pre-seeded baseline dataset from `data/crm-baseline.sqlite.gz` (compressed 8.6 MB, expanding to 57 MB SQLite) if `data/crm.sqlite` is not present at server startup. The rows bundled in that snapshot are restored; historical row counts are snapshot-specific, and the current local product list contains 14,547 rows. Baseline restoration is initialization, not a backup of changes made after deployment.
 
+## Latest local follow-up ? 16 October 2026
+
+No schema migration accompanies the refresh-button exclusion, attendance revision monitor or Sales Reports diagnosis. The new attendance helper only reads current-day rows; no migration file was edited or added.
+
+The latency integration check used an isolated SQLite snapshot. Actual local/live attendance, account mappings and billing rows were not changed.
+
+Current local non-staged invoice coverage ends on `2026-09-08`, with 78 September invoices and none for 1?16 October. Baseline initialization and source deployment do not add missing October invoices; those must arrive through the normal Tally sync/import workflow.
+
+Documentation and the pending feature code remain local. Preserve live SQLite data before the future backend rollout.
+
+Release context: [source synchronization and deployment status](../../docs/superpowers/reports/2026-10-16-production-source-sync.md).
+
+## Phase 7: report automation (004)
+
+`004_report_automation.sql` adds schedules, unique per-period delivery occurrences and signed callback metadata. It has no business-data backfill and no default recipient/schedule. It was tested only on disposable synthetic SQLite databases. Do not start the backend against the existing database until migration/backup rollout is separately approved: `server/db.mjs` applies pending migrations at startup. Production application remains pending. See [operator runbook](../../docs/operations/PSSPL_REPORT_AUTOMATION.md).
+
+> Current project status (19 October 2026): See the [production readiness report](../../PSSPL_FINAL_PRODUCTION_READINESS_REPORT.md) for the latest verified work and blockers; earlier findings in this document retain their original date.

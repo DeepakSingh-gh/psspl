@@ -28,3 +28,5 @@ scripts/apply-indexes.js
 .env.*.local
 !.env.production
 !.env.example
+
+.next-dev/

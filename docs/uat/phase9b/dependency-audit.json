@@ -1,0 +1,18 @@
+{
+  "date": "2026-10-18",
+  "result": "PASS",
+  "npmAudit": {
+    "info": 0,
+    "low": 0,
+    "moderate": 0,
+    "high": 0,
+    "critical": 0,
+    "total": 0
+  },
+  "installed": {
+    "playwright": "1.64.1",
+    "next": "15.5.28",
+    "postcssOverride": "8.5.30"
+  },
+  "note": "Next/PostCSS and transitive security updates were followed by the isolated production build and full regression run."
+}

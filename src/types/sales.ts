@@ -15,6 +15,8 @@ export interface Visit {
   purpose: string;
   status: VisitStatus;
   priority?: string;
+  notes?: string;
+  voiceNoteAvailable?: boolean;
 }
 
 export type FollowUpType = "call" | "visit";
@@ -38,9 +40,8 @@ export interface SalesDay {
     name: string;
     region: string;
     territory: string;
-    rmCode?: string;
-    operatingFrom?: string;
-    teamExecutiveCities?: string[];
+    employeeCode?: string | null;
+    managerName?: string | null;
     checkedInAt: string | null;
     checkedOutAt: string | null;
     trackingActive: boolean;
@@ -56,7 +57,9 @@ export interface SalesDay {
     actualRupees?: number;
     targetRupees?: number;
   };
-  summary: { expectedOrderValue: number; expectedOrderCount: number; followUpsCreated: number; productsDiscussed: number };
+  summary: { expectedOrderValue: number; expectedOrderCount: number; followUpsCreated: number; productsDiscussed: number; plannedVisits: number; completedVisits: number; pendingVisits: number; loggedCalls: number; pendingFollowUps: number; overdueActivities: number; completedActivities: number; expectedOrderValueToday: number; expectedOrderCountToday: number; attendanceStatus: "not_checked_in" | "checked_in" | "checked_out" };
+  calls: Array<{ id: string; customer: string; direction: "incoming" | "outgoing" | "unspecified"; purpose: string; notes: string | null; occurredAt: string }>;
+  attendanceHistory: Array<{ businessDate: string; checkInAt: string; checkOutAt: string | null; latitude: number | null; longitude: number | null; gpsAccuracyMeters: number | null }>;
   tally: { mode: string; connected: boolean; lastSyncAt: string | null; message?: string };
   referenceData: { customers: TallyCustomer[]; products: TallyProduct[] };
   insights: { customerCount: number; totalOutstanding: number; topProducts: Array<{ name: string; salesValue: number; quantity: number }>; decliningProducts: Array<{ name: string; previousSales: number; currentSales: number; difference: number }> };
@@ -75,4 +78,4 @@ export interface CompleteVisitPayload {
 
 export interface TallyCustomer { id: string; name: string; city: string; type: string; }
 export interface TallyProduct { id: string; name: string; group: string; }
-export interface LoginResponse { token: string; expiresAt: string; user: SessionUser; }
+export interface LoginResponse { token?: string; expiresAt: string; user: SessionUser; }

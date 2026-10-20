@@ -1,24 +1,33 @@
 import { db } from "../db.mjs";
+import { indiaBusinessDate } from "../../shared/business-date.mjs";
 import { buildRmDirectory, resolveRmId } from "../rm-directory.mjs";
+import { authoritativeInvoiceWhere, netInvoiceAmount, netInvoiceLineAmount, rupeesToCrore } from "./metrics.mjs";
 
 class TallyConnectorClient {
+  customerOwnerIds(userId) {
+    const user = db.prepare("SELECT role,active FROM users WHERE id=?").get(userId);
+    if (!user || !user.active || user.role === "admin") return [];
+    if (user.role === "rm") {
+      return [userId, ...db.prepare("SELECT user_id FROM salesperson_profiles WHERE manager_user_id=?").all(userId).map((row) => row.user_id)];
+    }
+    // A salesperson is scoped to their own customers. Team visibility belongs
+    // to the RM role and is computed from manager_user_id in RM endpoints.
+    return [userId];
+  }
+
   async customers({ salespersonId, directory: suppliedDirectory } = {}) {
     if (!salespersonId) return db.prepare("SELECT id,name,city,party_type type,rm_name rmName,total_sales totalSales,outstanding,last_payment_date lastPaymentDate FROM tally_customers ORDER BY total_sales DESC").all();
-    const profile = db.prepare("SELECT full_name FROM salesperson_profiles WHERE user_id=?").get(salespersonId);
-    const directory = suppliedDirectory ?? buildRmDirectory();
-    const rm = directory.find((entry) => entry.id === salespersonId || (entry.keys && entry.keys.includes(salespersonId)) || resolveRmId(directory, profile?.full_name || "") === entry.id);
-    const allNames = rm ? [rm.name, ...rm.aliases] : [profile?.full_name].filter(Boolean);
-    const nameList = allNames.length ? allNames.map(() => "?").join(",") : "";
-
+    const user = db.prepare("SELECT role,active FROM users WHERE id=?").get(salespersonId);
+    if (user?.role === "admin" && user.active) return this.customers({});
+    const ownerIds = this.customerOwnerIds(salespersonId);
+    if (!ownerIds.length) return [];
+    const placeholders = ownerIds.map(() => "?").join(",");
     return db.prepare(`
       SELECT id,name,city,party_type type,rm_name rmName,total_sales totalSales,outstanding,last_payment_date lastPaymentDate
       FROM tally_customers c
-      WHERE c.owner_user_id=?
-         OR c.owner_user_id IN (SELECT user_id FROM salesperson_profiles WHERE manager_user_id=?)
-         OR (c.rm_name IN (${nameList}))
-         OR (c.owner_user_id IS NULL AND lower(replace(COALESCE(c.rm_name,''),' ',''))=lower(replace(?,' ','')))
+      WHERE c.owner_user_id IN (${placeholders})
       ORDER BY total_sales DESC
-    `).all(salespersonId, salespersonId, ...allNames, profile?.full_name ?? "");
+    `).all(...ownerIds);
   }
 
   async products() {
@@ -27,105 +36,84 @@ class TallyConnectorClient {
 
   async salesSummary({ salespersonId, directory = buildRmDirectory() }) {
     const profile = db.prepare("SELECT full_name, employee_code, monthly_target FROM salesperson_profiles WHERE user_id=?").get(salespersonId);
-    const rm = directory.find((entry) => entry.id === salespersonId || (entry.keys && entry.keys.includes(salespersonId)) || resolveRmId(directory, profile?.full_name || "") === entry.id);
-    const allNames = rm ? [rm.name, ...rm.aliases] : [profile?.full_name].filter(Boolean);
-    const nameList = allNames.length ? allNames.map(() => "?").join(",") : "";
+    const isAdmin = Boolean(db.prepare("SELECT 1 FROM users WHERE id=? AND role='admin' AND active=1").get(salespersonId));
+    const ownerIds = this.customerOwnerIds(salespersonId);
+    const ownerPlaceholders = ownerIds.map(() => "?").join(",");
+    const ownerScope = isAdmin ? "1=1" : `c.owner_user_id IN (${ownerPlaceholders})`;
 
-    const todayStr = new Date().toISOString().slice(0, 10);
+    const todayStr = indiaBusinessDate();
     let monthStart = todayStr.slice(0, 7) + "-01";
     const [year, month] = monthStart.split("-").map(Number);
     let nextMonth = new Date(Date.UTC(year, month, 1)).toISOString().slice(0, 10);
 
-    // Detect latest active invoice date in database for this salesperson/RM
-    const maxDateRow = allNames.length ? db.prepare(`
-      SELECT MAX(i.invoice_date) maxDate
-      FROM tally_invoices i
-      JOIN tally_customers c ON c.id = i.customer_id
-      WHERE i.ingest_session_id IS NULL AND c.rm_name IN (${nameList})
-    `).get(...allNames) : null;
-    const latestActiveDate = maxDateRow?.maxDate || todayStr;
-    const latestActiveMonth = latestActiveDate.slice(0, 7);
+    const queryStart = monthStart;
+    const queryEnd = nextMonth;
 
-    let periodLabel = "This Month";
-    let queryStart = monthStart;
-    let queryEnd = nextMonth;
-
-    let liveSales = allNames.length ? db.prepare(`
-      SELECT COALESCE(SUM(i.amount),0) total
+    let liveSales = ownerIds.length || isAdmin ? db.prepare(`
+      SELECT COALESCE(SUM(${netInvoiceAmount("i")}),0) total
       FROM tally_invoices i
       JOIN tally_customers c ON c.id=i.customer_id
-      WHERE i.ingest_session_id IS NULL AND i.invoice_date>=? AND i.invoice_date<?
-        AND (c.owner_user_id=? OR c.rm_name IN (${nameList}))
-    `).get(queryStart, queryEnd, salespersonId, ...allNames) : { total: 0 };
-
-    if ((!liveSales || liveSales.total === 0) && monthStart.slice(0, 7) > latestActiveMonth) {
-      queryStart = `${latestActiveMonth}-01`;
-      const [ay, am] = latestActiveMonth.split("-").map(Number);
-      queryEnd = new Date(Date.UTC(ay, am, 1)).toISOString().slice(0, 10);
-      periodLabel = `This Month (${latestActiveMonth} active ledger)`;
-      if (allNames.length) {
-        liveSales = db.prepare(`
-          SELECT COALESCE(SUM(i.amount),0) total
-          FROM tally_invoices i
-          JOIN tally_customers c ON c.id=i.customer_id
-          WHERE i.ingest_session_id IS NULL AND i.invoice_date>=? AND i.invoice_date<?
-            AND (c.owner_user_id=? OR c.rm_name IN (${nameList}))
-        `).get(queryStart, queryEnd, salespersonId, ...allNames);
-      }
-    }
+      WHERE ${authoritativeInvoiceWhere("i")} AND i.invoice_date>=? AND i.invoice_date<?
+        AND ${ownerScope}
+    `).get(queryStart, queryEnd, ...(isAdmin ? [] : ownerIds)) : { total: 0 };
 
     const total = liveSales?.total ?? 0;
 
     // Target calculation: check tally_rm_targets first
     const fromMonth = queryStart.slice(0, 7);
-    const rmTargetRow = allNames.length ? db.prepare(`
+    const profileName = profile?.full_name;
+    const rmTargetRow = profileName ? db.prepare(`
       SELECT COALESCE(SUM(target_lakh * 100000), 0) totalTarget
       FROM tally_rm_targets
-      WHERE rm_name IN (${nameList}) AND period = ?
-    `).get(...allNames, fromMonth) : null;
+      WHERE rm_name = ? AND period = ?
+    `).get(profileName, fromMonth) : null;
 
-    const rawTarget = profile?.monthly_target ?? 0;
-    const baseMonthly = rawTarget > 10 ? Math.round(rawTarget * 100000) : Math.round(rawTarget * 10000000);
-    const targetRupees = (rmTargetRow?.totalTarget > 0 ? rmTargetRow.totalTarget : null) || baseMonthly || 4593000;
-    const targetCr = Number((targetRupees / 10000000).toFixed(2));
-    const actualCr = Number((total / 10000000).toFixed(2));
-    const achievement = targetRupees > 0 ? Math.round((total / targetRupees) * 100) : 0;
+    const targetRupees = rmTargetRow?.totalTarget > 0 ? rmTargetRow.totalTarget : null;
+    const targetCr = targetRupees === null ? null : rupeesToCrore(targetRupees);
+    const actualCr = rupeesToCrore(total);
+    const achievement = targetRupees > 0 ? Math.round((total / targetRupees) * 100) : null;
 
-    const repeat = db.prepare("SELECT COUNT(*) total, SUM(CASE WHEN active_months>1 THEN 1 ELSE 0 END) repeated FROM (SELECT customer_id,COUNT(CASE WHEN amount>0 THEN 1 END) active_months FROM tally_customer_monthly_sales GROUP BY customer_id)").get();
+    const repeat = ownerIds.length ? db.prepare(`SELECT COUNT(*) total,SUM(CASE WHEN active_months>1 THEN 1 ELSE 0 END) repeated FROM (
+      SELECT customer_id,COUNT(DISTINCT substr(invoice_date,1,7)) active_months FROM tally_invoices i
+      JOIN tally_customers c ON c.id=i.customer_id
+      WHERE ${authoritativeInvoiceWhere("i")} AND i.invoice_date>=date(?,'-12 months') AND c.owner_user_id IN (${ownerPlaceholders})
+      GROUP BY customer_id
+    )`).get(todayStr, ...ownerIds) : { total: 0, repeated: 0 };
     return {
       actual: actualCr,
       target: targetCr,
       actualRupees: total,
       targetRupees,
       achievement,
-      periodLabel,
+      periodLabel: "This Month",
       repeatSalesPercent: repeat.total ? Math.round((repeat.repeated / repeat.total) * 100) : 0,
       currencyLabel: "Cr",
     };
   }
 
   async overview({ salespersonId, directory = buildRmDirectory() }) {
-    const profile = db.prepare("SELECT full_name FROM salesperson_profiles WHERE user_id=?").get(salespersonId);
-    const rm = directory.find((entry) => entry.id === salespersonId || (entry.keys && entry.keys.includes(salespersonId)) || resolveRmId(directory, profile?.full_name || "") === entry.id);
-    const allNames = rm ? [rm.name, ...rm.aliases] : [profile?.full_name].filter(Boolean);
-    const nameList = allNames.length ? allNames.map(() => "?").join(",") : "";
+    const isAdmin = Boolean(db.prepare("SELECT 1 FROM users WHERE id=? AND role='admin' AND active=1").get(salespersonId));
+    const ownerIds = this.customerOwnerIds(salespersonId);
+    if (!ownerIds.length && !isAdmin) return { topProducts: [], decliningProducts: [], customerCount: 0, totalOutstanding: 0 };
+    const ownerPlaceholders = ownerIds.map(() => "?").join(",");
+    const ownerScope = isAdmin ? "1=1" : `c.owner_user_id IN (${ownerPlaceholders})`;
 
     const topProducts = db.prepare(`
-      SELECT l.product_name name,SUM(l.amount) salesValue,SUM(l.quantity) quantity
+      SELECT l.product_name name,SUM(${netInvoiceLineAmount("i","l")}) salesValue,SUM(l.quantity) quantity
       FROM tally_invoices i
       JOIN tally_invoice_lines l ON l.invoice_id=i.id
-      WHERE i.ingest_session_id IS NULL
+      WHERE ${authoritativeInvoiceWhere("i")}
         AND i.customer_id IN (
           SELECT c.id FROM tally_customers c
-          WHERE c.owner_user_id=? OR c.owner_user_id IN (SELECT user_id FROM salesperson_profiles WHERE manager_user_id=?) OR c.rm_name IN (${nameList})
+          WHERE ${ownerScope}
         )
       GROUP BY l.product_name ORDER BY salesValue DESC LIMIT 5
-    `).all(salespersonId, salespersonId, ...allNames);
+    `).all(...(isAdmin ? [] : ownerIds));
     const customers = db.prepare(`
       SELECT COUNT(*) count,COALESCE(SUM(outstanding),0) outstanding
       FROM tally_customers c
-      WHERE c.owner_user_id=? OR c.owner_user_id IN (SELECT user_id FROM salesperson_profiles WHERE manager_user_id=?) OR c.rm_name IN (${nameList})
-    `).get(salespersonId, salespersonId, ...allNames);
+      WHERE ${ownerScope}
+    `).get(...(isAdmin ? [] : ownerIds));
     return { topProducts, decliningProducts: [], customerCount: customers.count, totalOutstanding: customers.outstanding };
   }
 

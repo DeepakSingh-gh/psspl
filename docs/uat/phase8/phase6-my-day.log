@@ -1,0 +1,7 @@
+PSSPL API running at http://127.0.0.1:57794
+Isolated synthetic My Day response: 200
+{"salesperson":{"id":"synthetic-rep","email":"rep@test.invalid","name":"Synthetic Rep","rmCode":"rep","operatingFrom":"Gurugram","teamExecutiveCities":["Gurgaon","Delhi","Ghaziabad","Faridabad","Noida","Sonepat","Bahadurgarh","Sahibabad","Rudrapur"],"region":"Test","territory":"Test","checkedInAt":null,"checkedOutAt":null,"trackingActive":false},"visits":[],"followUps":[],"performance":{"actual":0,"target":null,"actualRupees":0,"targetRupees":null,"achievement":null,"periodLabel":"This Month","c
+
+[auth] Seeded admin admin@psspl.com with the default development password. Change it before deploying.
+(node:28324) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)

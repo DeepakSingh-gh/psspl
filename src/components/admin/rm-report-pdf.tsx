@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import React from "react";
 
@@ -27,159 +27,37 @@ function fmtDate(d: string | null | undefined) {
 export function RmReportDocument({ data, period }: { data: any; period?: string }) {
   if (!data) return null;
 
-  const kpi      = data.kpi ?? {};
-  const target   = kpi.targetValue       ?? 0;
-  const actual   = kpi.actualSalesValue  ?? 0;
-  const pct      = target > 0 ? Math.min(999, Math.round((actual / target) * 100)) : 0;
-  const gap      = target - actual;
-
-  const statusLabel =
-    pct >= 100 ? "Target Exceeded 🏆" :
-    pct >= 80  ? "On Track ✅" :
-    pct >= 50  ? "Moderate Pace 🟡" :
-                 "Needs Attention 🔴";
-
-  const statusColor =
-    pct >= 80 ? "#16a34a" :
-    pct >= 50 ? "#d97706" :
-                "#dc2626";
-
-  const statusBg =
-    pct >= 80 ? "#dcfce7" :
-    pct >= 50 ? "#fef3c7" :
-                "#fee2e2";
-
-  // Top customers
-  const dealerMap: Record<string, number> = {};
-  (data.actualSales ?? []).forEach((s: any) => {
-    if (s.amount > 0) dealerMap[s.customerName] = (dealerMap[s.customerName] ?? 0) + s.amount;
-  });
-  const topCustomers = Object.entries(dealerMap).sort((a, b) => b[1] - a[1]).slice(0, 7);
-  const totalSales   = topCustomers.reduce((s, [, v]) => s + v, 0) || 1;
-
-  // Top products
-  const topProducts  = (data.topProducts ?? []).filter((p: any) => p.salesValue > 0).slice(0, 7);
+  const kpi = data.kpi ?? {};
+  const target = kpi.targetValue ?? 0;
+  const actual = kpi.actualSalesValue ?? 0;
+  const hasTarget = kpi.targetValue != null;
+  const pct = kpi.achievementPercent ?? 0;
+  const hasPct = kpi.achievementPercent != null;
+  const gap = hasTarget ? target - actual : null;
+  const statusLabel = !hasPct ? "Target data unavailable" : pct >= 100 ? "Target exceeded" : pct >= 80 ? "On track" : pct >= 50 ? "Moderate pace" : "Needs attention";
+  const statusColor = !hasPct ? "#0369a1" : pct >= 80 ? "#16a34a" : pct >= 50 ? "#d97706" : "#dc2626";
+  const statusBg = !hasPct ? "#e0f2fe" : pct >= 80 ? "#dcfce7" : pct >= 50 ? "#fef3c7" : "#fee2e2";
+  const topCustomers: Array<[string, number]> = (data.topDealers ?? []).slice(0, 5).map((dealer: any) => [dealer.dealerName, dealer.salesValue]);
+  const totalSales = actual || 1;
+  const topProducts = (data.topProducts ?? []).filter((p: any) => p.salesValue > 0).slice(0, 7);
   const productTotal = topProducts.reduce((s: number, p: any) => s + p.salesValue, 0) || 1;
-
-  // Field data
-  const recentVisits  = (data.customerVisits ?? []).slice(0, 4);
+  const recentVisits = (data.customerVisits ?? []).slice(0, 4);
   const openFollowUps = (data.followUps ?? []).filter((f: any) => !f.completedAt).slice(0, 4);
+  const periodLabel = period === "today" ? "Today" : period === "week" ? "This Week" : period === "fytd" ? "FYTD" : "This Month";
+  const generatedAt = new Date().toLocaleString("en-IN", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" });
+  const aiLines: string[] = (data.managementInsights ?? []).map((item: any) => `${item.title}: ${item.metric}. Suggested action: ${item.action}`);
+  if (aiLines.length === 0) aiLines.push("No configured management alerts were triggered. This does not certify that performance is problem-free.");
+  const isUnder = hasPct && pct < (data.reportingThresholds?.targetAlertPercent ?? 80);
+  const topActions: Array<{ urgency: string; title: string; detail: string; action: string; color: string; thresholdsProvisional: boolean }> = (data.managementInsights ?? []).slice(0, 3).map((item: any) => ({
+    urgency: item.severity === "high" ? "URGENT PRIORITY" : "REVIEW SOON",
+    title: item.title,
+    detail: item.metric,
+    action: item.action,
+    color: item.severity === "high" ? "#dc2626" : "#d97706",
+    thresholdsProvisional: item.thresholdsProvisional,
+  }));
 
-  const periodLabel =
-    period === "today" ? "Today" :
-    period === "week"  ? "This Week" :
-    period === "fytd"  ? "FYTD" :
-    "This Month";
-
-  const generatedAt = new Date().toLocaleString("en-IN", {
-    day: "2-digit", month: "short", year: "numeric",
-    hour: "2-digit", minute: "2-digit",
-  });
-
-  /* ── AI Insights synthesis ── */
-  const topProduct = data.topProducts?.[0];
-  const overdueCount = data.pipeline?.filter((p: any) => p.isOverdue).length ?? 0;
-  const aiLines: string[] = [];
-
-  aiLines.push(
-    `${data.name} completed ${kpi.visitsCompleted ?? recentVisits.length} customer visits` +
-    (kpi.customersCovered > 0 ? `, covering ${kpi.customersCovered} unique accounts` : "") +
-    ` during the ${periodLabel.toLowerCase()} period.`
-  );
-
-  if ((kpi.expectedOrdersValue ?? 0) > 0 || actual > 0) {
-    aiLines.push(
-      `The RM generated ${fmt(kpi.expectedOrdersValue ?? 0)} in expected orders, while actual billed sales stand at ${fmt(actual)}.`
-    );
-  }
-
-  if (topProduct && topProduct.salesValue > 0) {
-    aiLines.push(`${topProduct.name} is the strongest revenue product, contributing ${fmt(topProduct.salesValue)}.`);
-  }
-
-  const concerns: string[] = [];
-  if (pct < 50) {
-    concerns.push(`target achievement is low at ${Math.round(pct)}%`);
-  }
-  if ((kpi.followUpsOpen ?? openFollowUps.length) > 0) {
-    const fCount = kpi.followUpsOpen ?? openFollowUps.length;
-    concerns.push(`${fCount} follow-up${fCount > 1 ? "s" : ""} remain open`);
-  }
-  if (overdueCount > 0) {
-    concerns.push(`${overdueCount} pipeline order${overdueCount > 1 ? "s" : ""} are overdue`);
-  }
-
-  if (concerns.length > 0) {
-    aiLines.push(`Key areas for review: ${concerns.join("; ")}.`);
-    aiLines.push("Management directive: Prioritize overdue customer touchpoints and accelerate pipeline conversion.");
-  } else {
-    aiLines.push("Sales velocity is robust. Maintain cadence and explore cross-sell opportunities across dormant accounts.");
-  }
-
-  /* ── Manager Action Plan calculation ── */
-  const isUnder = pct < 50;
-  const totalActualSales = Object.values(dealerMap).reduce((s, v) => s + v, 0) || 1;
-  const topDealers = Object.entries(dealerMap).sort((a, b) => b[1] - a[1]).slice(0, 5);
-  const top5Total = topDealers.reduce((s, d) => s + d[1], 0);
-  const dependencyPct = totalActualSales > 1 ? Math.round((top5Total / totalActualSales) * 100) : 0;
-  const totalDealersCount = Object.keys(dealerMap).length;
-
-  const activeDealerNames = new Set((data.actualSales ?? []).map((s: any) => s.customerName));
-  const dormant = (data.customerVisits ?? []).filter((v: any) => !activeDealerNames.has(v.customerName));
-
-  const actionItems: Array<{ urgency: "URGENT PRIORITY" | "REVIEW SOON" | "STANDARD CADENCE"; title: string; detail: string; action: string; color: string }> = [];
-
-  if (pct < 50) {
-    actionItems.push({
-      urgency: "URGENT PRIORITY",
-      title: "Intervene on Target Shortfall",
-      detail: `Current target achievement is ${Math.round(pct)}%. Revenue gap to quota is ${fmt(Math.max(0, target - actual))}.`,
-      action: "Mandate daily deal inspection with the RM on high-value pipeline opportunities.",
-      color: "#dc2626",
-    });
-  }
-  if (dependencyPct > 70 && totalDealersCount > 0) {
-    actionItems.push({
-      urgency: "URGENT PRIORITY",
-      title: "Mitigate Key Account Dependency",
-      detail: `${dependencyPct}% of revenue originates from just top ${Math.min(5, totalDealersCount)} accounts.`,
-      action: "Set strict quota for expanding mid-tier and tier-2 customer accounts this quarter.",
-      color: "#dc2626",
-    });
-  }
-  if (dormant.length > 0) {
-    actionItems.push({
-      urgency: "REVIEW SOON",
-      title: "Reactivate Dormant Accounts",
-      detail: `${dormant.length} dealers have recent field visits but logged ₹0 billing this period.`,
-      action: "Schedule joint executive visits or commercial review calls to unlock pending orders.",
-      color: "#d97706",
-    });
-  }
-  if ((kpi.followUpsOverdue ?? 0) > 0 || openFollowUps.length > 0) {
-    actionItems.push({
-      urgency: "REVIEW SOON",
-      title: "Clear Overdue CRM Follow-ups",
-      detail: `${openFollowUps.length} follow-ups require scheduled customer interaction.`,
-      action: "Ensure RM contacts all pending leads before scheduling fresh exploratory visits.",
-      color: "#d97706",
-    });
-  }
-  if (actionItems.length === 0) {
-    actionItems.push({
-      urgency: "STANDARD CADENCE",
-      title: "Maintain Performance Momentum",
-      detail: "RM is meeting performance milestones with healthy dealer coverage.",
-      action: "Conduct standard weekly cadence and explore cross-sell opportunities for newly launched products.",
-      color: "#16a34a",
-    });
-  }
-
-  // Limit to top 2-3 most critical items to guarantee crisp fit on Page 2
-  const topActions = actionItems.slice(0, 3);
-
-  // ── Monthly Target vs Actual Graph Calculations for Page 1 ──
-  const monthlyRows: Array<{ month: string; label: string; target: number; actual: number; achievementPercent: number }> =
+  const monthlyRows: Array<{ month: string; label: string; target: number | null; actual: number; achievementPercent: number | null }> =
     data.monthlyTargetVsActual ?? [];
   const chartW = 730;
   const chartH = 92;
@@ -208,7 +86,7 @@ export function RmReportDocument({ data, period }: { data: any; period?: string 
       }}
     >
       {/* ══════════════════════════════════════════════════════════════
-         PAGE 1: SALES & PERFORMANCE OVERVIEW (Exact A4 1122px)
+         PAGE 1: EXECUTIVE SUMMARY & PERFORMANCE OVERVIEW (Exact A4 1122px)
       ══════════════════════════════════════════════════════════════ */}
       <div
         id="rm-report-page-1"
@@ -327,7 +205,7 @@ export function RmReportDocument({ data, period }: { data: any; period?: string 
                 ACHIEVEMENT
               </div>
               <div style={{ fontSize: "32px", fontWeight: 900, lineHeight: 1.1, margin: "3px 0", color: "#ffffff" }}>
-                {Math.round(pct)}%
+                {hasPct ? `${Math.round(pct)}%` : "Data unavailable"}
               </div>
               <div
                 style={{
@@ -348,17 +226,135 @@ export function RmReportDocument({ data, period }: { data: any; period?: string 
             </div>
           </div>
 
+          {/* ── AI SALES INSIGHT BLOCK ── */}
+          <div
+            style={{
+              background: "linear-gradient(135deg, #eff6ff 0%, #f0fdf4 100%)",
+              border: "1.5px solid #bfdbfe",
+              borderRadius: "12px",
+              padding: "14px 18px",
+              marginBottom: "14px",
+            }}
+          >
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "8px" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                <span style={{ fontSize: "18px" }}>🤖</span>
+                <div>
+                  <h3 style={{ margin: 0, fontSize: "13px", fontWeight: 800, color: "#1e3a8a" }}>
+                    AI Executive Diagnostic &amp; Field Intelligence
+                  </h3>
+                  <div style={{ fontSize: "9px", color: "#3b82f6" }}>
+                    Algorithmic synthesis combining CRM field activity, order pipelines, and reconciled Tally sales
+                  </div>
+                </div>
+              </div>
+              <span style={{ background: "#dbeafe", color: "#1e40af", padding: "2px 8px", borderRadius: "99px", fontSize: "9px", fontWeight: 700 }}>
+                AI Model Generated
+              </span>
+            </div>
+
+            <div style={{ display: "flex", flexDirection: "column", gap: "5px", fontSize: "10.5px", color: "#1e293b", lineHeight: 1.45 }}>
+              {aiLines.map((line, idx) => (
+                <div key={idx} style={{ display: "flex", alignItems: "flex-start", gap: "6px" }}>
+                  <span style={{ color: "#3b82f6", fontWeight: 800, fontSize: "12px" }}>•</span>
+                  <span>{line}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* ── MANAGER ACTION PLAN BLOCK ── */}
+          <div
+            style={{
+              background: isUnder ? "linear-gradient(135deg, #fef2f2 0%, #fff1f2 100%)" : "linear-gradient(135deg, #f0fdf4 0%, #f0fdfa 100%)",
+              border: `1.5px solid ${isUnder ? "#f87171" : "#86efac"}`,
+              borderRadius: "12px",
+              padding: "14px 18px",
+              marginBottom: "14px",
+            }}
+          >
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "10px" }}>
+              <div>
+                <span style={{ fontSize: "9px", fontWeight: 800, textTransform: "uppercase", letterSpacing: ".06em", color: isUnder ? "#991b1b" : "#166534" }}>
+                  Managerial Directive &amp; Remediation Plan
+                </span>
+                <h3 style={{ margin: "2px 0 0", fontSize: "14px", fontWeight: 800, color: "#0f172a" }}>
+                  Manager Action Plan — {data.name}
+                </h3>
+              </div>
+              <span
+                style={{
+                  padding: "4px 12px",
+                  borderRadius: "24px",
+                  fontWeight: 800,
+                  fontSize: "10.5px",
+                  background: isUnder ? "#dc2626" : "#16a34a",
+                  color: "#ffffff",
+                }}
+              >
+                {!hasPct ? "Data unavailable" : isUnder ? "Review required" : topActions.length ? "Review findings" : "No alerts triggered"}
+              </span>
+            </div>
+
+            {/* Action Cards */}
+            <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+              {topActions.map((item, idx) => (
+                <div
+                  key={idx}
+                  style={{
+                    background: "#ffffff",
+                    border: "1px solid #e2e8f0",
+                    borderRadius: "8px",
+                    padding: "8px 12px",
+                  }}
+                >
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "3px" }}>
+                    <strong style={{ fontSize: "11px", color: "#0f172a" }}>{item.title}</strong>
+                    <span
+                      style={{
+                        fontSize: "8.5px",
+                        fontWeight: 800,
+                        padding: "1px 6px",
+                        borderRadius: "4px",
+                        background: item.color === "#dc2626" ? "#fee2e2" : item.color === "#d97706" ? "#fef3c7" : "#dcfce7",
+                        color: item.color,
+                      }}
+                    >
+                      {item.urgency}
+                    </span>
+                  </div>
+                  <div style={{ fontSize: "10px", color: "#64748b", marginBottom: "4px" }}>
+                    {item.detail}
+                  </div>
+                  <div
+                    style={{
+                      background: "#f8fafc",
+                      borderLeft: `3px solid ${item.color}`,
+                      padding: "4px 8px",
+                      borderRadius: "0 4px 4px 0",
+                      fontSize: "9.5px",
+                      color: "#334155",
+                    }}
+                  >
+                    <strong>Direct Action:</strong> {item.action}
+                  </div>
+                </div>
+              ))}
+              {topActions.length === 0 && <div style={{ fontSize: 10, color: "#64748b" }}>No configured alerts were triggered. This does not certify that performance is problem-free.</div>}
+            </div>
+          </div>
+
           {/* ── KPI GRID (8 Metrics) ── */}
           <div style={{ fontSize: "11px", fontWeight: 800, textTransform: "uppercase", letterSpacing: "0.08em", color: "#003a5c", marginBottom: "6px" }}>
             Key Performance Indicators
           </div>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "8px", marginBottom: "12px" }}>
             {[
-              { label: "Target Quota", val: fmt(target), icon: "🎯", bg: "#dbeafe", sub: "Period quota", col: "#0f172a" },
+              { label: "Target Quota", val: hasTarget ? fmt(target) : "Data unavailable", icon: "🎯", bg: "#dbeafe", sub: "Period quota", col: "#0f172a" },
               { label: "Actual Sales", val: fmt(actual), icon: "💰", bg: "#dcfce7", sub: "Billed in Tally", col: "#16a34a" },
-              { label: gap > 0 ? "Gap to Target" : "Surplus", val: gap > 0 ? fmt(gap) : `+${fmt(Math.abs(gap))}`, icon: gap > 0 ? "📉" : "🏆", bg: gap > 0 ? "#fef3c7" : "#dcfce7", sub: gap > 0 ? "Shortfall" : "Surplus pace", col: gap > 0 ? "#d97706" : "#16a34a" },
-              { label: "Achievement %", val: `${Math.round(pct)}%`, icon: "⚡", bg: "#f1f5f9", sub: "Quota ratio", col: statusColor },
-              { label: "Active Customers", val: topCustomers.length, icon: "🤝", bg: "#ede9fe", sub: "Billed accounts", col: "#0f172a" },
+              { label: "Gap to Target", val: gap == null ? "Data unavailable" : gap > 0 ? fmt(gap) : `+${fmt(Math.abs(gap))}`, icon: "📉", bg: "#fef3c7", sub: "Target difference", col: "#d97706" },
+              { label: "Achievement %", val: hasPct ? `${Math.round(pct)}%` : "Data unavailable", icon: "⚡", bg: "#f1f5f9", sub: "Quota ratio", col: statusColor },
+              { label: "Active Dealers", val: data.activeDealerCount ?? "Data unavailable", icon: "🤝", bg: "#ede9fe", sub: "Billed accounts", col: "#0f172a" },
               { label: "Customer Visits", val: kpi.visitsCompleted ?? recentVisits.length, icon: "🏪", bg: "#fce7f3", sub: "Visits logged", col: "#0f172a" },
               { label: "Open Follow-ups", val: openFollowUps.length, icon: "📋", bg: openFollowUps.length > 0 ? "#fee2e2" : "#dcfce7", sub: "Pending action", col: openFollowUps.length > 0 ? "#dc2626" : "#16a34a" },
               { label: "Products Sold", val: topProducts.length, icon: "📦", bg: "#dcfce7", sub: "Distinct SKUs", col: "#0f172a" },
@@ -446,26 +442,26 @@ export function RmReportDocument({ data, period }: { data: any; period?: string 
                   const targetX = groupX - barW - 1;
                   const actualX = groupX + 1;
 
-                  const targetH = Math.max(2, (row.target / ceiling) * plotH);
+                  const targetH = Math.max(2, ((row.target ?? 0) / ceiling) * plotH);
                   const targetY = chartH - cBottom - targetH;
 
                   const actualH = Math.max(2, (row.actual / ceiling) * plotH);
                   const actualY = chartH - cBottom - actualH;
 
-                  const isMet = row.achievementPercent >= 100;
+                  const isMet = row.achievementPercent != null && row.achievementPercent >= 100;
                   const actualColor = isMet ? "#16a34a" : "#0284c7";
 
                   return (
                     <g key={row.month || idx}>
                       {/* Target bar */}
-                      <rect
+                      {row.target != null && <rect
                         x={targetX}
                         y={targetY}
                         width={barW}
                         height={targetH}
                         rx="2"
                         fill="#cbd5e1"
-                      />
+                      />}
 
                       {/* Actual bar */}
                       <rect
@@ -478,7 +474,7 @@ export function RmReportDocument({ data, period }: { data: any; period?: string 
                       />
 
                       {/* % text above actual bar for active billing */}
-                      {row.actual > 0 && (
+                      {row.actual > 0 && row.achievementPercent != null && (
                         <text
                           x={actualX + barW / 2}
                           y={actualY - 3}
@@ -487,7 +483,7 @@ export function RmReportDocument({ data, period }: { data: any; period?: string 
                           fontWeight="800"
                           fill={actualColor}
                         >
-                          {row.achievementPercent}%
+                      {row.achievementPercent}%
                         </text>
                       )}
 
@@ -520,12 +516,78 @@ export function RmReportDocument({ data, period }: { data: any; period?: string 
                   />
                 </div>
                 <div style={{ display: "flex", justifyContent: "space-between", fontSize: "9.5px", color: "#64748b" }}>
-                  <span>Target: <strong>{fmt(target)}</strong></span>
+                  <span>Target: <strong>{hasTarget ? fmt(target) : "Data unavailable"}</strong></span>
                   <span>Achieved: <strong style={{ color: "#16a34a" }}>{fmt(actual)}</strong></span>
-                  <span>{gap > 0 ? "Shortfall: " : "Surplus: "}<strong style={{ color: gap > 0 ? "#dc2626" : "#16a34a" }}>{gap > 0 ? fmt(gap) : `+${fmt(Math.abs(gap))}`}</strong></span>
+                  <span>Gap: <strong style={{ color: gap == null ? "#64748b" : gap > 0 ? "#dc2626" : "#16a34a" }}>{gap == null ? "Data unavailable" : gap > 0 ? fmt(gap) : `+${fmt(Math.abs(gap))}`}</strong></span>
                 </div>
               </div>
             )}
+          </div>
+
+        {/* ── PAGE 1 FOOTER ── */}
+        <div
+          style={{
+            borderTop: "1.5px solid #e2e8f0",
+            paddingTop: "8px",
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            fontSize: "9px",
+            color: "#94a3b8",
+          }}
+        >
+          <div style={{ fontWeight: 600, color: "#475569" }}>
+            Progressive Surface Systems · RM Report Card · <strong>{data.name}</strong>
+          </div>
+          <div>Page 1 of 2 · Confidential · Generated {generatedAt}</div>
+        </div>
+      </div>
+
+      {/* ── Visual separator between Page 1 and Page 2 in preview ── */}
+      <div style={{ height: "24px", backgroundColor: "#1e293b" }} />
+
+      {/* ══════════════════════════════════════════════════════════════
+         PAGE 2: PERFORMANCE DETAILS & FIELD ACTIVITY (Exact A4 1122px)
+      ══════════════════════════════════════════════════════════════ */}
+      <div
+        id="rm-report-page-2"
+        className="pdf-page-2"
+        style={{
+          width: "794px",
+          height: "1122px",
+          maxHeight: "1122px",
+          padding: "24px 28px 20px",
+          boxSizing: "border-box",
+          position: "relative",
+          overflow: "hidden",
+          display: "flex",
+          flexDirection: "column",
+          justifyContent: "space-between",
+          backgroundColor: "#ffffff",
+        }}
+      >
+        <div style={{ width: "100%", marginLeft: "-28px" }}>
+          {/* ── PAGE 2 HEADER BAR ── */}
+          <div
+            style={{
+              background: "linear-gradient(135deg, #0c2040 0%, #003a5c 100%)",
+              borderRadius: "10px",
+              padding: "10px 18px",
+              color: "#ffffff",
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              marginBottom: "14px",
+            }}
+          >
+            <div style={{ display: "flex", alignItems: "center", gap: "10px", marginRight: "16px" }}>
+              <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: "24px", height: "24px", borderRadius: "7px", background: "rgba(56,189,248,0.18)", color: "#7dd3fc", fontSize: "10px", fontWeight: 800 }}>02</span>
+              <strong style={{ fontSize: "15px", color: "#ffffff", letterSpacing: "0.01em" }}>Performance Details</strong>
+            </div>
+            <div style={{ textAlign: "right", fontSize: "9.5px", color: "rgba(255,255,255,0.85)", lineHeight: 1.5 }}>
+              <strong style={{ color: "#ffffff" }}>{data.name}</strong><br />
+              RM Code: <strong>{data.rmCode || "075709"}</strong> · {periodLabel}
+            </div>
           </div>
 
           {/* ── TWO COLUMN: TOP CUSTOMERS & TOP PRODUCTS ── */}
@@ -611,190 +673,6 @@ export function RmReportDocument({ data, period }: { data: any; period?: string 
             </div>
           </div>
         </div>
-
-        {/* ── PAGE 1 FOOTER ── */}
-        <div
-          style={{
-            borderTop: "1.5px solid #e2e8f0",
-            paddingTop: "8px",
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            fontSize: "9px",
-            color: "#94a3b8",
-          }}
-        >
-          <div style={{ fontWeight: 600, color: "#475569" }}>
-            Progressive Surface Systems · RM Report Card · <strong>{data.name}</strong>
-          </div>
-          <div>Page 1 of 2 · Confidential · Generated {generatedAt}</div>
-        </div>
-      </div>
-
-      {/* ── Visual separator between Page 1 and Page 2 in preview ── */}
-      <div style={{ height: "24px", backgroundColor: "#1e293b" }} />
-
-      {/* ══════════════════════════════════════════════════════════════
-         PAGE 2: AI INSIGHT & MANAGER ACTION PLAN (Exact A4 1122px)
-      ══════════════════════════════════════════════════════════════ */}
-      <div
-        id="rm-report-page-2"
-        className="pdf-page-2"
-        style={{
-          width: "794px",
-          height: "1122px",
-          maxHeight: "1122px",
-          padding: "24px 28px 20px",
-          boxSizing: "border-box",
-          position: "relative",
-          overflow: "hidden",
-          display: "flex",
-          flexDirection: "column",
-          justifyContent: "space-between",
-          backgroundColor: "#ffffff",
-        }}
-      >
-        <div>
-          {/* ── PAGE 2 HEADER BAR ── */}
-          <div
-            style={{
-              background: "linear-gradient(135deg, #0c2040 0%, #003a5c 100%)",
-              borderRadius: "10px",
-              padding: "10px 18px",
-              color: "#ffffff",
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-              marginBottom: "14px",
-            }}
-          >
-            <div>
-              <div style={{ fontSize: "8px", fontWeight: 800, letterSpacing: "0.15em", textTransform: "uppercase", color: "#38bdf8" }}>
-                SECTION 2: STRATEGIC INTELLIGENCE &amp; SUPERVISORY ACTION
-              </div>
-              <strong style={{ fontSize: "14px", color: "#ffffff" }}>{data.name} — AI Insight &amp; Manager Action Plan</strong>
-            </div>
-            <div style={{ textAlign: "right", fontSize: "9.5px", color: "rgba(255,255,255,0.8)" }}>
-              RM Code: <strong>{data.rmCode || "075709"}</strong> · {periodLabel}
-            </div>
-          </div>
-
-          {/* ── AI SALES INSIGHT BLOCK ── */}
-          <div
-            style={{
-              background: "linear-gradient(135deg, #eff6ff 0%, #f0fdf4 100%)",
-              border: "1.5px solid #bfdbfe",
-              borderRadius: "12px",
-              padding: "14px 18px",
-              marginBottom: "14px",
-            }}
-          >
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "8px" }}>
-              <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                <span style={{ fontSize: "18px" }}>🤖</span>
-                <div>
-                  <h3 style={{ margin: 0, fontSize: "13px", fontWeight: 800, color: "#1e3a8a" }}>
-                    AI Executive Diagnostic &amp; Field Intelligence
-                  </h3>
-                  <div style={{ fontSize: "9px", color: "#3b82f6" }}>
-                    Algorithmic synthesis combining CRM field activity, order pipelines, and reconciled Tally sales
-                  </div>
-                </div>
-              </div>
-              <span style={{ background: "#dbeafe", color: "#1e40af", padding: "2px 8px", borderRadius: "99px", fontSize: "9px", fontWeight: 700 }}>
-                AI Model Generated
-              </span>
-            </div>
-
-            <div style={{ display: "flex", flexDirection: "column", gap: "5px", fontSize: "10.5px", color: "#1e293b", lineHeight: 1.45 }}>
-              {aiLines.map((line, idx) => (
-                <div key={idx} style={{ display: "flex", alignItems: "flex-start", gap: "6px" }}>
-                  <span style={{ color: "#3b82f6", fontWeight: 800, fontSize: "12px" }}>•</span>
-                  <span>{line}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* ── MANAGER ACTION PLAN BLOCK ── */}
-          <div
-            style={{
-              background: isUnder ? "linear-gradient(135deg, #fef2f2 0%, #fff1f2 100%)" : "linear-gradient(135deg, #f0fdf4 0%, #f0fdfa 100%)",
-              border: `1.5px solid ${isUnder ? "#f87171" : "#86efac"}`,
-              borderRadius: "12px",
-              padding: "14px 18px",
-              marginBottom: "14px",
-            }}
-          >
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "10px" }}>
-              <div>
-                <span style={{ fontSize: "9px", fontWeight: 800, textTransform: "uppercase", letterSpacing: ".06em", color: isUnder ? "#991b1b" : "#166534" }}>
-                  Managerial Directive &amp; Remediation Plan
-                </span>
-                <h3 style={{ margin: "2px 0 0", fontSize: "14px", fontWeight: 800, color: "#0f172a" }}>
-                  Manager Action Plan — {data.name}
-                </h3>
-              </div>
-              <span
-                style={{
-                  padding: "4px 12px",
-                  borderRadius: "24px",
-                  fontWeight: 800,
-                  fontSize: "10.5px",
-                  background: isUnder ? "#dc2626" : "#16a34a",
-                  color: "#ffffff",
-                }}
-              >
-                {isUnder ? "⚠️ Action Required" : "✅ Performance Stable"}
-              </span>
-            </div>
-
-            {/* Action Cards */}
-            <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-              {topActions.map((item, idx) => (
-                <div
-                  key={idx}
-                  style={{
-                    background: "#ffffff",
-                    border: "1px solid #e2e8f0",
-                    borderRadius: "8px",
-                    padding: "8px 12px",
-                  }}
-                >
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "3px" }}>
-                    <strong style={{ fontSize: "11px", color: "#0f172a" }}>{item.title}</strong>
-                    <span
-                      style={{
-                        fontSize: "8.5px",
-                        fontWeight: 800,
-                        padding: "1px 6px",
-                        borderRadius: "4px",
-                        background: item.color === "#dc2626" ? "#fee2e2" : item.color === "#d97706" ? "#fef3c7" : "#dcfce7",
-                        color: item.color,
-                      }}
-                    >
-                      {item.urgency}
-                    </span>
-                  </div>
-                  <div style={{ fontSize: "10px", color: "#64748b", marginBottom: "4px" }}>
-                    {item.detail}
-                  </div>
-                  <div
-                    style={{
-                      background: "#f8fafc",
-                      borderLeft: `3px solid ${item.color}`,
-                      padding: "4px 8px",
-                      borderRadius: "0 4px 4px 0",
-                      fontSize: "9.5px",
-                      color: "#334155",
-                    }}
-                  >
-                    <strong>Direct Action:</strong> {item.action}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
 
           {/* ── TWO COLUMN: FIELD VISITS & OPEN FOLLOW-UPS ── */}
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px" }}>

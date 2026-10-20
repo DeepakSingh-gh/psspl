@@ -1,0 +1,35 @@
+TAP version 13
+# Subtest: dealer intelligence separates dormant, no-period-sales, decline and insufficient history
+ok 1 - dealer intelligence separates dormant, no-period-sales, decline and insufficient history
+  ---
+  duration_ms: 3.3151
+  type: 'test'
+  ...
+# Subtest: synthetic 19 percent target and 96 percent dealer concentration produce sourced insights
+ok 2 - synthetic 19 percent target and 96 percent dealer concentration produce sourced insights
+  ---
+  duration_ms: 0.6072
+  type: 'test'
+  ...
+# Subtest: missing targets and ownership mappings never become estimated underperformance
+ok 3 - missing targets and ownership mappings never become estimated underperformance
+  ---
+  duration_ms: 0.17
+  type: 'test'
+  ...
+# Subtest: threshold configuration is provisional when values are missing or invalid
+ok 4 - threshold configuration is provisional when values are missing or invalid
+  ---
+  duration_ms: 0.1221
+  type: 'test'
+  ...
+1..4
+# tests 4
+# suites 0
+# pass 4
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 121.757
+

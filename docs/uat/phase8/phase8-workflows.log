@@ -1,0 +1,66 @@
+TAP version 13
+# (node:28440) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# (node:26248) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# Subtest: real login validates credentials for all roles; protected routes deny unauthenticated requests
+ok 1 - real login validates credentials for all roles; protected routes deny unauthenticated requests
+  ---
+  duration_ms: 1372.6501
+  type: 'test'
+  ...
+# Subtest: sales day persists attendance, visit transitions, order, follow-up, call and checkout across real app routes
+ok 2 - sales day persists attendance, visit transitions, order, follow-up, call and checkout across real app routes
+  ---
+  duration_ms: 221.4555
+  type: 'test'
+  ...
+# Subtest: synthetic audio upload/download is protected and authenticated STT uses a mocked provider
+ok 3 - synthetic audio upload/download is protected and authenticated STT uses a mocked provider
+  ---
+  duration_ms: 69.011
+  type: 'test'
+  ...
+# Subtest: manager team visibility and lead progression persist; admin reports reconcile net synthetic sales
+ok 4 - manager team visibility and lead progression persist; admin reports reconcile net synthetic sales
+  ---
+  duration_ms: 147.5296
+  type: 'test'
+  ...
+# Confirmed deployment blocker: fresh schema lacks operating_city/reg_code_1/reg_code_2.
+# Subtest: logout revokes the actual session and expired sessions deny further access
+ok 5 - logout revokes the actual session and expired sessions deny further access
+  ---
+  duration_ms: 45.0957
+  type: 'test'
+  ...
+# Confirmed full-app HTTP 500: fresh-schema My Day, while synthetic login succeeds.
+# Confirmed preset defect: 1 October India midnight serializes as 30 September with the UI source pattern.
+# Subtest: fresh database My Day exposes missing startup profile columns without fixture compatibility shim
+ok 6 - fresh database My Day exposes missing startup profile columns without fixture compatibility shim
+  ---
+  duration_ms: 1455.0083
+  type: 'test'
+  ...
+# Subtest: encrypted synthetic backup refuses a wrong restore key
+ok 7 - encrypted synthetic backup refuses a wrong restore key
+  ---
+  duration_ms: 260.8979
+  type: 'test'
+  ...
+# Subtest: India-time report preset source pattern reproduces a previous-day date shift
+ok 8 - India-time report preset source pattern reproduces a previous-day date shift
+  ---
+  duration_ms: 76.2859
+  type: 'test'
+  ...
+1..8
+# tests 8
+# suites 0
+# pass 8
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 3877.851
+

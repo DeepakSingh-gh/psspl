@@ -1,5 +1,11 @@
 # Anil Jena Real-Time Data Integration Implementation Plan
 
+## Follow-up status ? 16 October 2026
+
+The seed/import steps below describe historical data integration and were not rerun during the current update. Local and Render databases remain separate; Anil Jena RM, alias and field accounts have not been merged. Copying source files or publishing Vercel does not synchronize their account records, attendance or sales data.
+
+RM entry now opens /sales/my-day with My Day and Customer DB navigation. Specialized feedback/report routes remain implemented. Admin report tabs start with Manager Action Plan (default) and AI Insights; the latest verified frontend commit is 87eae1e. Preserve live SQLite data before the still-pending backend rollout. See the [source-sync report](../reports/2026-10-16-production-source-sync.md). This documentation update is local only and changes no seed data or database schema.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Ingest and synchronize the complete real-time PDF data for Regional Manager Anil Jena (RM Code: `075709`, Gurugram) across the CRM database (`data/crm.sqlite`), backend API endpoints (`server/rm-routes.mjs`), and RM views (`/rm/print-report`, `/rm/team`, `/rm/report-card`).
@@ -113,3 +119,17 @@ Prorate targets for *Today* (daily quota = monthly / 30) and *This Week* to avoi
 
 - [x] **Step 4: Validate with TypeScript & Server Health Checks**
 Confirmed `npx tsc --noEmit` exits with 0 errors and `GET /admin/team/aniljenafield` returns `200 OK`.
+
+## Latest local follow-up ? 16 October 2026
+
+No seed, alias merge, Tally import or data migration was rerun. The Admin attendance latency fix reads actual persisted attendance revisions and revalidates relevant views; isolated-snapshot integration checks confirmed canonical Anil RM detail sees checkout updates.
+
+The manual refresh control is absent from login/root pages. Automatic attendance revalidation preserves the current report tab and filters; manual document reload may reset component-only state.
+
+The empty October Sales Reports result follows local billing coverage, not Anil profile visibility: latest invoice `2026-09-08`, 78 September invoices and none for 1?16 October. October billing still needs its normal Tally sync.
+
+These changes and this follow-up remain local/unpublished. Local and live databases continue to be separate.
+
+Release context: [source synchronization and deployment status](../reports/2026-10-16-production-source-sync.md).
+
+> Current project status (19 October 2026): See the [production readiness report](../../../PSSPL_FINAL_PRODUCTION_READINESS_REPORT.md) for the latest verified work and blockers; earlier findings in this document retain their original date.

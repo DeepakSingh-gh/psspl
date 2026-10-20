@@ -19,6 +19,7 @@ export function VoiceMicButton({ onTranscript, title = "Click to speak & search"
   const startRecording = async (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
+    if (!window.confirm("Allow microphone access and confirm you have permission to record/transcribe this speech.")) return;
 
     // Try Web Speech API first for instant response
     const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
@@ -37,7 +38,7 @@ export function VoiceMicButton({ onTranscript, title = "Click to speak & search"
         recognition.onresult = (event: any) => {
           const current = event.resultIndex;
           const transcriptText = event.results[current][0].transcript;
-          if (transcriptText) {
+          if (transcriptText && event.results[current].isFinal) {
             onTranscript(transcriptText);
           }
         };

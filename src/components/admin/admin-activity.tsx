@@ -24,7 +24,7 @@ export function AdminActivity({ initialSection = "activity" }: { initialSection?
   const [movement, setMovement] = useState<MovementResponse | null>(null);
   const [movementError, setMovementError] = useState("");
   const [movementLoading, setMovementLoading] = useState(false);
-  const { data, loading, error, reload } = useAdminData(() => adminApi.activity(), []);
+  const { data, loading, error, reload } = useAdminData(() => adminApi.activity(), [], undefined, true);
   const visits = usePagination(data?.visits, 25);
   const followUps = usePagination(data?.followUps, 25);
   const attendance = usePagination(data?.attendance, 25);

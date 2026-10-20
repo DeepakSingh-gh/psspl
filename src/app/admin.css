@@ -393,6 +393,15 @@
 .report-save { display: flex; align-items: center; gap: 10px; }
 .report-history { margin-top: 16px; }
 @media print { .admin-sidebar,.admin-nav-toggle,.report-controls,.report-presets,.report-view-bar,.report-history { display: none !important; }.admin-shell { display: block; }.admin-main,.admin-page { padding: 0; }.admin-table-wrap { box-shadow: none; } }
+.sales-report-print { display: none; }
+@media print {
+  .sales-report-screen { display: none !important; }
+  .sales-report-print { display: block !important; overflow: visible; }
+  .sales-report-print table { width: 100%; border-collapse: collapse; font-size: 9px; }
+  .sales-report-print thead { display: table-header-group; }
+  .sales-report-print tr { break-inside: avoid; }
+  .sales-report-print th, .sales-report-print td { padding: 4px; border-bottom: 1px solid #ddd; overflow-wrap: anywhere; }
+}
 .movement-panel { margin-top: 16px; }
 .movement-summary { display: grid; grid-template-columns: repeat(auto-fit,minmax(150px,1fr)); gap: 10px; margin-bottom: 14px; }
 .movement-summary span { padding: 12px; border-radius: 8px; background: #f7fafd; color: var(--a-muted); font-size: 11.5px; }

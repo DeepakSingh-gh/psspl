@@ -1,0 +1,16 @@
+{
+  "date": "2026-10-18",
+  "branch": "feature/psspl-phase3-rm-report-cards",
+  "protectedFiles": [
+    ".env",
+    ".env.local",
+    "data/crm.sqlite",
+    "data/crm.sqlite-wal",
+    "data/crm.sqlite-shm"
+  ],
+  "protectedFilesChangedSincePhase9Start": 0,
+  "sessionStartReference": "docs/uat/phase9/preservation.json",
+  "regressionRunBaselineFiles": 259,
+  "filesChangedDuringRegressionRun": 0,
+  "notes": "Browser app copy, synthetic SQLite database and test media were created under the OS temporary directory. No development or production database was opened."
+}

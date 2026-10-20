@@ -2,6 +2,7 @@ import type { CompleteVisitPayload, LoginResponse, SalesDay } from "@/types/sale
 import type {
   ActivityResponse,
   AdminOverview,
+  ManagementAttentionResponse,
   CreateUserPayload,
   CustomerDetail,
   CustomerListResponse,
@@ -30,7 +31,13 @@ const TOKEN_KEY = "psspl_crm_session";
 const USER_KEY = "psspl_crm_user";
 export class ApiError extends Error { constructor(message: string, public status: number) { super(message); } }
 export function saveSession(token: string) { localStorage.setItem(TOKEN_KEY, token); }
-export function clearSession() { localStorage.removeItem(TOKEN_KEY); localStorage.removeItem(USER_KEY); }
+export function clearSession() {
+  if (typeof window === "undefined") return;
+  const hadSession = localStorage.getItem(TOKEN_KEY) !== null || localStorage.getItem(USER_KEY) !== null;
+  localStorage.removeItem(TOKEN_KEY);
+  localStorage.removeItem(USER_KEY);
+  if (hadSession) window.dispatchEvent(new Event("psspl:session-cleared"));
+}
 export function hasSession() { return typeof window !== "undefined" && Boolean(localStorage.getItem(TOKEN_KEY)); }
 
 /** The signed-in user is cached only to pick the right landing area; the API still authorises every request. */
@@ -40,7 +47,11 @@ export function getSessionUser(): SessionUser | null {
   try { const raw = localStorage.getItem(USER_KEY); return raw ? (JSON.parse(raw) as SessionUser) : null; }
   catch { return null; }
 }
-export function homePathFor(role: string | undefined) { return role === "admin" ? "/admin" : "/sales/my-day"; }
+export function homePathFor(role: string | undefined) {
+  if (role === "admin") return "/admin";
+  if (role === "rm") return "/rm";
+  return "/sales/my-day";
+}
 
 function query(params: Record<string, string | number | undefined>) {
   const search = new URLSearchParams();
@@ -53,13 +64,18 @@ function query(params: Record<string, string | number | undefined>) {
 
 async function request<T>(path: string, init?: RequestInit, authenticated = true): Promise<T> {
   const token = typeof window !== "undefined" ? localStorage.getItem(TOKEN_KEY) : null;
+  const cookieText = typeof document !== "undefined" ? document.cookie : "";
+  const csrf = cookieText.split(";").map((part) => part.trim()).find((part) => part.startsWith("psspl_csrf="))?.slice("psspl_csrf=".length);
+  const unsafe = Boolean(init?.method && !["GET", "HEAD", "OPTIONS"].includes(init.method.toUpperCase()));
   const response = await fetch(`${API_URL}${path}`, {
     ...init,
-    headers: { "Content-Type": "application/json", ...(authenticated && token ? { Authorization: `Bearer ${token}` } : {}), ...init?.headers },
+    credentials: "include",
+    headers: { "Content-Type": "application/json", ...(authenticated && token ? { Authorization: `Bearer ${token}` } : {}), ...(unsafe && csrf ? { "X-CSRF-Token": csrf } : {}), ...init?.headers },
   });
 
   if (!response.ok) {
     const message = await response.json().catch(() => ({ error: "Request failed" }));
+    if (authenticated && response.status === 401) clearSession();
     throw new ApiError(message.error ?? "Request failed", response.status);
   }
 
@@ -70,14 +86,18 @@ export const authApi = {
   login: (email: string, password: string) => request<LoginResponse>("/auth/login", { method: "POST", body: JSON.stringify({ email, password }) }, false),
   me: () => request<{ user: SessionUser }>("/auth/me"),
   logout: () => request<{ ok: boolean }>("/auth/logout", { method: "POST" }),
+  requestPasswordReset: (email: string) => request<{ ok: boolean; message: string }>("/auth/password-reset", { method: "POST", body: JSON.stringify({ email }) }, false),
+  completePasswordReset: (token: string, password: string) => request<{ ok: boolean }>("/auth/password-reset/complete", { method: "POST", body: JSON.stringify({ token, password }) }, false),
+  activateAccount: (token: string, password: string) => request<{ ok: boolean }>("/auth/activate", { method: "POST", body: JSON.stringify({ token, password }) }, false),
 };
 
 export const adminApi = {
   overview: (financialYear?: string) => request<AdminOverview>(`/admin/overview${query({ fy: financialYear })}`),
   team: (financialYear?: string) => request<TeamResponse>(`/admin/team${query({ fy: financialYear })}`),
-  salesReport: (from?: string, to?: string) => request<SalesReportResponse>(`/admin/reports/sales${query({ from, to })}`),
+  managementAttention: (financialYear?: string) => request<ManagementAttentionResponse>(`/admin/management-attention${query({ fy: financialYear })}`),
+  salesReport: (from?: string, to?: string, filters: Record<string, string | undefined> = {}) => request<SalesReportResponse>(`/admin/reports/sales${query({ from, to, ...filters })}`),
   reportHistory: () => request<{ items: SavedReport[] }>("/admin/reports/history"),
-  saveReport: (from: string, to: string, view: string) => request<SavedReport>("/admin/reports/history", { method: "POST", body: JSON.stringify({ from, to, view }) }),
+  saveReport: (from: string, to: string, view: string, filters: Record<string, string> = {}) => request<SavedReport>("/admin/reports/history", { method: "POST", body: JSON.stringify({ from, to, view, filters }) }),
   productTrends: (financialYear?: string) => request<ProductTrendsResponse>(`/admin/product-trends${query({ fy: financialYear })}`),
   alerts: () => request<AdminAlertsResponse>("/admin/alerts"),
   audit: () => request<AuditLogResponse>("/admin/audit"),
@@ -94,13 +114,15 @@ export const adminApi = {
     request<ProductListResponse>(`/admin/products${query(params)}`),
   product: (id: string) => request<ProductDetail>(`/admin/products/${encodeURIComponent(id)}`),
   activity: () => request<ActivityResponse>("/admin/activity"),
+  attendanceRevision: (signal?: AbortSignal) => request<{ revision: string }>("/admin/attendance/revision", { cache: "no-store", signal }),
   movement: (userId: string, date: string) => request<MovementResponse>(`/admin/activity/movement${query({ userId, date })}`),
   tally: () => request<TallyAdminResponse>("/admin/tally"),
   createTallyPairingCode: () => request<{ code: string; expiresAt: string }>("/admin/tally/pairing-code", { method: "POST" }),
   cancelTallyPairingCode: () => request<{ ok: boolean }>("/admin/tally/pairing-code", { method: "DELETE" }),
   revokeTallyConnector: () => request<{ ok: boolean }>("/admin/tally/connector/revoke", { method: "POST" }),
   users: () => request<UserListResponse>("/admin/users"),
-  createUser: (payload: CreateUserPayload) => request<{ user: UserListResponse["items"][number] }>("/admin/users", { method: "POST", body: JSON.stringify(payload) }),
+  createUser: (payload: CreateUserPayload) => request<{ user: UserListResponse["items"][number]; invitation: { sent: boolean; reason?: string; deliveryStatus?: string } }>("/admin/users", { method: "POST", body: JSON.stringify(payload) }),
+  sendInvitation: (id: string) => request<{ invitation: { sent: boolean; reason?: string; deliveryStatus?: string } }>(`/admin/users/${encodeURIComponent(id)}/invitation`, { method: "POST" }),
   updateUser: (id: string, payload: UpdateUserPayload) =>
     request<{ user: UserListResponse["items"][number] }>(`/admin/users/${encodeURIComponent(id)}`, { method: "PATCH", body: JSON.stringify(payload) }),
   resetPassword: (id: string, password: string) =>
@@ -111,8 +133,8 @@ export const adminApi = {
 
 export const salesApi = {
   getMyDay: () => request<SalesDay>("/salespeople/me/my-day"),
-  checkIn: (position?: { latitude: number; longitude: number }) => request<SalesDay>("/salespeople/me/check-in", { method: "POST", body: JSON.stringify(position ?? {}) }),
-  startVisit: (visitId: string) => request<SalesDay>(`/visits/${visitId}/start`, { method: "POST" }),
+  checkIn: (position?: { latitude: number; longitude: number; accuracy?: number }) => request<SalesDay>("/salespeople/me/check-in", { method: "POST", body: JSON.stringify(position ?? {}) }),
+  startVisit: (visitId: string, position?: { latitude: number; longitude: number; accuracy?: number }) => request<SalesDay>(`/visits/${visitId}/start`, { method: "POST", body: JSON.stringify(position ?? {}) }),
   deleteVisit: (visitId: string) => request<SalesDay>(`/visits/${visitId}`, { method: "DELETE" }),
   updateVisit: (visitId: string, payload: { purpose?: string; priority?: string; scheduledAt?: string }) => request<SalesDay>(`/visits/${visitId}`, { method: "PATCH", body: JSON.stringify(payload) }),
   completeVisit: (visitId: string, payload: CompleteVisitPayload) =>
@@ -143,7 +165,11 @@ export const salesFeaturesApi = {
   customers: (q = "") => request<any[]>(`/sales/customers?q=${encodeURIComponent(q)}`),
   customer: (id: string) => request<any>(`/sales/customers/${id}`),
   addActivity: (payload: any) => request<any>("/sales/activities", { method: "POST", body: JSON.stringify(payload) }),
+  addCall: (payload: { customerId: string; direction: "incoming" | "outgoing"; purpose: string; outcome: string; notes?: string; followUpDate?: string; occurredAt?: string }) => request<{ id: string; occurredAt: string; verifiedByTelephony: false }>("/sales/calls", { method: "POST", body: JSON.stringify(payload) }),
   leads: () => request<any[]>("/sales/leads"),
+  leadAssignees: () => request<Array<{ userId: string; role: string; name: string }>>("/sales/leads/assignees"),
+  leadConversionReport: () => request<{ total: number; won: number; lost: number; conversionPercent: number | null }>("/sales/leads/report/conversion"),
+  assignLead: (id: string, userId: string) => request<any>(`/sales/leads/${id}/assignment`, { method: "PATCH", body: JSON.stringify({ userId }) }),
   leadDetail: (id: string) => request<any>(`/sales/leads/${id}`),
   addLead: (payload: any) => request<any>("/sales/leads", { method: "POST", body: JSON.stringify(payload) }),
   deleteLead: (id: string) => request<any>(`/sales/leads/${id}`, { method: "DELETE" }),
@@ -162,7 +188,11 @@ export const salesFeaturesApi = {
   uploadVoiceNote: (visitId: string, blob: Blob, ext: string) => {
     const form = new FormData(); form.append("audio", blob, `note.${ext}`);
     const token = typeof window !== "undefined" ? localStorage.getItem(TOKEN_KEY) : null;
-    return fetch(`${API_URL}/sales/visits/${visitId}/voice-note`, { method: "POST", headers: token ? { Authorization: `Bearer ${token}` } : {}, body: form }).then((r) => r.json());
+    return fetch(`${API_URL}/sales/visits/${visitId}/voice-note`, { method: "POST", headers: token ? { Authorization: `Bearer ${token}` } : {}, body: form }).then(async (r) => {
+      const data = await r.json().catch(() => ({ error: "Voice note upload failed" }));
+      if (!r.ok) { if (r.status === 401) clearSession(); throw new ApiError(data.error || "Voice note upload failed", r.status); }
+      return data;
+    });
   },
 };
 
@@ -177,6 +207,7 @@ export async function transcribeSpeech(audioBlob: Blob): Promise<string> {
   });
   const data = await response.json().catch(() => ({ error: "Transcription failed" }));
   if (!response.ok) {
+    if (response.status === 401) clearSession();
     throw new Error(data.error || "Speech transcription failed");
   }
   return data.text || "";

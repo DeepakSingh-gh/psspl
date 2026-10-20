@@ -2,9 +2,28 @@
 
 An enterprise CRM and field sales platform specifically designed for **Progressive Surface Systems Pvt. Ltd. (PSSPL)**, integrating Tally accounting data with field sales mobility, Regional Manager oversight, and executive analytics.
 
+## Current release status — 16 October 2026
+
+- Canonical source: `DeepakSingh-gh/psspl`, branch `main`. Last verified Vercel production commit: `87eae1e` (`dpl_8Lqo3dUH9DPXpMFLT4QJGFmtTbgD`).
+- RM and salesperson sign-ins open `/sales/my-day`; `/rm` redirects there. The shared sidebar contains **My Day** and **Customer DB**. Admin sign-in still opens `/admin`.
+- Admin RM report tabs: **Manager Action Plan** (default), **AI Insights**, **Report Card**, **Customer Visits**, **Pipeline**, **Actual Sales**, **Products**, **Follow-ups**.
+- GitHub synchronization and frontend publication are complete. Backend AI-provider and performance code is committed, but its Render rollout is pending live SQLite preservation. The Gemini key was separately saved and verified in Render's environment.
+- Vercel automatic Git linking remains blocked by the connected GitHub account's repository permission; the verified releases were created explicitly through the Vercel API. Local and live databases remain separate.
+- This documentation refresh is local only: it does not commit, push or deploy changes. See the [source-sync report](./docs/superpowers/reports/2026-10-16-production-source-sync.md) for release evidence and limitations.
+
+### Local-only attendance freshness fix
+
+Admin Overview, Team, RM detail, Field Activity and Alerts now automatically check a lightweight attendance revision every two seconds while visible. A persisted clock-in/out change invalidates the relevant admin cache and refetches current data without resetting selected tabs or filters. Multiple mounted views share one poll; unchanged attendance does not trigger repeated full dashboard queries. Returning to the tab or reconnecting prompts an immediate check. Actual display delay is the polling interval plus network/API time, not a guaranteed two-second deadline.
+
+The admin-only `GET /api/admin/attendance/revision` endpoint returns an opaque fingerprint with `Cache-Control: no-store`. Both the frontend and backend additions must be deployed together in a future release; they are local only now. Tests: `node --test scripts/attendance-live.test.mjs` and `node scripts/verify-attendance-latency.mjs`. The integration check uses an isolated database snapshot and leaves actual attendance records intact.
+
+### Local-only refresh button behavior
+
+App data pages include a fixed **Refresh Data** button (hidden on `/login` and the root redirect page) at the bottom-right, provided by the root layout. It reloads the current URL, clears the in-memory admin cache through the reload and reruns page data requests. Unsaved input and component-only tab/filter selections can reset. The button is responsive, keyboard accessible, disabled after activation and hidden in printed documents. This feature has not been pushed or deployed; TypeScript and local route checks passed; login renders without the control, while admin RM detail, My Day and Customer DB retain it.
+
 ## My Day loading performance — 16 October 2026
 
-Source synchronization and production frontend release procedure: [16 October source-sync report](docs/superpowers/reports/2026-10-16-production-source-sync.md). The canonical user-owned repository is `DeepakSingh-gh/psspl`, production branch `main`; local secrets and databases are not part of source synchronization.
+Source synchronization and production frontend release procedure: [16 October source-sync report](./docs/superpowers/reports/2026-10-16-production-source-sync.md). The canonical user-owned repository is `DeepakSingh-gh/psspl`, production branch `main`; local secrets and databases are not part of source synchronization.
 
 The My Day API now filters customers before joining invoice lines, reuses one RM directory per request, and compresses large responses. Sales navigation uses Next.js links. The response fields, complete product list, permissions and activity workflows are preserved, without adding cross-request data caching.
 
@@ -12,7 +31,7 @@ Local verification: all 25 tested scopes matched the previous product totals; ag
 
 Run `node scripts/verify-my-day-performance.mjs` for ledger comparisons and `node scripts/verify-my-day-http.mjs` against the local API on port 4000 for compression/authentication checks. The HTTP check creates and removes temporary test sessions.
 
-The live Render service was confirmed to use Free compute. Its [idle spin-down behavior](https://render.com/docs/free#spinning-down-on-idle) can still add about a minute after 15 minutes without traffic. These code changes do not change the hosting plan and have not yet been deployed. Preserve live SQLite data before any deployment: the current Free service uses an ephemeral filesystem.
+The live Render service was confirmed to use Free compute. Its [idle spin-down behavior](https://render.com/docs/free#spinning-down-on-idle) can still add about a minute after 15 minutes without traffic. The frontend changes are published; backend query/compression changes still await a separate Render rollout. Preserve live SQLite data before that rollout: the current Free service uses an ephemeral filesystem.
 
 ---
 
@@ -56,7 +75,7 @@ npm run dev
 ### 3. Application Portals
 * **Main App & Login:** [https://psspl-crm.vercel.app/login](https://psspl-crm.vercel.app/login) (Local: `http://localhost:3000/login`)
 * **Executive Admin Dashboard:** [https://psspl-crm.vercel.app/admin](https://psspl-crm.vercel.app/admin) (Local: `http://localhost:3000/admin`)
-* **Regional Manager Portal:** [https://psspl-crm.vercel.app/rm](https://psspl-crm.vercel.app/rm) (Local: `http://localhost:3000/rm`)
+* **Regional Manager & Field Workspace:** [My Day](https://psspl-crm.vercel.app/sales/my-day) and [Customer DB](https://psspl-crm.vercel.app/sales/hub) (Local: `http://localhost:3000/sales/my-day` and `/sales/hub`). The legacy `/rm` entry redirects to My Day.
 * **Field Sales PWA View:** [https://psspl-crm.vercel.app/sales/my-day](https://psspl-crm.vercel.app/sales/my-day) (Local: `http://localhost:3000/sales/my-day`)
 * **Backend API Health:** [https://psspl-crm-backend.onrender.com/api/health](https://psspl-crm-backend.onrender.com/api/health) (Local: `http://localhost:4000/api/health`)
 
@@ -68,7 +87,7 @@ All accounts are pre-seeded in the database for local development and testing:
 
 | Persona | Email | Password | Access & Scope |
 | :--- | :--- | :--- | :--- |
-| **Administrator** | `admin@psspl.com` | `psspl-admin-2026` | Full platform access, user management, audit logs, Tally connector, EOD WhatsApp summaries, margin approvals. |
+| **Administrator** | `admin@psspl.com` | `psspl-admin-2026` | Full platform access, user management, audit logs, Tally connector, approved scheduled WhatsApp reports, margin approvals. |
 | **Regional Manager (Anil Jena)** | `anil.jena@psspl.com` / `anil@psspl.com` | `psspl-rm-2026` | North Region (Operating from Gurugram), RM Code: 075709, Registration: 2111C126 / 2111S126, 9 Executive Team members, real-time PDF target feedback support (501 L target / 114.24 L achieved). |
 | **Regional Manager (Ketan Bhatt)** | `ketan.bhatt@psspl.com` / `ketan@psspl.com` | `psspl-rm-2026` | West Region, key accounts (Protec Finish, etc.), regional product comparison. |
 | **Field Sales Executive** | `anil.jaina@psspl.com` | `demo123` | Mobile-first day planner, GPS check-in/out, visit logging, voice notes, lead pipeline with inline deletion, order requests. |
@@ -133,7 +152,7 @@ The CRM dashboard features the official PSS corporate visual identity:
       - **Page 2:** **AI Executive Diagnostic & Field Intelligence**, **Manager Action Plan & Supervisory Directives**, Recent Field Visits, and Open Follow-ups.
       - Features a direct **Download PDF** button in the preview header utilizing direct page-by-page `jsPDF` + `html2canvas` rendering to instantly save a clean 2-page PDF `<RM_Name>_RM_Report_<Date>.pdf` directly into the downloads folder with zero blank pages.
   - **Quotations & Margin Approvals:** Multi-level approval matrix for discounts and sub-margin pricing.
-  - **Reports & EOD WhatsApp Summary:** Filterable management reports with one-click **PDF Print** (A4 optimized via `print.css`), **Excel/CSV Export**, and direct **WhatsApp sharing**.
+  - **Reports & Scheduled WhatsApp Summaries:** Filterable management reports with one-click **PDF Print** (A4 optimized via `print.css`), **Excel/CSV Export**, and approved recipient-specific **WhatsApp scheduling**. External delivery is disabled by default; the legacy direct-send action is blocked.
   - **Tally Live Connector:** Pairing codes, rotating HMAC tokens, heartbeat monitoring, chunked session imports, and persistent high-contrast Disconnect action button.
   - **Supabase Cloud Sync Engine (GI Connector):** Automatic real-time background sync (`server/supabase-sync.mjs`) pushes all new Tally data directly to an external Supabase Postgres database. Uses advanced Upsert (`ON CONFLICT DO UPDATE`) logic to prevent data overlap while maintaining local SQLite speed.
   - **Quarter-wise Trend Analysis:** Visual progress-bar dashboard comparing Q1-Q4 (Apr-Mar Financial Year) revenue performance directly on the admin overview.
@@ -143,11 +162,13 @@ The CRM dashboard features the official PSS corporate visual identity:
     - Client-side Stale-While-Revalidate (SWR) cache (`useAdminData`) provides instant zero-latency view switching with background revalidation and namespaced cache keys.
   - **Audit Logging & Security:** Detailed tracking of logins, password resets, user creations, and export actions.
 
-### 2. Regional Manager Portal (`/rm`)
+### 2. Regional Manager Workspace (`/sales/my-day`; legacy `/rm` redirects)
+
+The current RM landing is the shared My Day / Customer DB workspace. The manager dashboard and specialized reporting capabilities described below remain in the codebase, but the separate team dashboard is no longer the RM home page. Admins continue to review regional team performance through `/admin/team` and `/admin/team/[id]`.
 - **Manager-Scoped Dashboard & Executive Identity:** Automatic scoping to team members and regional customers. Displays full executive profile parity with the Admin panel:
   - **Header Identity Badges:** Clean executive hero banner displaying RM Code (`075709`), `📍 Operating from: Gurugram`, live attendance Clock-in & Clock-out actions with real-time status pills, and all 9 **Team Executive Cities** (*Gurgaon, Delhi, Ghaziabad, Faridabad, Noida, Sonepat, Bahadurgarh, Sahibabad, Rudrapur*). Streamlined navigation with redundant region tabs removed for a modern look.
   - **Interactive Attendance & Quick Actions:** Fully functional Clock-in / Clock-out flow updating attendance in real-time, plus quick modal triggers for adding unplanned customer visits.
-  - **Clean Executive Overview:** Clean, distraction-free home dashboard focused on core operational metrics (Team Sales, Customers, Outstanding, Active Leads, Top Products), with full separation from specialized standalone report-generation views.
+  - **Daily Home:** My Day provides check-in/out, daily visits, follow-ups and monthly performance. Team overview remains available through admin reporting; it is not the RM sign-in landing page.
   - **Active Ledger Cycle Synchronization:** Automatic alignment with the active ledger month (`2026-09`), displaying ₹45.93 L quota, ₹62.15 L booked sales, and green `On Track (135% achieved)` status badge.
 - **Team Accountability & Targets:** Real-time visibility into executive visits, achievement vs monthly targets, and overdue alerts.
 - **RM Sales Target Feedback Support Report (`/rm/print-report`):** Exact high-fidelity replication of official company feedback support PDF schedules. Features:
@@ -161,76 +182,18 @@ The CRM dashboard features the official PSS corporate visual identity:
 - **Dormant Dealer Reports:** Automatic AI-driven flagging of customers with no purchases in >3 months (90 days). Includes built-in input forms for RMs to record and save justification logs directly to the database.
 - **Product Growth Trends:** Multi-year product comparison (FY 2024-25 vs FY 2025-26) to detect lost or growing chemical accounts.
 
-### 3. Field Sales PWA Workspace (`/field` / `/sales/my-day`)
-- **Day Planner & GPS Attendance:** One-tap GPS check-in and check-out with time and route tracking. Clock-in and clock-out timestamps are persisted and displayed on both sales and manager dashboards.
-- **Metric Cards & Order Tracking:** Live tracking of daily visits, completion status, **Order Expected** value (in Lakhs), and target achievement.
-- **Harmonized Monthly Performance Review:** "MY PERFORMANCE - Monthly target" card accurately displays live rupee metrics (`Actual from Tally`, `Target`, `Gap` / `Surplus`) using standardized Indian currency formatting (`formatRupees`) in perfect agreement with top-line metrics (e.g. ₹62.15 L / ₹45.93 L / 135%). Includes active ledger temporal badge (`2026-09 active ledger`), dynamic surplus calculation (`Surplus (+35%)` with `+₹16.22 L` when actual exceeds target), and green `✓ Target Achieved` pill badge with dynamic progress bar styling.
-- **Dual-Mode Follow-ups System (Visit & Call):** Action list follow-ups supporting channel selection (**🚗 Field Visit** vs **📞 Phone Call**), priority tagging (`High`, `Medium`, `Low`) with color-coded badges, and editable priority dropdowns. Interactive **Discussion Description Boxes** feature Honolulu Blue border styling (`1.5px solid #007CBA`), focus halo ring, left-accented notes display (`.followup-notes-display`), and fully editable **Next Follow-up due dates**.
-- **Customer Visits & Modal Experience:**
-  - Robust **Add Unplanned Visit** modal tied directly to active reference customers with synchronized multi-tier access control (allowing RMs and field sales representatives to plan visits across all customers in their territory, assigned accounts, and subordinates).
-  - Instant synchronization between Field Sales Workspace and Admin Panel (`/admin/team/[id]`): visits planned by RMs or field sales reps immediately reflect on the manager's report card under *Customer Visits* and daily KPIs.
-  - Custom **`AnimatedSelect`** dropdown with silky-smooth cubic-bezier open/close transitions, rotating chevron, and focus rings.
-  - Quick visit logging with operational tags, date/time selection, priority level tracking, clearly delineated field input borders on Unplanned Visit dialogs, and built-in **audio voice note recording**.
-  - Includes full inline Edit and Delete capabilities for Unplanned Visits on the workspace with form state auto-reset.
-- **Regional Manager Detail & Report Card (`/admin/team/[id]`):** Streamlined executive view with real-time profile hero (RM Code, operating city, clock-in/out timestamps, target status), compact territory coverage pills, responsive milestones strip, 12-month target vs actual comparative bar charts, top dealers, customer health risks, and automated AI managerial action plans.
-- **Service & Support Requests:** Track customer complaints, technical trials, and commercial quotation requests.
+Remaining architecture, environment, and verification details: [README continued](./docs/project-records/README_GUIDE_CONTINUED.md).
 
-### 4. AI Executive Intelligence & Copilot
-- **Redesigned Ask AI Command Center (`HeaderAiAsk`):** Accessible on every page header (`topbar`) with a streamlined trigger pill, keyboard shortcut hint (`Ctrl K` on desktop, auto-hidden on mobile), and quick modal launcher.
-- **Enhanced Search Experience & Quick Presets:** Includes one-click clear button (`✕`), instant date-range filter presets (*FY 2026-27*, *Last 30 Days*, *All Data*), and categorized prompt chips featuring visual emoji badges (*📉 Underperforming products*, *🌍 Regional demand*, *🏆 RM leaderboards*, *💳 Outstanding dues*, *🔄 Customer retention*, *🚶 Field ops*, *⚠️ Dormant accounts*).
-- **Executive Card Formatting (`AiResponseFormatter`):** Converts raw LLM output into structured **Executive Action Cards** with blue **Data Point** badges, green **Recommended Action** boxes, and inline currency/count metric pills (`askai-metric-pill`).
-- **Instant Query Execution:** Clicking suggested prompt chips immediately fills the input and triggers live database intelligence retrieval.
-- **One-Click Copy & Data Provenance:** Integrated **Copy** button with instant state feedback and live SQL data provenance details.
-- **Grounded SQL Data Engine:** Context synthesized directly from real-time database tables (`tally_invoices`, `tally_products`, `tally_customers`, `leads`, `follow_ups`, `salesperson_profiles`).
-- **Resilient AI Model Engine:** Connected via **Google Gemini API** (`gemini-2.5-flash`, `gemini-2.0-flash`, `gemini-1.5-flash`, `gemini-3.8-flash`) via `GEMINI_API_KEY` with low-latency direct reasoning (with fallback to OpenAI `gpt-4o-mini`).
-- **Voice Speech-to-Text Search (`<VoiceMicButton>`):** Reusable voice recording mic button integrated on all search boxes across Sales Hub, Ask AI, RM Directory, Admin Customers, and Admin Products. Supports instant free browser Web Speech API with backend OpenAI Whisper API (`POST /api/stt`) fallback.
-- **Automated 5:00 PM EOD Cron:** Built with `node-cron` in `server/app.mjs`, compiling daily visits, order booking, and attendance into a WhatsApp digest sent via Meta WhatsApp Cloud API.
+## Current local status - Phase 7, 17 October 2026
 
-### 5. Mobile-First & Cross-Device Responsiveness
-- **Adaptive Screen Viewports:** Fully fluid layout scaling down to 360px mobile viewports (Brave, Chrome, Safari on iOS/Android).
-- **Off-Canvas Navigation Drawer:** Collapsible sidebar on mobile devices with an interactive backdrop blur overlay (`.admin-sidebar-backdrop`), swipe/tap to dismiss, and an animated vector hamburger toggle button.
-- **Fluid Multi-Tier Grids:**
-  - `.rm-kpi-grid`: Reflows dynamically from 6 columns on desktop down to 3 columns on tablet and 2 columns on mobile.
-  - `.rm-3col-grid`: Stacks cleanly from 3 columns into 1 column on tablet and mobile viewports.
-  - `.rm-thrust-grid`: Auto-fits strategic focus products into responsive columns with zero horizontal scroll.
-  - `.overview-quarterly-grid`: Adapts quarterly trend cards to mobile screens without squishing.
-- **Zero Side-Scroll Architecture:** Hardened with `width: 100%; max-width: 100%; overflow-x: clip;` across `html`, `body`, and `.admin-shell`, completely eliminating the side-scroll bug on Windows/Blink laptops caused by standard 17px vertical scrollbars. Combined with desktop sidebar pinning (`264px` fixed geometry), responsive grid track collapses (`minmax(0, 1fr)`) at `<= 1280px`, and overflow-clipped SVG charts.
-- **Table Scroll Protection:** Scoped `overflow-x: auto` table card containers allow smooth horizontal swiping on high-density data tables without pushing parent viewports or sidebars off-screen.
+Phase 7 is a **CONDITIONAL PASS** for local implementation: authorized AI evidence selection, approved daily/monthly report scheduling, durable delivery/retry/callback handling, scoped in-app reminders and task-oriented training SOPs. Verification passed 68 automated tests plus the separate My Day smoke check, TypeScript, 29 syntax checks and whitespace validation.
 
-## ⚙️ Environment Variables
+All work remains local and uncommitted on `feature/psspl-phase3-rm-report-cards`. No deployment, existing-database migration, real WhatsApp message or paid provider request was performed. Delivery is disabled by default. Recipients/opt-in/templates/schedules, reviewed provider configuration, backup/migration rollout, data freshness/mapping decisions, browser acceptance and training sign-off remain outstanding. Final UAT has not started and awaits user approval.
 
-Create a `.env` file in the root directory to customize configuration and API keys:
+- [Phase 7 verification and changed files](./docs/project-records/PSSPL_PHASE7_VERIFICATION.md)
+- [Report automation operator runbook](./docs/operations/PSSPL_REPORT_AUTOMATION.md)
+- [RM/SE SOP](./docs/training/PSSPL_RM_SE_SOP.md)
+- [RM/Manager SOP](./docs/training/PSSPL_RM_Manager_SOP.md)
+- [Admin SOP](./docs/training/PSSPL_Admin_SOP.md)
 
-```ini
-# Server & API Configuration
-PORT=4000
-CRM_ADMIN_EMAIL=admin@psspl.com
-CRM_ADMIN_PASSWORD=psspl-admin-2026
-CRM_DATABASE_PATH=./data/crm.sqlite
-
-# Google Gemini API Integration (Ask AI Assistant)
-GEMINI_API_KEY=your_gemini_api_key_here
-GEMINI_MODEL=gemini-2.5-flash
-
-# OpenAI Integration (Optional Fallback)
-OPENAI_API_KEY=your_openai_api_key_here
-
-# Meta WhatsApp Cloud API (Automated EOD & Report Sharing)
-WHATSAPP_PHONE_NUMBER_ID=your_phone_number_id
-WHATSAPP_ACCESS_TOKEN=your_meta_system_user_token
-WHATSAPP_RECIPIENT_PHONE=919876543210
-```
-
-For the deployed app, set `GEMINI_API_KEY` in the **Render backend service → Environment**, then save and redeploy. A key in your laptop's `.env` or the Vercel frontend does not configure the Render backend. Keep API keys server-side; do not use a `NEXT_PUBLIC_` prefix. `GEMINI_MODEL` optionally overrides the default model, and `OPENAI_API_KEY` enables the fallback provider. Missing configuration and provider failures return HTTP 503 and appear as errors rather than AI answers.
-
----
-
-## 🧪 Verification & Testing Commands
-
-* **Run Lint / Build:** `npm run build`
-* **Test Dev Server:** `npm run dev`
-* **Run Data Importer:** `npm run import:data`
-* **Backend Health Check:** `curl http://localhost:4000/api/health`
-* **Purge Next.js Cache (if alternating build & dev):** `Remove-Item -Recurse -Force .next` (PowerShell) / `rm -rf .next` (Bash)
-
-
+> Current project status (19 October 2026): See the [production readiness report](PSSPL_FINAL_PRODUCTION_READINESS_REPORT.md) for the latest verified work and blockers; earlier findings in this document retain their original date.

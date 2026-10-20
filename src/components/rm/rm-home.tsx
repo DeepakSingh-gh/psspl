@@ -156,7 +156,7 @@ export function RmHome() {
                             fontWeight: 600,
                           }}
                         >
-                          Region: {data.manager?.region ?? "North Region"}
+                          Region: {data.manager?.region ?? "Not configured"}
                         </span>
                         <span
                           style={{
@@ -169,16 +169,16 @@ export function RmHome() {
                             fontWeight: 700,
                           }}
                         >
-                          📍 Operating from: {data.manager?.operatingFrom || "Gurugram"}
+                          📍 Area: {[data.manager?.region, data.manager?.territory].filter(Boolean).join(" / ") || "Not configured"}
                         </span>
                       </div>
 
-                      {/* Team Executive Cities */}
+                      {/* Active sales territories */}
                       <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap", marginTop: 8 }}>
                         <span style={{ fontSize: 11.5, fontWeight: 700, color: "#64748b", display: "inline-flex", alignItems: "center", gap: 4 }}>
-                          👥 Team Executive Cities:
+                          👥 Team territories:
                         </span>
-                        {(data.manager?.teamExecutiveCities || ["Gurgaon", "Delhi", "Ghaziabad", "Faridabad", "Noida", "Sonepat", "Bahadurgarh", "Sahibabad", "Rudrapur"]).map((city: string, i: number) => (
+                        {(data.manager?.teamTerritories || []).map((city: string, i: number) => (
                           <span
                             key={i}
                             style={{

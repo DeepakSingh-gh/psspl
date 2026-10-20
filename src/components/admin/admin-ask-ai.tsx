@@ -1,4 +1,5 @@
 "use client";
+import { reportDateRange } from "@/lib/business-date";
 import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { AdminPage } from "./admin-shell";
@@ -24,10 +25,7 @@ const SparkIcon = () => (
 
 /** Question box, date range, suggestions and the answer — shared by the modal and the page. */
 function AskAiContent({ autoFocus = false, initialQuestion = "" }: { autoFocus?: boolean; initialQuestion?: string }) {
-  const defaults = useMemo(() => {
-    const to = new Date().toISOString().slice(0, 10);
-    return { from: `${to.slice(0, 4)}-04-01`, to };
-  }, []);
+  const defaults = useMemo(() => reportDateRange("fy"), []);
   const [question, setQuestion] = useState(initialQuestion);
   const [from, setFrom] = useState(defaults.from);
   const [to, setTo] = useState(defaults.to);
@@ -109,7 +107,7 @@ function AskAiContent({ autoFocus = false, initialQuestion = "" }: { autoFocus?:
           <label><span>To</span><input type="date" value={to} onChange={(event) => setTo(event.target.value)} /></label>
         </div>
         <div className="askai-presets">
-          <button type="button" onClick={() => { setFrom(`${defaults.to.slice(0, 4)}-04-01`); setTo(defaults.to); }}>FY 2026-27</button>
+          <button type="button" onClick={() => { const next = reportDateRange("fy"); setFrom(next.from); setTo(next.to); }}>FY {defaults.from.slice(0, 4)}-{String(Number(defaults.from.slice(0, 4)) + 1).slice(-2)}</button>
           <button type="button" onClick={() => {
             const d = new Date(); d.setDate(d.getDate() - 30);
             setFrom(d.toISOString().slice(0, 10)); setTo(defaults.to);
