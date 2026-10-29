@@ -20,8 +20,10 @@ import { kickAuthEmailQueue } from "./auth-email-queue.mjs";
 import { recordResendEmailEvent } from "./resend-webhook.mjs";
 import { dailyFieldActivity, indiaBusinessDate, isDateOnly, recordDailyCheckIn, validateLocation } from "./field-activity.mjs";
 import { completeVisitWithLead } from "./visit-lead.mjs";
+import { seedWebinarDemo } from "./webinar-demo.mjs";
 
 seedAdmin();
+if (process.env.CRM_ENABLE_WEBINAR_DEMO_DATA === "true") seedWebinarDemo(db);
 const app = express();
 const configuredOrigins = (process.env.CRM_ALLOWED_ORIGINS || "").split(",").map((origin) => origin.trim()).filter(Boolean);
 const allowedOrigins = configuredOrigins.length ? configuredOrigins : (process.env.NODE_ENV === "production" ? [] : ["http://localhost:3000", "http://127.0.0.1:3000"]);
