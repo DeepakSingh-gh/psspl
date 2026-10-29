@@ -18,7 +18,7 @@ export function LoginForm() {
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault(); setError(""); setLoading(true);
     const form = new FormData(event.currentTarget);
-    try { const result = await authApi.login(String(form.get("email")), String(form.get("password"))); clearSession(); if (result.token) saveSession(result.token); saveSessionUser(result.user); router.replace(homePathFor(result.user.role)); }
+    try { const result = await authApi.login(String(form.get("loginId")), String(form.get("password"))); clearSession(); if (result.token) saveSession(result.token); saveSessionUser(result.user); router.replace(homePathFor(result.user.role)); }
     catch (cause) { setError(cause instanceof Error ? cause.message : "Unable to sign in"); }
     finally { setLoading(false); }
   }
@@ -39,8 +39,8 @@ export function LoginForm() {
 
           <form onSubmit={submit}>
             <label className="login-field">
-              <span className="login-field-label">Work email</span>
-              <input name="email" type="email" autoComplete="email" placeholder="name@psspl.com" required />
+              <span className="login-field-label">Login ID or work email</span>
+              <input name="loginId" type="text" autoComplete="username" autoCapitalize="none" spellCheck={false} maxLength={254} placeholder="Login ID or name@psspl.com" required />
             </label>
 
             <label className="login-field">

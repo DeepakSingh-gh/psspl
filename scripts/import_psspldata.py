@@ -301,19 +301,7 @@ for rm in rms:
     )
     rm_user_map[rm_clean.lower()] = user_id
 
-# Also add alias accounts for easy testing:
-# anil@psspl.com -> Anil Jena
-if "anil jena" in rm_user_map:
-    con.execute(
-        """INSERT OR REPLACE INTO users (id, email, password_hash, role, active)
-           VALUES ('rm-anil-alias', 'anil@psspl.com', ?, 'rm', 1)""",
-        (password_hash("psspl-rm-2026"),)
-    )
-    con.execute(
-        """INSERT OR REPLACE INTO salesperson_profiles 
-           (user_id, employee_code, full_name, region, territory, monthly_target)
-           VALUES ('rm-anil-alias', 'PSSPL-RM-ANIL', 'Anil Jena', 'North Region', 'Delhi NCR / North', 50.0)"""
-    )
+# One canonical RM login per person; do not recreate the retired Anil alias.
 
 # Field Rep: Anil Jena (salesperson)
 con.execute(

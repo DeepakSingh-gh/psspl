@@ -85,6 +85,7 @@ export function RmDashboard() {
           <div className="admin-nav-group">
             <a href="/rm"><NavIcon name="home" />Home</a>
             <a className="active" href="/rm/team"><NavIcon name="team" />My team</a>
+            <a href="/rm/report-card"><NavIcon name="team" />Report Card</a>
             <a href="/rm/customers"><NavIcon name="day" />Customers</a>
             <a href="/rm/products"><NavIcon name="home" />Product Trends</a>
             <a href="/rm/alerts"><NavIcon name="team" />Alerts</a>
@@ -97,6 +98,7 @@ export function RmDashboard() {
             <strong>{data?.manager.fullName ?? "Regional manager"}</strong>
             <small>{data?.manager.region}</small>
           </span>
+          <a href="/profile">Profile</a>
           <button type="button" onClick={signOut}>Sign out</button>
         </div>
       </aside>

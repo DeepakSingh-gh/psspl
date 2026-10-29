@@ -1,0 +1,36 @@
+.account-profile-page {
+  max-width: 720px;
+  margin: 40px auto;
+  padding: 28px;
+  border: 1px solid #dce7ef;
+  border-radius: 16px;
+  background: #fff;
+  color: #16324d;
+}
+.account-profile-page h1, .account-profile-page h2 { color: #004e70; }
+.account-profile-page p { line-height: 1.6; }
+.account-profile-actions { display: flex; flex-wrap: wrap; gap: 12px; margin: 24px 0 16px; }
+.account-profile-primary, .account-profile-secondary {
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+  padding: 12px 16px;
+  border: 1px solid #007fb5;
+  border-radius: 8px;
+  font: inherit;
+  font-weight: 600;
+  text-decoration: none;
+  cursor: pointer;
+}
+.account-profile-primary { background: #007fb5; color: #fff; }
+.account-profile-secondary { background: #fff; color: #00678f; }
+.account-profile-primary:disabled { opacity: .65; cursor: wait; }
+.account-profile-page :focus-visible { outline: 3px solid #37b8e9; outline-offset: 3px; }
+.account-profile-security { margin-top: 16px; padding: 16px; border: 1px solid #dce7ef; border-radius: 10px; }
+.account-profile-security summary { cursor: pointer; font-weight: 600; color: #00678f; }
+.account-profile-field { display: flex; flex-direction: column; gap: 8px; margin: 16px 0; font-size: 14px; font-weight: 600; }
+.account-profile-field input { box-sizing: border-box; width: 100%; padding: 12px; border: 1px solid #bacddc; border-radius: 8px; font: inherit; color: #16324d; background: #fff; }
+@media (max-width: 760px) {
+  .account-profile-page { margin: 20px 12px; padding: 20px; }
+  .account-profile-actions > a { flex: 1 1 220px; }
+}

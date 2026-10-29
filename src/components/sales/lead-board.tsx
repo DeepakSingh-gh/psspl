@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 import { indiaBusinessDate } from "@/lib/business-date";
 import { FormEvent, useEffect, useState } from "react";
 import { salesFeaturesApi } from "@/lib/api";
@@ -113,7 +113,6 @@ export function LeadBoard() {
   if (loading) return <div className="admin-placeholder" style={{ animation: "pulse 2s infinite" }}>Loading pipeline…</div>;
 
   const activeLeadCount = leads.filter((lead) => lead.stage !== "won" && lead.stage !== "lost").length;
-  const decidedLeadCount = (conversion?.won ?? 0) + (conversion?.lost ?? 0);
   const currency = new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR", maximumFractionDigits: 0 });
 
   return (
@@ -170,12 +169,10 @@ export function LeadBoard() {
       </div>
 
       {loadError && <div className="pipeline-error" role="alert">{loadError}<button type="button" onClick={() => refresh().catch(() => {})}>Retry</button></div>}
-      {conversion && <div className="lead-conversion-summary" aria-label="Lead conversion summary">
+      {conversion && <div className="lead-conversion-summary" aria-label="Lead summary">
         <div><span>Total leads</span><strong>{conversion.total}</strong></div>
         <div><span>Won</span><strong>{conversion.won}</strong></div>
         <div><span>Lost</span><strong>{conversion.lost}</strong></div>
-        <div><span>Conversion rate</span><strong>{conversion.conversionPercent === null ? "—" : `${conversion.conversionPercent}%`}</strong></div>
-        <p>{decidedLeadCount === 0 ? "No leads are marked Won or Lost yet. Conversion appears after the first decision." : `Calculated from ${decidedLeadCount} decided ${decidedLeadCount === 1 ? "lead" : "leads"}.`}</p>
       </div>}
       {showForm && (
         <div className="premium-form">
@@ -272,7 +269,6 @@ export function LeadBoard() {
                             </div>
                           )}
                           {assignees.length > 1 && <label style={{ display: "grid", gap: 4, marginTop: 10, color: "#475569" }}>Assigned to<select aria-label={`Assign ${lead.name}`} value={lead.user_id} onChange={async (event) => { try { await salesFeaturesApi.assignLead(lead.id, event.target.value); refresh(true); } catch (error: any) { alert(error.message || "Lead assignment failed"); } }} style={{ padding: 6, borderRadius: 6, border: "1px solid #cbd5e1" }}>{assignees.map((person) => <option key={person.userId} value={person.userId}>{person.name} Â· {person.role === "rm" ? "RM" : "Salesperson"}</option>)}</select></label>}
-                          {expandedDetail.history?.length > 0 && <div style={{ marginTop: 10 }}><div style={{ fontWeight: 600, color: "#1e293b", marginBottom: 4, fontSize: "0.75rem", textTransform: "uppercase" }}>Stage history</div>{expandedDetail.history.map((entry: any, index: number) => <div key={`${entry.changed_at}-${index}`} style={{ color: "#64748b", fontSize: "0.72rem", marginBottom: 3 }}>{entry.previous_stage.replaceAll("_", " ")} â†’ {entry.new_stage.replaceAll("_", " ")} Â· {entry.actor_email} Â· {new Date(entry.changed_at).toLocaleString()}</div>)}</div>}
                         </div>
                       )}
                       

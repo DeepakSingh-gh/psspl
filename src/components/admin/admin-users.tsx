@@ -1,8 +1,9 @@
 "use client";
 import { FormEvent, useMemo, useState } from "react";
+import Link from "next/link";
 import { AdminPage, AdminState } from "./admin-shell";
 import { Pager, usePagination } from "./use-pagination";
-import { adminApi } from "@/lib/api";
+import { adminApi, ApiError } from "@/lib/api";
 import { useAdminData } from "@/lib/use-admin-data";
 import { formatDate, formatNumber } from "@/lib/format";
 import type { AdminUser, UserRole } from "@/types/admin";
@@ -16,12 +17,12 @@ const ROLE_LABEL: Record<UserRole, string> = {
 const INVITATION_STATUS: Record<NonNullable<AdminUser["invitationEmailStatus"]>, string> = {
   not_configured: "Email not configured",
   queued: "Queued for delivery",
-  processing: "Submitting to Resend",
+  processing: "Submitting to email provider",
   canceled: "Invitation replaced or canceled",
   expired: "Invitation expired before sending",
-  accepted: "Accepted by Resend; delivery not confirmed",
-  sent: "Sent by Resend; awaiting delivery confirmation",
-  delivered: "Delivered (confirmed by Resend)",
+  accepted: "Accepted by email provider; delivery not confirmed",
+  sent: "Sent by email provider; awaiting delivery confirmation",
+  delivered: "Delivered (confirmed by provider)",
   delivery_delayed: "Delivery delayed",
   bounced: "Bounced",
   complained: "Marked as spam",
@@ -31,11 +32,12 @@ const INVITATION_STATUS: Record<NonNullable<AdminUser["invitationEmailStatus"]>,
 };
 
 export function AdminUsers() {
-  const { data, loading, error, reload } = useAdminData(() => adminApi.users(), []);
+  const { data, loading, error, reload } = useAdminData(() => adminApi.users(), [], "admin-users");
+
   const [creating, setCreating] = useState(false);
   const [editing, setEditing] = useState<AdminUser | null>(null);
+  const [deleting, setDeleting] = useState<AdminUser | null>(null);
   const [notice, setNotice] = useState("");
-  const [temporaryCredential, setTemporaryCredential] = useState<{ email: string; password: string } | null>(null);
   const [search, setSearch] = useState("");
   const [roleFilter, setRoleFilter] = useState<"all" | "rm" | "salesperson">("all");
   const [sortOrder, setSortOrder] = useState<"name-asc" | "name-desc" | "rm-first" | "salesperson-first">("name-asc");
@@ -44,7 +46,7 @@ export function AdminUsers() {
     const matches = (data?.items ?? []).filter((user) => {
       if (roleFilter !== "all" && user.role !== roleFilter) return false;
       if (!term) return true;
-      return [user.fullName, user.email, user.employeeCode, user.mobileNumber].some((value) => value?.toLocaleLowerCase().includes(term));
+      return [user.fullName, user.loginId, user.email, user.employeeCode, user.mobileNumber].some((value) => value?.toLocaleLowerCase().includes(term));
     });
     const roleOrder = (role: UserRole) => sortOrder === "rm-first"
       ? role === "rm" ? 0 : role === "salesperson" ? 1 : 2
@@ -60,11 +62,11 @@ export function AdminUsers() {
   }, [data?.items, roleFilter, search, sortOrder]);
   const accounts = usePagination(filteredUsers, 25, `${search}|${roleFilter}|${sortOrder}`);
 
-  function afterChange(message: string, credential?: { email: string; password: string }) {
+  function afterChange(message: string) {
     setNotice(message);
-    setTemporaryCredential(credential ?? null);
     setCreating(false);
     setEditing(null);
+    setDeleting(null);
     reload();
   }
 
@@ -73,12 +75,10 @@ export function AdminUsers() {
       eyebrow="Access control"
       title="Users and roles"
       description="Manage CRM sign-in accounts and reporting lines. RMs see their assigned team, salespeople see their workspace, and administrators manage the CRM."
-      actions={<button type="button" className="admin-button" onClick={() => { setNotice(""); setTemporaryCredential(null); setCreating(true); }}>Add user</button>}
+      actions={<><Link className="admin-button ghost" href="/admin/archived-employees">Archived employees</Link><Link className="admin-button ghost" href="/admin/team-structure">View team structure</Link><button type="button" className="admin-button" onClick={() => { setNotice(""); setCreating(true); }}>Add user</button></>}
     >
       {notice && <p className="admin-note success" role="status">{notice}</p>}
-      {temporaryCredential && <p className="admin-note subtle">
-        Temporary password for <strong>{temporaryCredential.email}</strong>: <code>{temporaryCredential.password}</code>. Share it privately. It is not emailed and will disappear when you leave this page.
-      </p>}
+
 
       <AdminState loading={loading} error={error} onRetry={reload} empty={!data?.items.length}>
         <div style={{ display: "flex", alignItems: "flex-end", gap: 12, flexWrap: "wrap", marginBottom: 14 }}>
@@ -124,7 +124,7 @@ export function AdminUsers() {
                   <tr key={user.id} className={user.active ? undefined : "is-inactive"}>
                     <td>
                       <strong className="admin-cell-title">{user.fullName ?? user.email}</strong>
-                      <small>{user.email}{user.employeeCode ? ` · ${user.employeeCode}` : ""}{user.mobileNumber ? ` · ${user.mobileNumber}` : ""}</small>
+                      <small>{user.email}{user.loginId ? ` · Login ID: ${user.loginId}` : ""}{user.employeeCode ? ` · ${user.employeeCode}` : ""}{user.mobileNumber ? ` · ${user.mobileNumber}` : ""}</small>
                     </td>
                     <td><span className="admin-tag">{ROLE_LABEL[user.role]}</span></td>
                     <td>{user.managerName || "—"}</td>
@@ -138,6 +138,7 @@ export function AdminUsers() {
                     </td>
                     <td className="numeric">
                       <button type="button" className="admin-button ghost small" onClick={() => { setNotice(""); setEditing(user); }}>Manage</button>
+                      {user.id !== data?.currentUserId && <button type="button" className="admin-button danger small" style={{ marginLeft: 8 }} onClick={() => { setNotice(""); setDeleting(user); }}>Delete</button>}
                     </td>
                   </tr>
                 ))}
@@ -148,8 +149,10 @@ export function AdminUsers() {
         </>}
       </AdminState>
 
-      {creating && <CreateUserDialog managers={data?.managers ?? []} onClose={() => setCreating(false)} onCreated={(email, invitation, password) => afterChange(invitation.sent ? `Resend accepted the invitation email for ${email}; delivery is not confirmed yet. The account stays inactive until activation.` : invitation.reason === "cooldown" ? `An invitation was requested recently for ${email}. Wait a minute before resending to avoid duplicate email.` : ["queued", "processing"].includes(invitation.deliveryStatus ?? "") ? `Account created for ${email}; invitation is queued. Check its status before resending.` : invitation.deliveryStatus === "unknown" ? `Account created for ${email}, but email delivery is uncertain. Check Resend before sending another invitation.` : `Account created for ${email}, but the invitation email was not accepted (${invitation.reason ?? "delivery unavailable"}). Configure email delivery and resend it.`, password ? { email, password } : undefined)} />}
+
+      {creating && <CreateUserDialog managers={data?.managers ?? []} onClose={() => setCreating(false)} onCreated={(email, emailRequested) => afterChange(`Account created for ${email}. The initial password works immediately. ${emailRequested ? "Review the account email status in Manage." : "No email was sent."}`)} />}
       {editing && <ManageUserDialog user={editing} managers={data?.managers ?? []} onClose={() => setEditing(null)} onSaved={afterChange} />}
+      {deleting && <DeleteUserDialog user={deleting} onClose={() => setDeleting(null)} onDeleted={() => afterChange(`Deleted the sign-in account for ${deleting.email}. CRM history has been preserved.`)} />}
     </AdminPage>
   );
 }
@@ -175,30 +178,70 @@ function ManagerField({ managers, selected }: { managers: ManagerOption[]; selec
   </Field>;
 }
 
-function CreateUserDialog({ managers, onClose, onCreated }: { managers: ManagerOption[]; onClose: () => void; onCreated: (email: string, invitation: { sent: boolean; reason?: string; deliveryStatus?: string }, temporaryPassword?: string) => void }) {
+function CreateUserDialog({ managers, onClose, onCreated }: { managers: ManagerOption[]; onClose: () => void; onCreated: (email: string, emailRequested?: boolean) => void }) {
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
   const [role, setRole] = useState<UserRole>("salesperson");
   const [showInitialPassword, setShowInitialPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [createdUser, setCreatedUser] = useState<AdminUser | null>(null);
+  const [confirmEmail, setConfirmEmail] = useState(false);
+  const [emailRequested, setEmailRequested] = useState(false);
+  const [emailNotice, setEmailNotice] = useState("");
+  const [emailPassword, setEmailPassword] = useState("");
+  const finish = () => { if (!saving) { if (createdUser) onCreated(createdUser.email, emailRequested); else onClose(); } };
+  async function requestAccountEmail(user: AdminUser, passwordToEmail = emailPassword) {
+    setEmailNotice(""); setEmailRequested(true);
+    try {
+      const { email } = await adminApi.sendAccountEmail(user.id, passwordToEmail || undefined);
+      if (email.sent || email.deliveryStatus === "queued" || email.deliveryStatus === "processing") setEmailPassword("");
+      setEmailNotice(email.sent
+        ? email.passwordIncluded
+          ? "Account email accepted by the provider. It includes the employee details, Login ID and initial password. Inbox delivery is not confirmed."
+          : email.setupLinkIncluded === false
+          ? "Account email accepted by Gmail/provider; delivery is not confirmed. It includes the Login ID. No password or localhost link was sent. Share the initial password privately; a setup link can be sent once remote CRM access is configured."
+          : "Email accepted by the provider; delivery is not confirmed. The password setup link expires in 15 minutes."
+        : email.reason === "cooldown" || email.reason === "delivery_pending"
+          ? email.previousDeliveryStatus === "accepted" || email.previousDeliveryStatus === "sent"
+            ? "Your previous account email was already accepted by the email provider. Check the employee's Inbox and Spam folder; inbox delivery is not confirmed. No duplicate was sent. Wait 60 seconds before requesting another email."
+            : email.previousDeliveryStatus === "delivered"
+              ? "The provider confirmed delivery of your previous account email. No duplicate was sent."
+              : `Previous email status: ${email.previousDeliveryStatus || email.deliveryStatus || "unknown"}. Another request is blocked temporarily to avoid duplicates. Wait 60 seconds and check email status before retrying.`
+        : email.reason === "local_link_restricted"
+          ? "Not sent: localhost links can only go to the configured local test recipient. Set a reachable CRM URL before emailing employees on other devices."
+          : email.reason === "email_not_configured"
+            ? "Not sent: email configuration is incomplete. Check the configured email provider settings."
+            : `Email status: ${email.deliveryStatus || "unknown"} (${email.reason || "check provider status"}). Check the status before retrying.`);
+    } catch (cause) { setEmailNotice(cause instanceof ApiError && cause.status < 500 ? cause.message : "Email status is uncertain. Check the account email status in Manage before retrying."); }
+    finally { setConfirmEmail(false); }
+  }
+  async function sendCreatedAccountEmail() {
+    if (!createdUser || !confirmEmail) return;
+    setSaving(true);
+    try { await requestAccountEmail(createdUser); }
+    finally { setSaving(false); }
+  }
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setError("");
     setSaving(true);
+    const submitter = (event.nativeEvent as SubmitEvent).submitter;
+    const sendEmail = submitter instanceof HTMLButtonElement && submitter.value === "send-account-email";
     const form = new FormData(event.currentTarget);
     const email = String(form.get("email"));
     const initialPassword = String(form.get("initialPassword") || "");
-    if (role !== "admin" && initialPassword !== String(form.get("confirmPassword") || "")) {
-      setError("The temporary passwords do not match");
+    if (initialPassword !== String(form.get("confirmPassword") || "")) {
+      setError("The passwords do not match");
       setSaving(false);
       return;
     }
     try {
-      const result = await adminApi.createUser({
+      const { user } = await adminApi.createUser({
         email,
         role: String(form.get("role")) as UserRole,
-        ...(role !== "admin" ? { initialPassword } : {}),
+        initialPassword,
+        loginId: String(form.get("loginId") || "").trim(),
         managerUserId: String(form.get("managerUserId") || "") || null,
         fullName: String(form.get("fullName")),
         mobileNumber: String(form.get("mobileNumber") || "").trim() || undefined,
@@ -207,7 +250,9 @@ function CreateUserDialog({ managers, onClose, onCreated }: { managers: ManagerO
         territory: String(form.get("territory") || "") || undefined,
         monthlyTarget: Number(form.get("monthlyTarget") || 0),
       });
-      onCreated(email, result.invitation, role !== "admin" ? initialPassword : undefined);
+      setCreatedUser(user);
+      setEmailPassword(initialPassword);
+      if (sendEmail && user.role !== "admin") await requestAccountEmail(user, initialPassword);
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "Unable to create this user");
     } finally {
@@ -216,9 +261,21 @@ function CreateUserDialog({ managers, onClose, onCreated }: { managers: ManagerO
   }
 
   return (
-    <Dialog title="Add a user" onClose={onClose}>
-      <form onSubmit={submit} className="admin-form">
+    <Dialog title={createdUser ? "User created" : "Add a user"} onClose={finish}>
+      {createdUser ? <section className="admin-form">
+        <p className="admin-note success" role="status">Account created for {createdUser.fullName || createdUser.email}. {emailRequested ? "See the email result below." : "No email has been sent. You can approve sending below."}</p>
+        <p><strong>Login ID:</strong> {createdUser.loginId}<br /><strong>Email:</strong> {createdUser.email}</p>
+        <p className="admin-note subtle">The account email includes Login ID, email address and all saved employee details. The password entered below will also be emailed. CRM access and optional password setup links are included when a usable CRM URL is configured.</p>
+        {createdUser.role !== "admin" && <>
+          <Field label="Current password to include in email" hint="Stored passwords cannot be recovered. Leave blank to send employee details without a password."><input type="password" autoComplete="off" maxLength={200} value={emailPassword} disabled={saving} onChange={event => setEmailPassword(event.target.value)} /></Field>
+          <label><input type="checkbox" checked={confirmEmail} disabled={saving} onChange={event => setConfirmEmail(event.target.checked)} /> I approve sending an account email to {createdUser.email}.</label>
+          <button type="button" className="admin-button" disabled={saving || !confirmEmail} onClick={sendCreatedAccountEmail}>{saving ? "Sending..." : "Send Account Email"}</button>
+        </>}
+        {emailNotice && <p className="admin-note subtle" role="status">{emailNotice}</p>}
+        <div className="admin-dialog-actions"><button type="button" className="admin-button ghost" disabled={saving} onClick={finish}>Done</button></div>
+      </section> : <form onSubmit={submit} className="admin-form">
         <Field label="Full name"><input name="fullName" required minLength={2} placeholder="Ketan Bhatt" /></Field>
+        <Field label="Login ID" hint="3 to 64 letters, numbers, dots, underscores or hyphens. Case insensitive."><input name="loginId" required minLength={3} maxLength={64} pattern="[a-zA-Z0-9][a-zA-Z0-9._\-]*" autoComplete="off" /></Field>
         <Field label="Work email"><input name="email" type="email" required placeholder="name@psspl.com" /></Field>
         <Field label="Mobile number" hint="Include country code if needed, for example +91 98765 43210."><input name="mobileNumber" type="tel" autoComplete="tel" maxLength={25} placeholder="+91 98765 43210" /></Field>
         <Field label="Role">
@@ -228,21 +285,21 @@ function CreateUserDialog({ managers, onClose, onCreated }: { managers: ManagerO
             <option value="admin">Administrator</option>
           </select>
         </Field>
-        {role !== "admin" && <>
-          <p className="admin-note subtle">The account stays inactive until the person activates their work email. The activation page lets them use this temporary password or choose a new one. Share it privately; it is never sent by email.</p>
-          <Field label="Temporary password" hint="At least 12 characters. Stored as a secure hash.">
+        <>
+          <p className="admin-note subtle">The account can sign in immediately. Choose Create user & Send Email below to email the entered initial password, Login ID and all employee details to the email entered above. A secure password setup link is included when a usable CRM URL is configured. Create user saves the account without sending an email.</p>
+          <Field label="Initial password" hint="At least 12 characters. Stored as a secure hash.">
             <div style={{ position: "relative" }}>
               <input name="initialPassword" type={showInitialPassword ? "text" : "password"} required minLength={12} maxLength={200} autoComplete="new-password" style={{ paddingRight: 48 }} />
               <PasswordVisibilityButton visible={showInitialPassword} onClick={() => setShowInitialPassword((value) => !value)} />
             </div>
           </Field>
-          <Field label="Confirm temporary password">
+          <Field label="Confirm initial password">
             <div style={{ position: "relative" }}>
               <input name="confirmPassword" type={showConfirmPassword ? "text" : "password"} required minLength={12} maxLength={200} autoComplete="new-password" style={{ paddingRight: 48 }} />
               <PasswordVisibilityButton visible={showConfirmPassword} onClick={() => setShowConfirmPassword((value) => !value)} />
             </div>
           </Field>
-        </>}
+        </>
         {role === "salesperson" && <ManagerField managers={managers} />}
         <div className="admin-form-row">
           <Field label="Region"><input name="region" placeholder="West Region" /></Field>
@@ -254,10 +311,11 @@ function CreateUserDialog({ managers, onClose, onCreated }: { managers: ManagerO
         </div>
         {error && <p className="admin-error" role="alert">{error}</p>}
         <div className="admin-dialog-actions">
-          <button type="button" className="admin-button ghost" onClick={onClose}>Cancel</button>
-          <button type="submit" className="admin-button" disabled={saving}>{saving ? "Creating…" : "Create user"}</button>
+          <button type="button" className="admin-button ghost" onClick={finish} disabled={saving}>Cancel</button>
+          <button type="submit" className="admin-button ghost" disabled={saving}>{saving ? "Saving..." : "Create user"}</button>
+          {role !== "admin" && <button type="submit" name="action" value="send-account-email" className="admin-button" disabled={saving}>{saving ? "Saving..." : "Create user & Send Email"}</button>}
         </div>
-      </form>
+      </form>}
     </Dialog>
   );
 }
@@ -279,6 +337,9 @@ function PasswordVisibilityButton({ visible, onClick }: { visible: boolean; onCl
 
 function ManageUserDialog({ user, managers, onClose, onSaved }: { user: AdminUser; managers: ManagerOption[]; onClose: () => void; onSaved: (message: string) => void }) {
   const [error, setError] = useState("");
+  const [accountEmailStatus, setAccountEmailStatus] = useState("");
+  const [emailPassword, setEmailPassword] = useState("");
+  const [confirmAccountEmail, setConfirmAccountEmail] = useState(false);
   const [invitationStatus, setInvitationStatus] = useState("");
   const [saving, setSaving] = useState(false);
   const [password, setPassword] = useState("");
@@ -343,13 +404,41 @@ function ManageUserDialog({ user, managers, onClose, onSaved }: { user: AdminUse
     finally { setSaving(false); }
   }
 
+  async function sendAccountEmail() {
+    setSaving(true); setError(""); setAccountEmailStatus("");
+    try {
+      const { email } = await adminApi.sendAccountEmail(user.id, emailPassword || undefined);
+      if (email.sent || email.deliveryStatus === "queued" || email.deliveryStatus === "processing") setEmailPassword("");
+      setAccountEmailStatus(email.sent
+        ? email.passwordIncluded
+          ? "Account email accepted by the provider. It includes the employee details, Login ID and supplied password. Inbox delivery is not confirmed."
+          : email.setupLinkIncluded === false
+          ? "Account email accepted by Gmail/provider; delivery is not confirmed. It includes the Login ID. No password or localhost link was sent. Share the initial password privately; a setup link can be sent once remote CRM access is configured."
+          : "Email accepted by the provider; delivery is not confirmed. The password setup link expires in 15 minutes."
+        : email.reason === "cooldown" || email.reason === "delivery_pending"
+          ? email.previousDeliveryStatus === "accepted" || email.previousDeliveryStatus === "sent"
+            ? "Your previous account email was already accepted by the email provider. Check the employee's Inbox and Spam folder; inbox delivery is not confirmed. No duplicate was sent. Wait 60 seconds before requesting another email."
+            : email.previousDeliveryStatus === "delivered"
+              ? "The provider confirmed delivery of your previous account email. No duplicate was sent."
+              : `Previous email status: ${email.previousDeliveryStatus || email.deliveryStatus || "unknown"}. Another request is blocked temporarily to avoid duplicates. Wait 60 seconds and check email status before retrying.`
+        : email.reason === "local_link_restricted"
+          ? "Not sent: localhost links are restricted to the configured local test recipient. Set a reachable CRM URL before emailing employees on other devices."
+          : email.reason === "email_not_configured"
+            ? "Not sent: configure the email provider, CRM URL and encrypted queue key in the backend."
+            : email.reason === "cooldown" || email.reason === "delivery_pending"
+              ? "An account or password reset email was requested recently or is pending. Wait before trying again."
+              : `Email status: ${email.deliveryStatus || "unknown"} (${email.reason || "check provider status"}). Provider acceptance does not confirm delivery.`);
+    } catch (cause) { setAccountEmailStatus(cause instanceof ApiError && cause.status < 500 ? cause.message : "Email status is uncertain. Refresh the account and check its email status before retrying."); }
+    finally { setSaving(false); setConfirmAccountEmail(false); }
+  }
+
   async function resetPassword() {
     setError("");
     if (password.length < 12) { setError("Password must be at least 12 characters"); return; }
     setSaving(true);
     try {
       await adminApi.resetPassword(user.id, password);
-      onSaved(`Password reset for ${user.email}. Other devices were signed out.`);
+      onSaved(`Password reset for ${user.email}. All sessions were signed out.`);
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "Unable to reset the password");
     } finally {
@@ -383,6 +472,16 @@ function ManageUserDialog({ user, managers, onClose, onSaved }: { user: AdminUse
 
       <hr className="admin-divider" />
 
+      {user.active && (user.role === "rm" || user.role === "salesperson") && <section className="admin-form">
+        <h3>Account email</h3>
+        <p className="admin-note subtle">Send all saved employee details and Login ID. Enter the current password below to include it in the email. The CRM verifies it before sending and does not change the password. Optional setup links are included when a usable CRM URL is configured.</p>
+        {user.accountEmailStatus && <p className="admin-note subtle">Latest account / reset email: {INVITATION_STATUS[user.accountEmailStatus]}</p>}
+        <Field label="Current password to include in email" hint="Existing passwords cannot be shown. Re-enter the current password, or leave blank to email details only."><input type="password" autoComplete="off" maxLength={200} value={emailPassword} disabled={saving} onChange={event => setEmailPassword(event.target.value)} /></Field>
+        <label><input type="checkbox" checked={confirmAccountEmail} disabled={saving} onChange={event => setConfirmAccountEmail(event.target.checked)} /> I approve sending an account email to {user.email}.</label>
+        <div className="admin-dialog-actions left"><button type="button" className="admin-button" onClick={sendAccountEmail} disabled={saving || !confirmAccountEmail}>Send Account Email</button></div>
+        {accountEmailStatus && <p className="admin-note subtle" role="status">{accountEmailStatus}</p>}
+      </section>}
+
       {!user.active && <section className="admin-form">
         <h3>Account invitation</h3>
         <p className="admin-note subtle">{user.invitationPending ? "This account has not been activated. Resending invalidates the previous invitation link." : user.invitationEmailStatus ? "No active invitation link is recorded. Review the latest email status before resending." : "This account has not been invited yet. Send an invitation after email delivery is configured."}</p>
@@ -396,8 +495,8 @@ function ManageUserDialog({ user, managers, onClose, onSaved }: { user: AdminUse
       <section className="admin-form">
         <h3>Password</h3>
         <p className="admin-note subtle">Existing passwords cannot be shown. Enter a new password to replace one.</p>
-        <Field label="Set a new password" hint="At least 12 characters. Signs the person out of other devices.">
-          <input type="text" value={password} onChange={(event) => setPassword(event.target.value)} placeholder="New password" />
+        <Field label="Set a new password" hint="At least 12 characters. Signs the person out of all devices.">
+          <input type="password" autoComplete="new-password" maxLength={200} value={password} onChange={(event) => setPassword(event.target.value)} placeholder="New password" />
         </Field>
         <div className="admin-dialog-actions left">
           <button type="button" className="admin-button ghost" onClick={resetPassword} disabled={saving || password.length < 12}>Reset password</button>
@@ -423,6 +522,32 @@ function ManageUserDialog({ user, managers, onClose, onSaved }: { user: AdminUse
       {error && <p className="admin-error" role="alert">{error}</p>}
     </Dialog>
   );
+}
+
+function DeleteUserDialog({ user, onClose, onDeleted }: { user: AdminUser; onClose: () => void; onDeleted: () => void }) {
+  const [confirmation, setConfirmation] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
+  async function submit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setSaving(true); setError("");
+    try { await adminApi.deleteUser(user.id, confirmation); onDeleted(); }
+    catch (cause) { setError(cause instanceof Error ? cause.message : "Unable to delete this account"); }
+    finally { setSaving(false); }
+  }
+  return <Dialog title="Delete person" onClose={() => { if (!saving) onClose(); }}>
+    <p>Delete the sign-in account for <strong>{user.fullName ?? user.email}</strong> ({user.email})?</p>
+    <p>This removes the person from Users &amp; access and revokes their sessions and invitation/reset links. Their visits, leads, customer records and historical name remain recorded. An administrator can restore the account from Archived employees by setting new sign-in credentials.</p>
+    <p>Existing customer ownership stays recorded. Reassign customers in Customers if another employee needs access. Any reporting employees must be reassigned before deletion.</p>
+    <form className="admin-form" onSubmit={submit}>
+      <Field label="Type their email to confirm"><input type="email" value={confirmation} onChange={(event) => setConfirmation(event.target.value)} autoComplete="off" required disabled={saving} /></Field>
+      {error && <p className="admin-error" role="alert">{error}</p>}
+      <div className="admin-dialog-actions">
+        <button type="button" className="admin-button ghost" onClick={onClose} disabled={saving}>Cancel</button>
+        <button type="submit" className="admin-button danger" disabled={saving || confirmation.trim().toLowerCase() !== user.email.toLowerCase()}>{saving ? "Deleting…" : "Delete account"}</button>
+      </div>
+    </form>
+  </Dialog>;
 }
 
 function Dialog({ title, children, onClose }: { title: string; children: React.ReactNode; onClose: () => void }) {

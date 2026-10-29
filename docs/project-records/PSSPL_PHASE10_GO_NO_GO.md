@@ -1,5 +1,13 @@
 # PSSPL Phase 10 GO / NO-GO
 
+<!-- current-admin-ui:start -->
+> Latest local UI notes (27-10-2026): explicit Rais Khan top-five sample previews and the RM-only Monthly target card removal are documented in [the latest preview and dashboard notes](../operations/2026-10-27-ui-adjustments.md#local-top-five-samples-and-rm-dashboard-cleanup). Overview cleanup, period filters and shared PDF rendering remain. Earlier dated verification retains its scope; this Markdown update does not rerun tests or establish deployment/client acceptance.
+<!-- current-admin-ui:end -->
+
+<!-- current-source-status:start -->
+> Current source status (27-10-2026): backend RM rankings remain source-backed. Local Admin preview can fill empty products or append clearly marked sample customers without changing real rows, totals or database records. See [the latest preview and dashboard notes](../operations/2026-10-27-ui-adjustments.md#local-top-five-samples-and-rm-dashboard-cleanup). Overview cleanup, period filters and shared PDF rendering remain. Earlier dated verification retains its scope; this Markdown update does not rerun tests or establish deployment/client acceptance.
+<!-- current-source-status:end -->
+
 Decision: **NO-GO for Phase 10 implementation or release work.**
 
 Phase 9B established repeatable synthetic desktop and mobile-viewport browser coverage and closed the browser/export/region-filter evidence gap for F08/F17. The build, typecheck and 85-test regression suite passed; dependency audit is clear. This is not sufficient to begin Phase 10 because mandatory functional and client/integration gates remain open.
@@ -20,4 +28,5 @@ Phase 9B established repeatable synthetic desktop and mobile-viewport browser co
 
 Phase 10 can be reconsidered when the five business/data policies are decided or explicitly deferred, integration owners provide approved sandbox evidence, browser tests are reviewed on supported physical devices, and the client signs the updated UAT checklist. No production access, external credential or client approval was exercised in Phase 9B.
 
-> Current project status (19 October 2026): See the [production readiness report](../../PSSPL_FINAL_PRODUCTION_READINESS_REPORT.md) for the latest verified work and blockers; earlier findings in this document retain their original date.
+<!-- current-rm-report-card-2026-10-24 -->
+> **24 October 2026 RM report-card update:** [Current implementation and recorded validation](../operations/2026-10-21-current-state.md#rm-report-card-update--24-october-2026). Earlier dated findings in this file retain their original scope.

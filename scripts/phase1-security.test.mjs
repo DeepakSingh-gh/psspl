@@ -154,7 +154,7 @@ test("owner IDs and manager relationships govern access; RM aliases never overri
 test("admin can assign and reassign a salesperson to an RM; each RM dashboard follows that assignment", async () => {
   assert.equal((await response("/admin/users", tokens.admin, "POST", { email: "unassigned@example.test", role: "salesperson", fullName: "No Manager" })).status, 400);
   const created = await response("/admin/users", tokens.admin, "POST", {
-    email: "new-rep@example.test", role: "salesperson",
+    email: "new-rep@example.test", loginId: "new-rep", initialPassword: "Synthetic-Initial-2026!", role: "salesperson",
     fullName: "New Rep", managerUserId: "manager", region: "North", territory: "Synthetic",
   });
   assert.equal(created.status, 201);
@@ -162,11 +162,10 @@ test("admin can assign and reassign a salesperson to an RM; each RM dashboard fo
   const createdUser = createResult.user;
   assert.equal(createdUser.managerUserId, "manager");
   assert.equal(createdUser.managerName, "Ketan Bhatt");
-  assert.equal(createdUser.active, false);
-  assert.equal(createResult.invitation.sent, false);
+  assert.equal(createdUser.active, true);
+  assert.equal(createResult.invitation, undefined);
   const pendingTeam = await (await response("/rm/dashboard", tokens.manager)).json();
-  assert.ok(!pendingTeam.members.some((member) => member.id === createdUser.id), "inactive invite is hidden from the RM roster");
-  db.prepare("UPDATE users SET active=1 WHERE id=?").run(createdUser.id);
+  assert.ok(pendingTeam.members.some((member) => member.id === createdUser.id), "new account is immediately visible to its assigned RM");
 
   assert.equal((await response("/rm/dashboard", tokens.manager)).status, 200);
   const firstTeam = await (await response("/rm/dashboard", tokens.manager)).json();

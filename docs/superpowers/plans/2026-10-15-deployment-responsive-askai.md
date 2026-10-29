@@ -1,5 +1,13 @@
 # 2026-10-15: Ask AI UI Redesign, Full Mobile Responsiveness & Cloud Production Deployment
 
+<!-- current-admin-ui:start -->
+> Latest local UI notes (27-10-2026): explicit Rais Khan top-five sample previews and the RM-only Monthly target card removal are documented in [the latest preview and dashboard notes](../../operations/2026-10-27-ui-adjustments.md#local-top-five-samples-and-rm-dashboard-cleanup). Overview cleanup, period filters and shared PDF rendering remain. Earlier dated verification retains its scope; this Markdown update does not rerun tests or establish deployment/client acceptance.
+<!-- current-admin-ui:end -->
+
+<!-- current-source-status:start -->
+> Current source status (27-10-2026): backend RM rankings remain source-backed. Local Admin preview can fill empty products or append clearly marked sample customers without changing real rows, totals or database records. See [the latest preview and dashboard notes](../../operations/2026-10-27-ui-adjustments.md#local-top-five-samples-and-rm-dashboard-cleanup). Overview cleanup, period filters and shared PDF rendering remain. Earlier dated verification retains its scope; this Markdown update does not rerun tests or establish deployment/client acceptance.
+<!-- current-source-status:end -->
+
 ## Release follow-up ? 16 October 2026
 
 Local main now tracks the user-owned DeepakSingh-gh/psspl repository. Explicit Vercel API releases published e17852a (source synchronization), 6c585c1 (RM My Day landing/redirect) and 87eae1e (Manager Action Plan first/default, AI Insights second). The last deployment was verified READY on psspl-crm.vercel.app. Automatic Git linking is permission-blocked and must not be treated as configured.
@@ -84,4 +92,5 @@ Current Sales Reports diagnosis: latest local invoice `2026-09-08`, 78 invoices 
 
 Release context: [source synchronization and deployment status](../reports/2026-10-16-production-source-sync.md).
 
-> Current project status (19 October 2026): See the [production readiness report](../../../PSSPL_FINAL_PRODUCTION_READINESS_REPORT.md) for the latest verified work and blockers; earlier findings in this document retain their original date.
+<!-- current-rm-report-card-2026-10-24 -->
+> **24 October 2026 RM report-card update:** [Current implementation and recorded validation](../../operations/2026-10-21-current-state.md#rm-report-card-update--24-october-2026). Earlier dated findings in this file retain their original scope.

@@ -14,7 +14,7 @@ let api, web, stopping = false;
 
 function safeEnv(extra = {}) {
   const env = { ...process.env };
-  for (const key of Object.keys(env)) if (/OPENAI|GEMINI|WHATSAPP|SUPABASE|DIRECT_URL|DATABASE_URL|CRM_ADMIN|NODE_OPTIONS/i.test(key)) delete env[key];
+  for (const key of Object.keys(env)) if (/ANTHROPIC|CLAUDE|CRM_AI_PROVIDER|OPENAI|GEMINI|WHATSAPP|SUPABASE|DIRECT_URL|DATABASE_URL|CRM_ADMIN|NODE_OPTIONS/i.test(key)) delete env[key];
   return { ...env, NODE_ENV: 'development', NEXT_TELEMETRY_DISABLED: '1', CRM_DISABLE_BASELINE_RESTORE: 'true', HOST: '127.0.0.1', WHATSAPP_DELIVERY_ENABLED: 'false', ...extra };
 }
 async function freePort() {

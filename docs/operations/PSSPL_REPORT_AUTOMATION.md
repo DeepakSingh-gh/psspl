@@ -1,5 +1,13 @@
 # Phase 7 report automation operator runbook
 
+<!-- current-admin-ui:start -->
+> Latest local UI notes (27-10-2026): explicit Rais Khan top-five sample previews and the RM-only Monthly target card removal are documented in [the latest preview and dashboard notes](2026-10-27-ui-adjustments.md#local-top-five-samples-and-rm-dashboard-cleanup). Overview cleanup, period filters and shared PDF rendering remain. Earlier dated verification retains its scope; this Markdown update does not rerun tests or establish deployment/client acceptance.
+<!-- current-admin-ui:end -->
+
+<!-- current-source-status:start -->
+> Current source status (27-10-2026): backend RM rankings remain source-backed. Local Admin preview can fill empty products or append clearly marked sample customers without changing real rows, totals or database records. See [the latest preview and dashboard notes](2026-10-27-ui-adjustments.md#local-top-five-samples-and-rm-dashboard-cleanup). Overview cleanup, period filters and shared PDF rendering remain. Earlier dated verification retains its scope; this Markdown update does not rerun tests or establish deployment/client acceptance.
+<!-- current-source-status:end -->
+
 Local implementation only. External delivery is disabled by default. Do not start the application against the existing database during development: startup applies migrations. Migration `004_report_automation.sql` was exercised only on disposable synthetic databases. Review a backup and approve migration application separately before rollout.
 
 ## Business prerequisites
@@ -40,4 +48,5 @@ Subscribe the reviewed HTTPS callback `/api/whatsapp/webhook`. GET verifies the 
 
 Schedule approval/consent evidence, SQLite file protection, retention for schedule phone numbers and callback/delivery metadata, secret rotation, the durable backup procedure, shared-database deployment topology and monitoring for held deliveries all need owner sign-off before production. In-process AI throttling is not a cluster-wide quota. An approved provider sandbox/live verification and browser/device/training acceptance remain outstanding.
 
-> Current project status (19 October 2026): See the [production readiness report](../../PSSPL_FINAL_PRODUCTION_READINESS_REPORT.md) for the latest verified work and blockers; earlier findings in this document retain their original date.
+<!-- current-rm-report-card-2026-10-24 -->
+> **24 October 2026 RM report-card update:** [Current implementation and recorded validation](2026-10-21-current-state.md#rm-report-card-update--24-october-2026). Earlier dated findings in this file retain their original scope.

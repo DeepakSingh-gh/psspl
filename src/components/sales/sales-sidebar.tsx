@@ -31,6 +31,7 @@ export function SalesSidebar({ name, subtitle, onSignOut }: {
         {NAV.map((item) => (
           <Link key={item.href} href={item.href} className={isActive(item) ? "active" : undefined}>{item.label}</Link>
         ))}
+        <Link href="/profile" className={pathname === "/profile" ? "active" : undefined}>Profile</Link>
       </nav>
       <div className="user-card">
         <span>{initials}</span>

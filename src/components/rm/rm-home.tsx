@@ -15,6 +15,7 @@ const STAGE_ORDER = ["lead", "technical_discussion", "sample", "quotation", "fol
 const NAV_ITEMS = [
   { href: "/rm", label: "Home" },
   { href: "/rm/team", label: "My Team" },
+  { href: "/rm/report-card", label: "Report Card" },
   { href: "/rm/customers", label: "Customers" },
   { href: "/rm/products", label: "Product Trends" },
   { href: "/rm/alerts", label: "Alerts" },
@@ -65,6 +66,7 @@ export function RmHome() {
             <strong>{data?.manager?.fullName ?? "Regional Manager"}</strong>
             <small>{data?.manager?.region}</small>
           </span>
+          <a href="/profile">Profile</a>
           <button type="button" onClick={signOut}>Sign out</button>
         </div>
       </aside>

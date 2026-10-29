@@ -30,3 +30,5 @@ scripts/apply-indexes.js
 !.env.example
 
 .next-dev/
+
+.next-*/

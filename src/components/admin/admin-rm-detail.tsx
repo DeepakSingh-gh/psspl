@@ -1,11 +1,19 @@
 ﻿"use client";
-import { reportDateRange } from "@/lib/business-date";
-import { useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
+import { raisKhanReportPresentation } from "@/lib/rais-khan-period-preview";
 import Link from "next/link";
 import { AdminPage, AdminState } from "./admin-shell";
-import { RmReportDocument, RmReportPreviewModal, downloadRmReportDirect } from "./rm-report-pdf";
-import { adminApi } from "@/lib/api";
+import { RmReportPreviewModal } from "./rm-report-pdf";
+import { RmPerformanceWorkspace } from "./rm-performance-workspace";
+import { adminApi, rmApi } from "@/lib/api";
+import { RmPeriodFilters } from "@/components/reports/rm-period-filters";
+import { rmReportPeriod, type RmReportSelection } from "../../../shared/rm-report-period.mjs";
+import { indiaBusinessDate } from "@/lib/business-date";
 import { useAdminData } from "@/lib/use-admin-data";
+import { achievementPercent } from "../../../shared/achievement.mjs";
+import { rmDetailedInsights, rmManagementBriefs } from "@/lib/rm-management-brief";
+import { TechnicalServiceDetails } from "@/components/reports/technical-service-details";
+import { ExecutiveTerritoryCoverage } from "@/components/reports/executive-territory-coverage";
 import {
   formatDate,
   formatNumber,
@@ -36,10 +44,6 @@ const TABS: Array<{ id: Tab; label: string }> = [
 
 type Period = "today" | "week" | "month" | "fytd";
 
-function periodDates(period: Period): { from: string; to: string } {
-  return reportDateRange(period === "fytd" ? "fy" : period === "week" ? "weekToDate" : period);
-}
-
 /* ── helpers ── */
 function monthsAgoLabel(dateStr: string | null | undefined): string {
   if (!dateStr) return "Never";
@@ -55,26 +59,24 @@ function monthsAgoColor(dateStr: string | null | undefined): string {
   return "#b03030";
 }
 
-/* ── Monthly Target vs Actual Chart ── */
-function TargetVsActualMonthlyChart({ rows }: { rows?: Array<{ month: string; label: string; target: number | null; actual: number; achievementPercent: number | null }> }) {
+/* ── Target vs Actual Chart ── */
+function TargetVsActualChart({ rows: providedRows, sourceDate, annualPerformance, demo, period, note, granularity }: { rows?: Array<{ month: string; label: string; target: number | null; actual: number | null; achievementPercent: number | null }>; sourceDate?: string; annualPerformance?: { actual: number | null; target: number | null; achievementPercent: number | null }; demo?: boolean; period: Period; note?: string; granularity?: string }) {
   const [active, setActive] = useState<number | null>(null);
+  const isShortPeriod = period !== "fytd";
+  const periodName = period === "today" ? "Today" : period === "week" ? "Weekly" : period === "fytd" ? "Yearly" : "Monthly";
 
-  if (!rows || rows.length === 0) {
-    return (
-      <div style={{ background: "#ffffff", border: "1.5px solid #cbd5e1", borderRadius: 16, padding: "24px 20px", marginBottom: 20, textAlign: "center", color: "#64748b" }}>
-        <p style={{ margin: 0, fontSize: 13, fontWeight: 500 }}>No monthly sales target or invoice history available for this RM.</p>
-      </div>
-    );
-  }
+  const rows = providedRows?.length ? providedRows : [{ month: "empty", label: "Selected period", target: null, actual: null, achievementPercent: null }];
+  const hasChartValues = rows.some(row => (row.actual ?? 0) !== 0 || (row.target ?? 0) > 0);
 
-  const highestActual = Math.max(...rows.map((r) => r.actual), 1);
+  const highestActual = Math.max(...rows.map((r) => r.actual ?? 0), 1);
   const highestTarget = Math.max(...rows.map((r) => r.target ?? 0), 1);
-  const ceiling = Math.max(highestActual, highestTarget) * 1.15;
+  const ceiling = hasChartValues ? Math.max(highestActual, highestTarget) * 1.15 : 100000;
+  const hasActualData = annualPerformance ? annualPerformance.actual != null : rows.some(row => row.actual != null);
 
-  const totalActual = rows.reduce((s, r) => s + r.actual, 0);
+  const totalActual = annualPerformance?.actual != null ? annualPerformance.actual : rows.reduce((s, r) => s + (r.actual ?? 0), 0);
   const totalTarget = rows.reduce((s, r) => s + (r.target ?? 0), 0);
-  const avgAchievement = totalTarget > 0 ? Math.round((totalActual / totalTarget) * 100) : null;
-  const bestMonth = rows.reduce((best, r) => r.actual > best.actual ? r : best, rows[0]);
+  const avgAchievement = annualPerformance ? annualPerformance.achievementPercent : rows.some(row => row.actual != null) ? achievementPercent(totalActual, totalTarget) : null;
+  const bestMonth = rows.filter(row => row.actual != null && row.actual !== 0).reduce<(typeof rows)[number] | null>((best, row) => !best || (row.actual ?? 0) > (best.actual ?? 0) ? row : best, null);
 
   const chartHeight = 230;
   const chartWidth = Math.max(760, rows.length * 64 + 80);
@@ -88,23 +90,24 @@ function TargetVsActualMonthlyChart({ rows }: { rows?: Array<{ month: string; la
   const stepX = plotWidth / rows.length;
   const barWidth = Math.min(16, (stepX - 8) / 2);
 
-  const getY = (val: number) => chartHeight - bottom - (val / ceiling) * plotHeight;
+  const floor = Math.min(0, ...rows.map(row => row.actual ?? 0), ...rows.map(row => row.target ?? 0)) * 1.15;
+  const getY = (val: number) => chartHeight - bottom - ((val - floor) / (ceiling - floor)) * plotHeight;
 
   const selected = active !== null ? rows[active] : null;
 
   return (
-    <div style={{ background: "#ffffff", border: "1.5px solid #cbd5e1", borderRadius: 16, padding: "20px 22px", marginBottom: 20, boxShadow: "0 2px 10px rgba(15,23,42,.06)" }}>
+    <div className="rm-report-chart" style={{ background: "#ffffff", border: "1.5px solid #cbd5e1", borderRadius: 16, padding: "20px 22px", marginBottom: 20, boxShadow: "0 2px 10px rgba(15,23,42,.06)" }}>
       {/* Header */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 12, marginBottom: 14, paddingBottom: 12, borderBottom: "1px solid #f1f5f9" }}>
         <div>
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
             <span style={{ fontSize: 16 }}>📈</span>
             <h3 style={{ margin: 0, fontSize: 15, fontWeight: 800, color: "#0f172a", letterSpacing: "-0.01em" }}>
-              Monthly Sales Target vs Achievement
+              {periodName} Sales vs Target{demo ? " · Demo" : ""}
             </h3>
           </div>
           <p style={{ margin: "3px 0 0", fontSize: 12, color: "#64748b" }}>
-            Monthly comparison of target quotas versus booked Tally sales revenue
+            {note ?? (period === "fytd" ? "Month-wise sales and targets for the selected financial year" : "Day-wise sales and targets for the selected dates")}
           </p>
         </div>
 
@@ -128,51 +131,53 @@ function TargetVsActualMonthlyChart({ rows }: { rows?: Array<{ month: string; la
       {/* Mini summary strip */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 12, marginBottom: 14, background: "#f8fafc", padding: "10px 14px", borderRadius: 10, border: "1px solid #e2e8f0" }}>
         <div>
-          <span style={{ fontSize: 11, color: "#64748b", fontWeight: 600 }}>12-Month Total Billed</span>
-          <div style={{ fontSize: 15, fontWeight: 800, color: "#0f172a" }}>{formatRupees(totalActual)}</div>
+          <span style={{ fontSize: 11, color: "#64748b", fontWeight: 600 }}>{periodName} Sales</span>
+          <div style={{ fontSize: 15, fontWeight: 800, color: "#0f172a" }}>{hasActualData ? formatRupees(totalActual) : "Data unavailable"}</div>
         </div>
         <div>
-          <span style={{ fontSize: 11, color: "#64748b", fontWeight: 600 }}>Overall Target Pace</span>
+          <span style={{ fontSize: 11, color: "#64748b", fontWeight: 600 }}>{periodName} Target Pace</span>
           <div style={{ fontSize: 15, fontWeight: 800, color: avgAchievement != null && avgAchievement >= 100 ? "#16a34a" : "#d97706" }}>
             {avgAchievement == null ? "Target data unavailable" : `${avgAchievement}% achieved`}
           </div>
         </div>
         <div>
-          <span style={{ fontSize: 11, color: "#64748b", fontWeight: 600 }}>Top Revenue Milestone</span>
+          <span style={{ fontSize: 11, color: "#64748b", fontWeight: 600 }}>{period === "fytd" || granularity === "monthly" ? "Top Sales Month" : granularity === "weekly" || granularity === "source-week" ? "Top Sales Week" : "Top Sales Day"}</span>
           <div style={{ fontSize: 15, fontWeight: 800, color: "#0284c7" }}>
-            {bestMonth.label} · {formatRupees(bestMonth.actual)}
+            {period === "today" ? formatRupees(totalTarget) : bestMonth ? <>{bestMonth.label} · {formatRupees(bestMonth.actual)}</> : "Data unavailable"}
           </div>
         </div>
       </div>
 
-      {/* Interactive Chart */}
-      <div style={{ overflowX: "auto", position: "relative" }} onMouseLeave={() => setActive(null)}>
+      {!hasChartValues && <p role="status" style={{ margin: "0 0 10px", color: "#64748b", fontSize: 12 }}>No Data Available — chart shown for the selected period.</p>}
+      {/* Keep the selected bar's details beside the chart, away from its bars. */}
+      <div style={{ display: "flex", flexWrap: "wrap", alignItems: "flex-start", gap: 16 }} onMouseLeave={() => setActive(null)}>
+        <div className="rm-chart-plot" style={{ flex: "1 1 760px", minWidth: 0, overflowX: "auto" }}>
         <svg viewBox={`0 0 ${chartWidth} ${chartHeight}`} style={{ width: "100%", minWidth: chartWidth, height: chartHeight, display: "block" }}>
           {/* Y-Axis Gridlines */}
           {[0, 0.25, 0.5, 0.75, 1].map((ratio) => {
-            const val = ceiling * ratio;
+            const val = floor + (ceiling - floor) * ratio;
             const yPos = getY(val);
             return (
               <g key={ratio}>
                 <line x1={left} x2={chartWidth - right} y1={yPos} y2={yPos} stroke="#e2e8f0" strokeDasharray={ratio === 0 ? "none" : "3 3"} strokeWidth={ratio === 0 ? 1.5 : 1} />
                 <text x={left - 8} y={yPos + 4} textAnchor="end" fontSize="10.5" fill="#64748b" fontWeight="600">
-                  {val >= 10000000 ? `₹${(val / 10000000).toFixed(1)}Cr` : `₹${Math.round(val / 100000)}L`}
+                  {val >= 10000000 ? `₹${(val / 10000000).toFixed(1)}Cr` : val >= 100000 ? `₹${(val / 100000).toFixed(1)}L` : formatRupees(Math.round(val))}
                 </text>
               </g>
             );
           })}
 
-          {/* Month Bars */}
+          {/* Period bars */}
           {rows.map((row, index) => {
             const groupX = left + index * stepX + stepX / 2;
             const targetX = groupX - barWidth - 1.5;
             const actualX = groupX + 1.5;
 
-            const targetY = getY(row.target ?? 0);
-            const targetH = Math.max(2, chartHeight - bottom - targetY);
+            const targetY = Math.min(getY(0), getY(row.target ?? 0));
+            const targetH = Math.abs(getY(0) - getY(row.target ?? 0));
 
-            const actualY = getY(row.actual);
-            const actualH = Math.max(2, chartHeight - bottom - actualY);
+            const actualY = Math.min(getY(0), getY(row.actual ?? 0));
+            const actualH = Math.abs(getY(0) - getY(row.actual ?? 0));
 
             const isMet = row.achievementPercent != null && row.achievementPercent >= 100;
             const actualColor = isMet ? "#16a34a" : "#0284c7";
@@ -192,7 +197,7 @@ function TargetVsActualMonthlyChart({ rows }: { rows?: Array<{ month: string; la
                 />}
 
                 {/* Actual Bar */}
-                <rect
+                {row.actual != null && <rect
                   x={actualX}
                   y={actualY}
                   width={barWidth}
@@ -200,10 +205,10 @@ function TargetVsActualMonthlyChart({ rows }: { rows?: Array<{ month: string; la
                   rx="3"
                   fill={actualColor}
                   opacity={isHovered ? 1 : 0.95}
-                />
+                />}
 
                 {/* % text */}
-                  {row.actual > 0 && row.achievementPercent != null && (
+                  {row.actual != null && row.actual > 0 && row.achievementPercent != null && (
                   <text
                     x={actualX + barWidth / 2}
                     y={actualY - 6}
@@ -216,7 +221,7 @@ function TargetVsActualMonthlyChart({ rows }: { rows?: Array<{ month: string; la
                   </text>
                 )}
 
-                {/* Month label */}
+                {/* Period label */}
                 <text
                   x={groupX}
                   y={chartHeight - bottom + 18}
@@ -237,31 +242,22 @@ function TargetVsActualMonthlyChart({ rows }: { rows?: Array<{ month: string; la
                   fill="transparent"
                   style={{ cursor: "pointer" }}
                   onMouseEnter={() => setActive(index)}
+                  onFocus={() => setActive(index)}
+                  onBlur={() => setActive(null)}
+                  onClick={() => setActive(index)}
+                  tabIndex={0}
+                  role="button"
+                  aria-label={`${row.label} performance details`}
                 />
               </g>
             );
           })}
         </svg>
+        </div>
 
-        {/* Floating Tooltip */}
-        {selected && (
-          <div
-            style={{
-              position: "absolute",
-              top: 10,
-              left: `${Math.min(Math.max(((left + (active as number) * stepX + stepX / 2) / chartWidth) * 100, 16), 84)}%`,
-              transform: "translateX(-50%)",
-              background: "#0f172a",
-              color: "#ffffff",
-              padding: "10px 14px",
-              borderRadius: 10,
-              boxShadow: "0 10px 25px -5px rgba(0, 0, 0, 0.3)",
-              pointerEvents: "none",
-              zIndex: 10,
-              minWidth: 190,
-              fontSize: 12,
-            }}
-          >
+        <div className="rm-chart-side-slot" style={{ flex: "0 0 220px" }}>
+          {selected && (
+          <div className="rm-chart-details" role="status" aria-live="polite" style={{ boxSizing: "border-box", minHeight: 132, background: "#0f172a", color: "#ffffff", padding: "10px 14px", borderRadius: 10, boxShadow: "0 10px 25px -5px rgba(0, 0, 0, 0.22)", fontSize: 12 }}>
             <div style={{ fontWeight: 800, fontSize: 13, borderBottom: "1px solid #334155", paddingBottom: 5, marginBottom: 5 }}>
               {selected.label} Performance
             </div>
@@ -272,7 +268,7 @@ function TargetVsActualMonthlyChart({ rows }: { rows?: Array<{ month: string; la
             <div style={{ display: "flex", justifyContent: "space-between", gap: 12, marginBottom: 3 }}>
               <span style={{ color: "#94a3b8" }}>Actual Sales:</span>
               <strong style={{ color: (selected.achievementPercent ?? 0) >= 100 ? "#4ade80" : "#38bdf8" }}>
-                {formatRupees(selected.actual)}
+                {selected.actual == null ? "Data unavailable" : formatRupees(selected.actual)}
               </strong>
             </div>
             <div style={{ display: "flex", justifyContent: "space-between", gap: 12, borderTop: "1px solid #334155", paddingTop: 4, marginTop: 4 }}>
@@ -282,8 +278,10 @@ function TargetVsActualMonthlyChart({ rows }: { rows?: Array<{ month: string; la
               </strong>
             </div>
           </div>
-        )}
+          )}
+        </div>
       </div>
+      {rows.length > 4 && <p className="rm-chart-scroll-hint">Swipe chart sideways to see more {isShortPeriod ? "days" : "months"} →</p>}
     </div>
   );
 }
@@ -296,22 +294,26 @@ function ThrustProductsCard({
     products: Array<{
       id: string;
       name: string;
-      ytdSalesRupees: number;
-      ytdSalesLakh: number;
-      quantity: number;
-      invoiceCount: number;
-      isSold: boolean;
+      ytdSalesRupees: number | null;
+      ytdSalesLakh: number | null;
+      quantity: number | null;
+      invoiceCount: number | null;
+      isSold: boolean | null;
+      isDemo?: boolean;
     }>;
-    totalYtdLakh: number;
-    totalSalesRupees: number;
-    activeCount: number;
+    totalYtdLakh: number | null;
+    totalSalesRupees: number | null;
+    activeCount: number | null;
     totalCount: number;
+    financialYear?: string;
+    source?: string;
+    hasDemoProducts?: boolean;
   };
 }) {
   if (!thrust || !thrust.products || thrust.products.length === 0) return null;
 
   return (
-    <div
+    <div className="rm-report-thrust"
       style={{
         background: "#ffffff",
         border: "1.5px solid #cbd5e1",
@@ -361,7 +363,7 @@ function ThrustProductsCard({
                   letterSpacing: "-0.01em",
                 }}
               >
-                Thrust Products and Actual Sales till date (Rs. Lac)
+                {thrust.source === "supplied_pdf_snapshot" ? "Strategic Thrust Products" : "Thrust Products - Selected Period Sales"}
               </h3>
               <span
                 style={{
@@ -374,11 +376,11 @@ function ThrustProductsCard({
                   border: "1px solid #bae6fd",
                 }}
               >
-                Strategic Focus 2024-25
+                Strategic Focus {thrust.financialYear ?? "2024-25"}
               </span>
             </div>
             <p style={{ margin: "2px 0 0", fontSize: 11.5, color: "#64748b" }}>
-              Annual priority portfolio decided at year start · {thrust.activeCount} of {thrust.totalCount} products active with sales
+              {thrust.source === "supplied_pdf_snapshot" ? "Reported product portfolio · Individual sales not provided by source" : `Annual priority portfolio decided at year start · ${thrust.activeCount} of ${thrust.totalCount} products active with sales`}
             </p>
           </div>
         </div>
@@ -397,25 +399,18 @@ function ThrustProductsCard({
           }}
         >
           <div>
-            <div style={{ fontSize: 10, fontWeight: 800, textTransform: "uppercase", letterSpacing: ".05em", color: "#854d0e" }}>
-              Total Thrust Sales
-            </div>
-            <div style={{ fontSize: 18, fontWeight: 900, color: "#713f12", lineHeight: 1.1 }}>
-              {thrust.totalYtdLakh.toFixed(2)} <span style={{ fontSize: 12, fontWeight: 700 }}>Lac</span>
-            </div>
-          </div>
-          <div style={{ width: 1, height: 28, background: "#eab308", opacity: 0.5 }} />
-          <div style={{ textAlign: "right" }}>
-            <div style={{ fontSize: 10, fontWeight: 600, color: "#854d0e" }}>Total Value</div>
-            <div style={{ fontSize: 12, fontWeight: 700, color: "#713f12" }}>
-              {formatRupees(thrust.totalSalesRupees)}
-            </div>
+            <div style={{ fontSize: 10, fontWeight: 800, textTransform: "uppercase", letterSpacing: ".05em", color: "#854d0e" }}>Total Thrust Sales</div>
+            <div style={{ fontSize: 18, fontWeight: 900, color: "#713f12", lineHeight: 1.1 }}>{thrust.totalSalesRupees == null ? "Unavailable" : formatRupees(thrust.totalSalesRupees)}</div>
           </div>
         </div>
       </div>
 
-      {/* Grid of 9 Thrust Products Matching User's Sheet */}
-      <div className="rm-thrust-grid">
+      {/* Source PDFs list products without product-level revenue. Keep those names compact. */}
+      {thrust.source === "supplied_pdf_snapshot" && thrust.products.every(p => p.ytdSalesRupees == null) ? (
+        <div className="rm-thrust-name-list">
+          {thrust.products.map((product, index) => <span key={product.id}><small>{String(index + 1).padStart(2, "0")}</small>{product.name}</span>)}
+        </div>
+      ) : <div className="rm-thrust-grid">
         {thrust.products.map((p, idx) => {
           const isSold = p.isSold;
           return (
@@ -471,7 +466,7 @@ function ThrustProductsCard({
                     letterSpacing: "-0.01em",
                   }}
                 >
-                  {p.ytdSalesLakh > 0 ? `${p.ytdSalesLakh.toFixed(2)} L` : "0.00 L"}
+                  {p.ytdSalesLakh == null ? "—" : p.ytdSalesLakh > 0 ? `${p.ytdSalesLakh.toFixed(2)} L` : "0.00 L"}
                 </div>
                 <div
                   style={{
@@ -484,8 +479,8 @@ function ThrustProductsCard({
                     justifyContent: "space-between",
                   }}
                 >
-                  <span>{isSold ? formatRupees(p.ytdSalesRupees) : "No sales recorded"}</span>
-                  {p.invoiceCount > 0 && (
+                  <span>{p.isDemo ? "Demo sales" : p.ytdSalesRupees == null ? "Not provided in source" : isSold ? formatRupees(p.ytdSalesRupees) : "No sales recorded"}</span>
+                  {p.invoiceCount != null && p.invoiceCount > 0 && (
                     <span style={{ fontSize: 9.5, color: "#64748b" }}>
                       {p.invoiceCount} inv
                     </span>
@@ -495,7 +490,7 @@ function ThrustProductsCard({
             </div>
           );
         })}
-      </div>
+      </div>}
     </div>
   );
 }
@@ -504,9 +499,13 @@ function ThrustProductsCard({
 function ReportCardTab({ data, kpi, period, onSelectTab }: { data: any; kpi: any; period: Period; onSelectTab?: (tab: Tab) => void }) {
   const target = kpi.targetValue;
   const actual = kpi.actualSalesValue ?? 0;
+  const hasActual = kpi.actualSalesValue != null;
   const pct = kpi.achievementPercent;
+  const periodChartRows = period !== "fytd"
+    ? data.periodChartRows ?? [{ month: data.to ?? period, label: period === "today" ? "Today" : "This Week", target: target ?? null, actual: hasActual ? actual : null, achievementPercent: pct ?? null }]
+    : data.monthlyTargetVsActual;
   const pctValue = pct ?? 0;
-  const remaining = target == null ? null : Math.max(0, target - actual);
+  const remaining = target == null || !hasActual ? null : Math.max(0, target - actual);
 
   const isToday = period === "today";
   const isWeek = period === "week";
@@ -520,7 +519,7 @@ function ReportCardTab({ data, kpi, period, onSelectTab }: { data: any; kpi: any
     ? "Weekly Target"
     : isMonth
     ? "Monthly Target"
-    : "FYTD Target";
+    : "Yearly Target";
 
   // Determine status label, badge theme, subtitle and icon
   let statusLabel = "Data unavailable";
@@ -637,14 +636,12 @@ function ReportCardTab({ data, kpi, period, onSelectTab }: { data: any; kpi: any
   };
   const theme = themeMap[statusTheme];
 
-  const periodLabel = isToday
-    ? "Today"
-    : isWeek
-    ? "This Week"
-    : isMonth
-    ? (data?.isAnchoredToLatestCycle ? `This Month (${data.latestActiveMonth ? data.latestActiveMonth + " active ledger" : "Latest Cycle"})` : "This Month")
-    : "FY to Date";
+  const periodLabel = data.reportLabel ?? "Selected period";
+  const compactPeriodLabel = data.selectedPeriod ? `${data.selectedPeriod.label} · ${formatDate(data.from)} – ${formatDate(data.to)}` : periodLabel;
 
+  const demoDealers = Boolean(data.demoSections?.dealers);
+  const demoProducts = Boolean(data.demoSections?.products);
+  const demoPipeline = Boolean(data.demoSections?.pipeline);
   const topDealers: Array<{ dealerName: string; salesValue: number }> = data.topDealers ?? [];
   const dealerTotal = kpi.actualSalesValue || 0;
   const totalDealersCount = data.activeDealerCount ?? 0;
@@ -659,9 +656,9 @@ function ReportCardTab({ data, kpi, period, onSelectTab }: { data: any; kpi: any
   const dormant = data.dormantDealers ?? [];
 
   return (
-    <div style={{ fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" }}>
+    <div className="rm-report-card" style={{ fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" }}>
       {/* ── Friendly Profile & Performance Hero Card ── */}
-      <div style={{
+      <div className="rm-report-profile" style={{
         background: "#ffffff",
         border: "1px solid #e2e8f0",
         borderRadius: 16,
@@ -673,8 +670,8 @@ function ReportCardTab({ data, kpi, period, onSelectTab }: { data: any; kpi: any
         gap: 16,
       }}>
         {/* Top Row: Avatar + Identity + Performance Badge */}
-        <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 16, flexWrap: "wrap" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 16, minWidth: 260 }}>
+        <div className="rm-report-profile-main" style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 16, flexWrap: "wrap" }}>
+          <div className="rm-report-identity" style={{ display: "flex", alignItems: "center", gap: 16, minWidth: 260 }}>
             <div style={{
               width: 56,
               height: 56,
@@ -695,6 +692,7 @@ function ReportCardTab({ data, kpi, period, onSelectTab }: { data: any; kpi: any
                 <h2 style={{ margin: 0, fontSize: 21, fontWeight: 800, color: "#0f172a", letterSpacing: "-0.01em" }}>
                   {data.name}
                 </h2>
+                {data.livePreviewDemo && <span style={{ background: "#fffbeb", border: "1px solid #fbbf24", color: "#92400e", padding: "2px 8px", borderRadius: 6, fontSize: 11, fontWeight: 800 }}>Demo preview</span>}
                 {data.rmCode && (
                   <span style={{
                     display: "inline-flex",
@@ -728,7 +726,8 @@ function ReportCardTab({ data, kpi, period, onSelectTab }: { data: any; kpi: any
                   📍 <strong>{data.operatingFrom || data.operatingCities?.[0] || "Gurugram"}</strong>
                 </span>
                 <span>•</span>
-                <span>📅 Period: <strong style={{ color: "#0f172a" }}>{periodLabel}</strong></span>
+                <span title={periodLabel}>📅 Period: <strong style={{ color: "#0f172a" }}>{compactPeriodLabel}</strong></span>
+                {data.financialSource?.asOf && <span>Source as of {formatDate(data.financialSource.asOf)}</span>}
                 {target != null && target > 0 && (
                   <>
                     <span>•</span>
@@ -782,7 +781,7 @@ function ReportCardTab({ data, kpi, period, onSelectTab }: { data: any; kpi: any
                 ? `Clocked Out: ${new Date(data.attendance.checkOutAt).toLocaleTimeString("en-IN", { hour: "numeric", minute: "2-digit" })}`
                 : data.attendance?.checkInAt
                 ? `Clocked In: ${new Date(data.attendance.checkInAt).toLocaleTimeString("en-IN", { hour: "numeric", minute: "2-digit" })}`
-                : "Not Clocked In Today"}
+                : "No check-in on period end date"}
               {data.attendance?.checkInAt && data.attendance?.checkOutAt && (
                 <span style={{ fontSize: 11, color: "#64748b", marginLeft: 4 }}>
                   (In: {new Date(data.attendance.checkInAt).toLocaleTimeString("en-IN", { hour: "numeric", minute: "2-digit" })})
@@ -833,42 +832,13 @@ function ReportCardTab({ data, kpi, period, onSelectTab }: { data: any; kpi: any
           </div>
         </div>
 
-        {/* Territory Coverage Bar - Friendly & Compact */}
-        <div style={{
-          display: "flex",
-          alignItems: "center",
-          gap: 8,
-          flexWrap: "wrap",
-          paddingTop: 12,
-          borderTop: "1px solid #f1f5f9",
-          fontSize: 12,
-        }}>
-          <span style={{ fontWeight: 700, color: "#64748b", display: "inline-flex", alignItems: "center", gap: 5 }}>
-            👥 Executive Territory Coverage:
-          </span>
-          <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
-            {["Gurgaon", "Delhi", "Ghaziabad", "Faridabad", "Noida", "Sonepat", "Bahadurgarh", "Sahibabad", "Rudrapur"].map((city, i) => (
-              <span
-                key={i}
-                style={{
-                  background: "#f8fafc",
-                  border: "1px solid #e2e8f0",
-                  color: "#334155",
-                  padding: "2px 8px",
-                  borderRadius: 6,
-                  fontSize: 11,
-                  fontWeight: 600,
-                }}
-              >
-                {city}
-              </span>
-            ))}
-          </div>
-        </div>
+        <ExecutiveTerritoryCoverage coverage={data.executiveTerritoryCoverage} />
       </div>
 
+      {data.technicalService && <div className="rm-report-service"><TechnicalServiceDetails service={data.technicalService} compact /></div>}
+
       {/* ── Key Performance Highlights / Milestones Strip ── */}
-      <div style={{
+      {!!data.specialAchievements?.length && <div className="rm-report-achievements" style={{
         background: "#ffffff",
         border: "1px solid #e2e8f0",
         borderRadius: 14,
@@ -888,46 +858,50 @@ function ReportCardTab({ data, kpi, period, onSelectTab }: { data: any; kpi: any
           </span>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+          {(data.specialAchievements ?? []).map((item: string, index: number) => <span key={index} style={{ background: "#f0fdf4", border: "1px solid #bbf7d0", color: "#166534", padding: "6px 10px", borderRadius: 8, fontSize: 12, fontWeight: 700 }}>{item}</span>)}
         </div>
+      </div>}
+
+      <div className="rm-report-briefings">
+      <div className="admin-card rm-report-insights" style={{ marginBottom: 20 }}>
+        <h2 style={{ fontSize: 18, marginTop: 0 }}>AI Insights — {data.name}</h2>
+        <InsightPanel data={data.insightSource ?? data} period={period} onOpenActions={() => onSelectTab?.("actionplan")} />
       </div>
 
-      {/* ── Monthly Target vs Achievement Chart ── */}
-      <TargetVsActualMonthlyChart rows={data.monthlyTargetVsActual} />
+      <div className="admin-card rm-report-actions" style={{ marginBottom: 20 }}>
+        <h2 style={{ fontSize: 18, marginTop: 0 }}>Manager Action Plan — {data.name}</h2>
+        <ManagerActionPlanTab data={data.insightSource ?? data} />
+      </div>
+      </div>
+
+      {/* ── Sales chart for the selected reporting period ── */}
+      <TargetVsActualChart note={data.chartNote} granularity={data.chartGranularity} key={period} rows={periodChartRows} period={period} sourceDate={data.reportSource?.asOf} annualPerformance={{ actual: kpi.actualSalesValue, target: kpi.targetValue, achievementPercent: kpi.achievementPercent }} demo={data.financialSource ? false : period === "month" ? data.monthlyChartDemo : data.livePreviewDemo} />
 
       {/* ── Thrust Products & Actual Sales Till Date ── */}
       <ThrustProductsCard thrust={data.thrustProducts} />
 
       {/* ── Customer Health & Dependency ── */}
-      <div className="rm-2col-grid">
+      {dependencyPct == null && newCustomersCount == null ? (
+        <div className="rm-report-health rm-report-health-note">Dealer concentration and new-customer counts are unavailable from the current source.</div>
+      ) : <div className="rm-2col-grid rm-report-health">
         <div style={{ background: dependencyPct > 80 ? "#fff1f2" : "#f8fafc", border: `1.5px solid ${dependencyPct > 80 ? "#fda4af" : "#cbd5e1"}`, borderRadius: 12, padding: "16px" }}>
           <h4 style={{ margin: "0 0 4px", fontSize: 13, color: dependencyPct > 80 ? "#9f1239" : "#334155", textTransform: "uppercase", fontWeight: 800 }}>Revenue Dependency Risk</h4>
           <p style={{ margin: 0, fontSize: 14, fontWeight: 600, color: "#0f172a" }}>
             {dependencyPct === null ? "Unavailable" : `${dependencyPct}% of sales come from the top ${Math.min(5, totalDealersCount)} dealers`} <span style={{ fontWeight: 400, color: "#64748b" }}>(out of {totalDealersCount} total active)</span>
           </p>
         </div>
-        <div style={{ background: "#f0fdf4", border: "1.5px solid #86efac", borderRadius: 12, padding: "16px" }}>
-          <h4 style={{ margin: "0 0 4px", fontSize: 13, color: "#166534", textTransform: "uppercase", fontWeight: 800 }}>New Acquisition</h4>
+        <div style={{ background: newCustomersCount == null ? "#f8fafc" : "#f0fdf4", border: `1.5px solid ${newCustomersCount == null ? "#cbd5e1" : "#86efac"}`, borderRadius: 12, padding: "16px" }}>
+          <h4 style={{ margin: "0 0 4px", fontSize: 13, color: newCustomersCount == null ? "#334155" : "#166534", textTransform: "uppercase", fontWeight: 800 }}>New Acquisition</h4>
           <p style={{ margin: 0, fontSize: 14, fontWeight: 600, color: "#0f172a" }}>
-            {newCustomersCount === null ? "Data unavailable" : newCustomersCount} new customers <span title={data.newCustomersUnavailableReason ?? ""} style={{ fontWeight: 400, color: "#64748b" }}>added in the last 6 months{data.newCustomersUnavailableReason ? ` — ${data.newCustomersUnavailableReason}` : ""}</span>
+            {newCustomersCount == null ? "Data unavailable" : `${newCustomersCount} new customers`} <span title={data.newCustomersUnavailableReason ?? ""} style={{ fontWeight: 400, color: "#64748b" }}>{newCustomersCount == null ? "· Customer creation dates not recorded" : "in the selected period"}</span>
           </p>
         </div>
-      </div>
+      </div>}
 
       {/* ── 6 KPI cards ── */}
-      <div className="rm-kpi-grid">
+      <div className="rm-kpi-grid rm-report-kpis">
         <KpiCard icon="🎯" iconBg="#e0f2fe" label={targetLabel} value={target == null ? "Data unavailable" : formatRupees(target)} />
-        <KpiCard icon="📊" iconBg="#dcfce7" label="Actual Sales" value={formatRupees(actual)} />
-        {/* Achievement */}
-        <div style={kpiCardStyle}>
-          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
-            <span style={{ width: 30, height: 30, borderRadius: 8, background: "#fef3c7", display: "grid", placeItems: "center", fontSize: 14, fontWeight: 700, color: "#d97706" }}>%</span>
-            <span style={{ fontSize: 12, color: "#475569", fontWeight: 700 }}>Achievement</span>
-          </div>
-          <strong style={{ fontSize: 22, fontWeight: 800, color: isUnder ? "#dc2626" : "#16a34a" }}>{pct == null ? "Data unavailable" : `${Math.round(pct)}%`}</strong>
-          <div style={{ marginTop: 8, height: 6, borderRadius: 4, background: "#f1f5f9", overflow: "hidden" }}>
-            <div style={{ height: "100%", width: `${Math.min(100, pct ?? 0)}%`, background: isUnder ? "#dc2626" : "#16a34a", borderRadius: 4, transition: "width .5s" }} />
-          </div>
-        </div>
+        <KpiCard icon="📊" iconBg="#dcfce7" label="Actual Sales" value={hasActual ? formatRupees(actual) : "Data unavailable"} />
         {/* Customers Visited */}
         <div style={kpiCardStyle}>
           <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
@@ -949,29 +923,17 @@ function ReportCardTab({ data, kpi, period, onSelectTab }: { data: any; kpi: any
         </div>
       </div>
 
-      <div className="rm-2col-grid" style={{ marginBottom: 18 }}>
-        {[{ label: "Month to date", value: data.monthlyPerformance }, { label: "Financial year to date", value: data.ytdPerformance }].map(({ label, value }: any) => (
-          <div key={label} style={{ ...cardStyle, padding: 14 }}>
-            <strong>{label}</strong><div style={{ display: "flex", justifyContent: "space-between", gap: 12, marginTop: 8 }}>
-              <span>Actual: {value?.actual == null ? "Data unavailable" : formatRupees(value.actual)}</span>
-              <span>Target: {value?.target == null ? "Data unavailable" : formatRupees(value.target)}</span>
-              <b>{value?.achievementPercent == null ? "Data unavailable" : `${value.achievementPercent}%`}</b>
-            </div>
-          </div>
-        ))}
-      </div>
-
       {/* ── Row 2: Sales chart + Field Activity + Pipeline ── */}
-      <div className="rm-3col-grid">
+      <div className="rm-2col-grid rm-report-sales">
         {/* Sales vs Target */}
         <div style={cardStyle}>
-          <p style={cardTitleStyle}>📈 Sales vs Target ({periodLabel})</p>
+          <p style={cardTitleStyle} title={periodLabel}>📈 Sales vs Target</p>
           
           <div style={{ marginTop: 14 }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 6 }}>
               <span style={{ fontSize: 12, fontWeight: 700, color: "#475569" }}>Target Achievement</span>
               <span style={{ fontSize: 14, fontWeight: 800, color: isUnder ? "#dc2626" : "#16a34a" }}>
-                {pct == null ? "Data unavailable" : `${pct}%`} <span style={{ fontSize: 11, fontWeight: 600, color: "#64748b" }}>({formatRupees(actual)})</span>
+                {pct == null ? "Data unavailable" : `${pct}%`} <span style={{ fontSize: 11, fontWeight: 600, color: "#64748b" }}>({hasActual ? formatRupees(actual) : "Data unavailable"})</span>
               </span>
             </div>
             
@@ -997,7 +959,7 @@ function ReportCardTab({ data, kpi, period, onSelectTab }: { data: any; kpi: any
               </div>
               <div>
                 <span style={{ color: "#64748b", fontWeight: 600 }}>Actual: </span>
-                <strong style={{ color: "#0284c7", fontWeight: 800 }}>{formatRupees(actual)}</strong>
+                <strong style={{ color: "#0284c7", fontWeight: 800 }}>{hasActual ? formatRupees(actual) : "Data unavailable"}</strong>
               </div>
             </div>
           </div>
@@ -1011,50 +973,28 @@ function ReportCardTab({ data, kpi, period, onSelectTab }: { data: any; kpi: any
           </div>
         </div>
 
-        {/* Field Activity */}
-        <div style={cardStyle}>
-          <p style={cardTitleStyle}>🚶 Field Activity ({periodLabel})</p>
-          <div className="rm-stat-3col">
-            <FieldStat
-              icon="🚶"
-              value={formatNumber(kpi.visitsCompleted)}
-              label={
-                <>
-                  Visits<br />
-                  <span style={{ fontSize: 10, color: "#64748b", fontWeight: 600 }}>
-                    ({kpi.visitsPlanned > 0 ? Math.round((kpi.visitsCompleted / kpi.visitsPlanned) * 100) : 0}% of plan)
-                  </span>
-                </>
-              }
-              color="#16a34a"
-            />
-            <FieldStat icon="📋" value={formatNumber(kpi.followUpsOpen)} label={<>Open<br />Follow-ups</>} color="#0284c7" />
-            <FieldStat icon="👥" value={formatNumber(kpi.customersCovered)} label={<>Unique<br />Customers</>} color="#7c3aed" />
-          </div>
-        </div>
-
         {/* Pipeline */}
         <div style={cardStyle}>
-          <p style={cardTitleStyle}>🛒 Pipeline (Expected Orders)</p>
+          <p style={cardTitleStyle}>🛒 Pipeline (Expected Orders){demoPipeline ? " · Demo" : ""}</p>
           <strong style={{ fontSize: 24, fontWeight: 800, color: "#0f172a", display: "block", marginTop: 10 }}>{formatRupees(kpi.expectedOrdersValue)}</strong>
-          <small style={{ color: "#64748b", fontSize: 12, fontWeight: 600 }}>Total pipeline value</small>
+          <small style={{ color: "#64748b", fontSize: 12, fontWeight: 600 }}>{demoPipeline ? "Demo pipeline value" : "Total pipeline value"}</small>
+          {!data.pipeline.length && <p className="admin-muted">No Data Available</p>}
           <div style={{ marginTop: 14, display: "flex", flexDirection: "column", gap: 8 }}>
             {(data.pipeline ?? []).slice(0, 4).map((p: any) => (
               <div key={p.id} style={{ display: "grid", gridTemplateColumns: "1fr auto", alignItems: "center", gap: 8, padding: "6px 0", borderBottom: "1px solid #f1f5f9" }}>
-                <span style={{ fontSize: 12, color: "#0f172a", fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{p.customerName}</span>
+                <span style={{ fontSize: 12, color: "#0f172a", fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{p.customerName}{p.productName && <small style={{ display: "block", color: "#64748b", fontWeight: 500 }}>{p.productName} · {formatDate(p.expectedDate)}</small>}</span>
                 <span style={{ fontSize: 12, color: "#0284c7", fontWeight: 800 }}>{formatRupees(p.expectedValue)}</span>
               </div>
             ))}
-            {(data.pipeline ?? []).length === 0 && <p style={{ color: "#64748b", fontSize: 12, margin: "12px 0 0", fontStyle: "italic" }}>No open pipeline orders</p>}
           </div>
         </div>
       </div>
 
       {/* ── Row 3: Top dealers + Dormant + Product performance ── */}
-      <div className="rm-3col-grid rm-tables-row">
+      <div className="rm-3col-grid rm-tables-row rm-report-tables">
         {/* Top 5 Dealers */}
         <div style={cardStyle}>
-          <p style={cardTitleStyle}>👤 Top 5 Dealers by Revenue ({periodLabel})</p>
+          <p style={cardTitleStyle} title={periodLabel}>👤 Top 5 Customers by Revenue{demoDealers ? " · Demo" : ""}</p>
           <table style={{ width: "100%", borderCollapse: "collapse", marginTop: 12, fontSize: 12.5 }}>
             <thead>
               <tr style={{ color: "#475569" }}>
@@ -1066,14 +1006,13 @@ function ReportCardTab({ data, kpi, period, onSelectTab }: { data: any; kpi: any
               </tr>
             </thead>
             <tbody>
-              {topDealers.length === 0 ? (
-                <tr><td colSpan={5} style={{ textAlign: "center", color: "#64748b", padding: "20px 0" }}>No sales in this period</td></tr>
-              ) : topDealers.map((d, i) => {
-                const pctShare = Math.round((d.salesValue / dealerTotal) * 100);
+              {!topDealers.length && <tr><td colSpan={5} style={{ padding: 16, textAlign: "center", color: "#64748b" }}>No Data Available</td></tr>}
+              {topDealers.map((d, i) => {
+                const pctShare = Math.round((d.salesValue / (dealerTotal || 1)) * 100);
                 return (
                   <tr key={i} style={{ borderTop: "1px solid #f1f5f9" }}>
                     <td style={{ padding: "8px 4px", color: "#64748b", fontWeight: 600 }}>{i + 1}</td>
-                    <td style={{ padding: "8px 4px", fontWeight: 700, color: "#0f172a" }}><Link href={`/admin/customers?search=${encodeURIComponent(d.dealerName)}`}>{d.dealerName}</Link></td>
+                    <td style={{ padding: "8px 4px", fontWeight: 700, color: "#0f172a" }}>{demoDealers ? d.dealerName : <Link href={`/admin/customers?search=${encodeURIComponent(d.dealerName)}`}>{d.dealerName}</Link>}</td>
                     <td style={{ padding: "8px 4px", textAlign: "right", color: "#0f172a", fontWeight: 700 }}>{formatRupees(d.salesValue)}</td>
                     <td style={{ padding: "8px 4px", textAlign: "right", color: "#475569", fontWeight: 600 }}>{pctShare}%</td>
                     <td style={{ padding: "8px 4px", width: 60 }}>
@@ -1091,7 +1030,7 @@ function ReportCardTab({ data, kpi, period, onSelectTab }: { data: any; kpi: any
         {/* Dormant Dealers */}
         <div style={cardStyle}>
           <p style={cardTitleStyle}>🕐 Dormant dealers (no invoice for {data.reportingThresholds?.dormantDays ?? 90}+ days)</p>
-          {data.reportingThresholds?.provisional && <small style={{ color: "#a16207" }}>Inactivity threshold is provisional; configure RM_DORMANT_INACTIVITY_DAYS.</small>}
+          {data.reportingThresholds?.provisional && <small style={{ color: "#a16207" }}>The inactivity threshold is provisional; confirm it before acting.</small>}
           <table style={{ width: "100%", borderCollapse: "collapse", marginTop: 12, fontSize: 12.5 }}>
             <thead>
               <tr style={{ color: "#475569" }}>
@@ -1113,25 +1052,29 @@ function ReportCardTab({ data, kpi, period, onSelectTab }: { data: any; kpi: any
                   <td style={{ padding: "9px 4px", fontWeight: 700, color: "#0f172a" }}><Link href={`/admin/customers?search=${encodeURIComponent(d.dealerName ?? d.name)}`}>{d.dealerName ?? d.name}</Link></td>
                   <td style={{ padding: "9px 4px", textAlign: "right" }}>
                     <span style={{ background: monthsAgoColor(d.lastInvoice) + "18", color: monthsAgoColor(d.lastInvoice), border: `1px solid ${monthsAgoColor(d.lastInvoice)}33`, borderRadius: 6, padding: "3px 8px", fontSize: 11, fontWeight: 700 }}>
-                      {monthsAgoLabel(d.lastInvoiceDate ?? d.lastInvoice)}
+                      {formatDate(d.lastInvoiceDate ?? d.lastInvoice)}
                     </span>
                   </td>
                 </tr>
               ))}
             </tbody>
           </table>
-          <h5 style={{ margin: "16px 0 6px" }}>Previously billed, no sales in selected period ({data.dealerIntelligence?.noSalesInSelectedPeriod?.length ?? 0})</h5>
-          {(data.dealerIntelligence?.noSalesInSelectedPeriod ?? []).slice(0, 8).map((dealer: any) => <p key={dealer.id} style={{ margin: "5px 0", fontSize: 12 }}><Link href={`/admin/customers?search=${encodeURIComponent(dealer.name)}`}>{dealer.name}</Link> · last invoice {dealer.lastInvoiceDate ?? "—"} · {dealer.followUpOpportunity}</p>)}
-          <h5 style={{ margin: "16px 0 6px" }}>Declining vs prior comparable period ({data.dealerIntelligence?.declining?.length ?? 0})</h5>
-          {(data.dealerIntelligence?.declining ?? []).slice(0, 8).map((dealer: any) => <p key={dealer.id} style={{ margin: "5px 0", fontSize: 12 }}><Link href={`/admin/customers?search=${encodeURIComponent(dealer.name)}`}>{dealer.name}</Link> · down {dealer.declinePercent}% · {formatRupees(dealer.previousSalesValue)} to {formatRupees(dealer.salesValue)}</p>)}
-          <small style={{ display: "block", marginTop: 10, color: "#64748b" }}>{data.dealerIntelligence?.insufficientHistory?.length ?? 0} dealer records do not have enough invoice history for a comparable trend or inactivity finding.</small>
+          {!!data.dealerIntelligence?.noSalesInSelectedPeriod?.length && <>
+            <h5 style={{ margin: "16px 0 6px" }}>Previously billed, no sales in selected period ({data.dealerIntelligence.noSalesInSelectedPeriod.length})</h5>
+            {data.dealerIntelligence.noSalesInSelectedPeriod.slice(0, 8).map((dealer: any) => <p key={dealer.id} style={{ margin: "5px 0", fontSize: 12 }}><Link href={`/admin/customers?search=${encodeURIComponent(dealer.name)}`}>{dealer.name}</Link> · last invoice {formatDate(dealer.lastInvoiceDate) ?? "—"} · {dealer.followUpOpportunity}</p>)}
+          </>}
+          {!!data.dealerIntelligence?.declining?.length && <>
+            <h5 style={{ margin: "16px 0 6px" }}>Declining vs prior comparable period ({data.dealerIntelligence.declining.length})</h5>
+            {data.dealerIntelligence.declining.slice(0, 8).map((dealer: any) => <p key={dealer.id} style={{ margin: "5px 0", fontSize: 12 }}><Link href={`/admin/customers?search=${encodeURIComponent(dealer.name)}`}>{dealer.name}</Link> · down {dealer.declinePercent}% · {formatRupees(dealer.previousSalesValue)} to {formatRupees(dealer.salesValue)}</p>)}
+          </>}
+          {!!data.dealerIntelligence?.insufficientHistory?.length && <small style={{ display: "block", marginTop: 10, color: "#64748b" }}>{data.dealerIntelligence.insufficientHistory.length} dealer records need more invoice history for trend or inactivity analysis.</small>}
         </div>
 
         {/* Product Performance (Top 5) */}
         <div style={cardStyle}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", paddingBottom: 8, borderBottom: "1px solid #f1f5f9" }}>
-            <p style={{ margin: 0, fontSize: 14, fontWeight: 700, color: "#0f172a" }}>📦 Product Performance (Top 5)</p>
-            {onSelectTab && allProducts.length > 5 && (
+            <p style={{ margin: 0, fontSize: 14, fontWeight: 700, color: "#0f172a" }}>📦 Product Performance (Top 5){demoProducts ? " · Demo" : ""}</p>
+            {onSelectTab && !demoProducts && allProducts.length > 5 && (
               <button
                 type="button"
                 onClick={() => onSelectTab("products")}
@@ -1151,9 +1094,8 @@ function ReportCardTab({ data, kpi, period, onSelectTab }: { data: any; kpi: any
               </tr>
             </thead>
             <tbody>
-              {topProducts.length === 0 ? (
-                <tr><td colSpan={4} style={{ textAlign: "center", color: "#64748b", padding: "20px 0" }}>No product sales</td></tr>
-              ) : topProducts.map((p: any, i: number) => (
+              {!topProducts.length && <tr><td colSpan={4} style={{ padding: 16, textAlign: "center", color: "#64748b" }}>No Data Available</td></tr>}
+              {topProducts.map((p: any, i: number) => (
                 <tr key={i} style={{ borderTop: "1px solid #f1f5f9" }}>
                   <td style={{ padding: "8px 4px", color: "#64748b", fontWeight: 600 }}>{i + 1}</td>
                   <td style={{ padding: "8px 4px", fontWeight: 700, color: "#0f172a" }}>{p.name}</td>
@@ -1176,266 +1118,159 @@ function ReportCardTab({ data, kpi, period, onSelectTab }: { data: any; kpi: any
 }
 
 /* ── AI Insight panel ── */
-function InsightPanel({ data }: { data: any }) {
-  const insights = data.managementInsights ?? [];
-
+function InsightPanel({ data, period, onOpenActions }: { data: any; period: Period; onOpenActions: () => void }) {
+  const details = rmDetailedInsights(data, period);
   return (
-    <div style={{ fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" }}>
-      <div style={{
-        background: "linear-gradient(135deg, #eff6ff 0%, #f0fdf4 100%)",
-        border: "1.5px solid #bfdbfe",
-        borderRadius: "14px",
-        padding: "18px 22px",
-        marginBottom: "20px"
-      }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 8 }}>
-          <span style={{ fontSize: 20 }}>🤖</span>
-          <h3 style={{ margin: 0, fontSize: 16, fontWeight: 800, color: "#1e3a8a" }}>
-            Evidence-based management insights
-          </h3>
+    <section className="rm-insight rm-insight-dashboard">
+      {details.length > 0 && <section className="rm-insight-details" aria-label="Detailed AI insights" style={{ marginTop: 0, paddingTop: 0, borderTop: 0 }}>
+        <div className="rm-insight-heading">
+          <h3>Detailed insights</h3>
+          <button type="button" className="admin-button ghost small" onClick={onOpenActions}>View next steps</button>
         </div>
-        <p style={{ margin: 0, fontSize: 13, color: "#334155", lineHeight: 1.6 }}>
-          Deterministic findings from the selected period and authorized RM/team records. Threshold-based rules are marked provisional until configured.
-        </p>
-      </div>
-
-      <div className="rm-insight" style={{ background: "#ffffff", border: "1px solid #e2e8f0", borderRadius: "12px", padding: "18px 20px" }}>
-        {insights.length === 0 ? <p className="admin-placeholder">No configured management alerts were triggered for this period. This does not assert that performance is problem-free.</p> : insights.map((item: any) => (
-          <article key={item.id} style={{ padding: "12px 0", borderBottom: "1px solid #e2e8f0" }}>
-            <strong>{item.title}</strong><p style={{ margin: "5px 0", color: "#334155" }}>{item.metric} · {item.period?.from} to {item.period?.to}</p>
-            <p style={{ margin: 0, color: "#475569" }}>Suggested action: {item.action}</p>
-            {item.thresholdsProvisional && <small style={{ color: "#a16207" }}>Alert thresholds are provisional.</small>}
-            {item.href && <p style={{ margin: "6px 0 0" }}><Link href={item.href}>Open supporting records</Link></p>}
-          </article>
-        ))}
-      </div>
-    </div>
+        <p className="rm-insight-detail-source">{data.reportSource?.asOf ? `Using the report dated ${formatDate(data.reportSource.asOf)}.` : "Using the CRM records for these dates."} Talk to the RM before deciding what to do next.</p>
+        <ol className="rm-insight-detail-list">
+          {details.map(item => <li key={item.id}>
+            <h4>{item.title}</h4>
+            <ul>{item.points.map((point, index) => <li key={index}>{point}</li>)}</ul>
+          </li>)}
+        </ol>
+      </section>}
+      {!details.length && <p className="admin-placeholder">There is not enough past data to compare sales yet.</p>}
+    </section>
   );
 }
 
-/* ── Dedicated Manager Action Plan Tab ── */
-function ManagerActionPlanTab({ data, kpi }: { data: any; kpi: any }) {
-  const pct = kpi.achievementPercent;
-  const isUnder = pct != null && pct < 80;
-  const actions: Array<{ urgency: "high" | "medium"; title: string; detail: string; action: string; href: string | null; thresholdsProvisional: boolean }> = (data.managementInsights ?? []).map((item: any) => ({
-    ...item,
-    urgency: item.severity === "high" ? "high" : "medium",
-    detail: item.metric,
-  }));
-
+function ManagerActionPlanTab({ data }: { data: any }) {
+  const items = rmManagementBriefs(data);
   return (
-    <div style={{ fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" }}>
-      {/* Supervisory Header Banner */}
-      <div style={{
-        background: isUnder ? "linear-gradient(135deg, #fef2f2 0%, #fff1f2 100%)" : "linear-gradient(135deg, #f0fdf4 0%, #f0fdfa 100%)",
-        border: `1.5px solid ${isUnder ? "#f87171" : "#86efac"}`,
-        borderRadius: 16,
-        padding: "20px 24px",
-        marginBottom: 24,
-      }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 14 }}>
-          <div>
-            <span style={{ fontSize: 11, fontWeight: 800, textTransform: "uppercase", letterSpacing: ".06em", color: isUnder ? "#991b1b" : "#166534" }}>
-              Managerial Directive &amp; Remediation Plan
-            </span>
-            <h2 style={{ margin: "4px 0 0", fontSize: 20, fontWeight: 800, color: "#0f172a" }}>
-              Action Plan for {data.name}
-            </h2>
-            <p style={{ margin: "4px 0 0", fontSize: 13, color: "#475569" }}>
-              Recommendations are tied to the supporting metric, selected period, and linked records.
-            </p>
-          </div>
-          <span style={{
-            padding: "8px 16px",
-            borderRadius: 24,
-            fontWeight: 800,
-            fontSize: 13,
-            background: isUnder ? "#dc2626" : "#16a34a",
-            color: "#ffffff",
-          }}>
-            {pct == null ? "Data unavailable" : isUnder ? "Review required" : actions.length ? "Review findings" : "No alerts triggered"}
-          </span>
+    <div style={{ display: "grid", gap: 12 }}>
+      {items.map((item: any, index: number) => <article key={item.id} style={{ border: "1px solid #e2e8f0", borderRadius: 10, padding: "14px 16px" }}>
+        <div style={{ display: "flex", gap: 10, alignItems: "flex-start", flexWrap: "wrap" }}>
+          <strong style={{ flex: "1 1 200px", fontSize: 14, color: "#0f172a" }}>{index + 1}. {item.title}</strong>
+          <span style={{ fontSize: 11, fontWeight: 700, borderRadius: 5, padding: "3px 7px", background: item.severity === "high" ? "#fff1f2" : "#f1f5f9", color: item.severity === "high" ? "#be123c" : "#475569" }}>{item.severity === "high" ? "Do this first" : "Check this"}</span>
         </div>
-      </div>
-
-      {/* Action Checkpoints */}
-      <div style={{ display: "flex", flexDirection: "column", gap: 14, marginBottom: 24 }}>
-        <h3 style={{ margin: 0, fontSize: 16, fontWeight: 800, color: "#0f172a" }}>
-          Priority Action Items ({actions.length})
-        </h3>
-        {actions.map((act, i) => (
-          <div
-            key={i}
-            style={{
-              background: "#ffffff",
-              border: `1.5px solid ${act.urgency === "high" ? "#fecaca" : act.urgency === "medium" ? "#fed7aa" : "#bbf7d0"}`,
-              borderLeft: `5px solid ${act.urgency === "high" ? "#dc2626" : act.urgency === "medium" ? "#ea580c" : "#16a34a"}`,
-              borderRadius: 12,
-              padding: "16px 18px",
-              boxShadow: "0 2px 8px rgba(15,23,42,.04)",
-            }}
-          >
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                <span style={{ fontSize: 15 }}>
-                  {act.urgency === "high" ? "🔴" : act.urgency === "medium" ? "🟠" : "🟢"}
-                </span>
-                <strong style={{ fontSize: 14, fontWeight: 800, color: "#0f172a" }}>{act.title}</strong>
-              </div>
-              <span style={{
-                fontSize: 10.5,
-                fontWeight: 700,
-                textTransform: "uppercase",
-                padding: "2px 8px",
-                borderRadius: 6,
-                background: act.urgency === "high" ? "#fee2e2" : act.urgency === "medium" ? "#ffedd5" : "#dcfce7",
-                color: act.urgency === "high" ? "#991b1b" : act.urgency === "medium" ? "#9a3412" : "#166534",
-              }}>
-                {act.urgency === "high" ? "Urgent Priority" : act.urgency === "medium" ? "Review Soon" : "Maintain"}
-              </span>
-            </div>
-            <p style={{ margin: "0 0 8px", fontSize: 12.5, color: "#475569", lineHeight: 1.5 }}>{act.detail}</p>
-            <div style={{
-              background: "#f8fafc",
-              border: "1px solid #e2e8f0",
-              borderRadius: 8,
-              padding: "8px 12px",
-              fontSize: 12.5,
-              color: "#1e293b",
-            }}>
-              <strong style={{ color: "#0369a1", marginRight: 6 }}>Direct Action:</strong>
-              {act.action}
-            </div>
-            {act.thresholdsProvisional && <small style={{ display: "block", marginTop: 6, color: "#a16207" }}>Threshold is provisional until configured.</small>}
-            {act.href && <p style={{ margin: "8px 0 0" }}><Link href={act.href}>Open supporting records</Link></p>}
-          </div>
-        ))}
-        {actions.length === 0 && <p className="admin-placeholder">No configured alerts were triggered for this period. This does not certify that performance is problem-free.</p>}
-      </div>
-
-      {/* Field Visit Notes & Accountability */}
-      <div style={{ background: "#ffffff", border: "1.5px solid #cbd5e1", borderRadius: 14, padding: "18px 20px" }}>
-        <h3 style={{ margin: "0 0 4px", fontSize: 15, fontWeight: 800, color: "#0f172a" }}>
-          Recent Field Visits &amp; Accountability Log
-        </h3>
-        <p style={{ margin: "0 0 14px", fontSize: 12, color: "#64748b" }}>
-          Cross-reference client visit objectives against documented field outcomes.
-        </p>
-
-        {(!data.customerVisits || data.customerVisits.length === 0) ? (
-          <p style={{ margin: 0, fontSize: 13, color: "#64748b", fontStyle: "italic", padding: "16px 0", textAlign: "center" }}>
-            No visit logs recorded in the selected period.
-          </p>
-        ) : (
-          <div style={{ display: "flex", flexDirection: "column", gap: 10, maxHeight: "400px", overflowY: "auto", paddingRight: 4 }}>
-            {(data.customerVisits || []).map((v: any) => (
-              <div key={v.id} style={{ background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: 10, padding: "12px 14px" }}>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 6 }}>
-                  <div>
-                    <strong style={{ fontSize: 13.5, color: "#0f172a" }}>{v.customerName}</strong>
-                    {v.purpose && <span style={{ fontSize: 12, color: "#64748b", marginLeft: 8 }}>— {v.purpose}</span>}
-                  </div>
-                  <span style={{ fontSize: 11.5, color: "#64748b", fontWeight: 600 }}>{formatDate(v.date)}</span>
-                </div>
-                <div style={{ background: "#ffffff", border: "1px solid #e2e8f0", borderRadius: 6, padding: "8px 10px", fontSize: 12, color: "#334155" }}>
-                  <strong style={{ color: "#0f172a", marginRight: 6 }}>Field Outcome:</strong>
-                  {v.outcome || <span style={{ color: "#94a3b8", fontStyle: "italic" }}>No outcome logged</span>}
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
+        {item.finding && <p style={{ margin: "6px 0 0", color: "#64748b", fontSize: 12 }}>{item.finding}</p>}
+        <ul style={{ margin: "10px 0 0", paddingLeft: 18, color: "#1e293b", fontSize: 13, lineHeight: 1.6 }}>
+          {item.actions.map((action: string) => <li key={action}>{action}</li>)}
+        </ul>
+        {item.href && <Link href={item.href} style={{ fontSize: 12 }}>View records</Link>}
+      </article>)}
+      {!items.length && <p className="admin-placeholder">The available records show nothing that needs action right now.</p>}
     </div>
   );
 }
 
 /* ── Main component ── */
-export function AdminRmDetail({ rmId }: { rmId: string }) {
-  const [tab, setTab] = useState<Tab>("actionplan");
-  const [period, setPeriod] = useState<Period>("month");
-  const [showPreview, setShowPreview] = useState(false);
-  const [downloading, setDownloading] = useState(false);
-  const [downloadSuccess, setDownloadSuccess] = useState(false);
-  const { from, to } = periodDates(period);
+export function AdminRmDetail(props: { rmId: string; audience?: "admin" | "rm" }) {
+  return <RmPerformanceWorkspace {...props} />;
+}
 
-  const { data, loading, error, reload } = useAdminData(
-    () => adminApi.rmDetail(rmId, from, to),
-    [rmId, from, to],
-    undefined,
+// Retained for the existing legacy report implementation; V2 uses a normalized projection.
+function LegacyAdminRmDetail({ rmId: initialRmId, audience = "admin" }: { rmId: string; audience?: "admin" | "rm" }) {
+  const [tab, setTab] = useState<Tab>("performance");
+  const [rmId, setRmId] = useState(initialRmId);
+  const [managers, setManagers] = useState<Array<{ id: string; name: string }>>([]);
+  useEffect(() => { setRmId(initialRmId); }, [initialRmId]);
+  useEffect(() => { if (audience === "admin") adminApi.rmReportOptions().then(result => setManagers(result.managers)).catch(() => {}); }, [audience]);
+  const [selection, setSelection] = useState<RmReportSelection>(() => {
+    const date = indiaBusinessDate();
+    const year = Number(date.slice(0, 4)) - (Number(date.slice(5, 7)) < 4 ? 1 : 0);
+    return { reportType: "monthly", financialYear: `${year}-${String(year + 1).slice(-2)}`, month: Number(date.slice(5, 7)), week: 1 };
+  });
+  const period: Period = selection.reportType === "weekly" ? "week" : selection.reportType === "yearly" ? "fytd" : "month";
+  const [showPreview, setShowPreview] = useState(false);
+  const filterFormId = useId();
+  const [previewRequested, setPreviewRequested] = useState(false);
+  const reportSection = useRef<HTMLDivElement>(null);
+  const [openReport, setOpenReport] = useState(false);
+  const { from, to } = rmReportPeriod(selection);
+  function changeSelection(next: RmReportSelection, nextRm?: string, download = false) {
+    const unchanged = JSON.stringify(next) === JSON.stringify(selection) && (!nextRm || nextRm === rmId);
+    if (download && unchanged && currentSourceData) {
+      setShowPreview(true);
+      return;
+    }
+    setTab("performance");
+    setOpenReport(true);
+    setShowPreview(false);
+    setPreviewRequested(download);
+    setSelection(next);
+    if (audience === "admin" && nextRm) setRmId(nextRm);
+    if (JSON.stringify(next) === JSON.stringify(selection) && (!nextRm || nextRm === rmId)) reload();
+  }
+
+  const { data: sourceData, loading, error, reload } = useAdminData(
+    () => audience === "rm" ? rmApi.periodReport(selection) : adminApi.rmPeriodReport(rmId, selection),
+    [rmId, from, to, period, audience],
+    `actual-rm-${audience}-${rmId}-${from}-${to}-${period}`,
     true
   );
+  // Keep the previous period out of view while the new request is loading.
+  const currentSourceData = sourceData?.from === from && sourceData?.to === to && (audience === "rm" || sourceData?.id === rmId) ? sourceData : null;
 
+  const data = raisKhanReportPresentation(currentSourceData);
+  const reportData = data;
+  const activityData = data ? { ...data, demoSections: data.demoSections ?? {}, activitySalesTotal: data.kpi.actualSalesValue } : null;
   const kpi = data?.kpi;
-
-  const handleDownloadReport = async () => {
-    if (!data || downloading) return;
-    setDownloading(true);
-    try {
-      const ok = await downloadRmReportDirect(data, period);
-      if (ok) {
-        setDownloadSuccess(true);
-        setTimeout(() => setDownloadSuccess(false), 3500);
-      }
-    } catch (err) {
-      console.error("Failed to download report:", err);
-    } finally {
-      setDownloading(false);
-    }
-  };
+  useEffect(() => {
+    if (!previewRequested || loading || !currentSourceData) return;
+    setShowPreview(true);
+    setPreviewRequested(false);
+  }, [previewRequested, loading, currentSourceData]);
+  useEffect(() => {
+    if (!openReport || !currentSourceData) return;
+    const frame = requestAnimationFrame(() => {
+      reportSection.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+      reportSection.current?.focus({ preventScroll: true });
+      setOpenReport(false);
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [openReport, currentSourceData]);
 
   return (
     <>
-      <Link href="/admin/team" className="rm-detail-back">
-        ← Back to Team performance
-      </Link>
+      {audience === "admin" && <nav className="rm-detail-back-nav" aria-label="Team navigation">
+        <Link href="/admin/team" className="rm-detail-back">
+          ← Back to Team performance
+        </Link>
+      </nav>}
 
       <AdminPage
+        className="rm-detail-page"
         eyebrow="RM Report Card"
         title={data?.name ?? "RM Sales Activity"}
-        description={
-          data
-            ? [data.region, data.territory, data.ownershipMapping !== "verified" ? `Sales attribution ${data.ownershipMapping}` : null, "Sales, activity, dealers and next actions"].filter(Boolean).join(" · ")
-            : "Loading…"
-        }
         actions={
           <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
-            <div className="rm-detail-period">
-              {(["today", "week", "month", "fytd"] as Period[]).map((p) => (
-                <button
-                  key={p}
-                  type="button"
-                  className={`rm-detail-period-btn${period === p ? " active" : ""}`}
-                  onClick={() => setPeriod(p)}
-                >
-                  {p === "today" ? "Today" : p === "week" ? "This Week" : p === "month" ? "This Month" : "FYTD"}
-                </button>
-              ))}
-            </div>
             {data && (
               <button
-                type="button"
-                onClick={() => setShowPreview(true)}
+                type="submit"
+                form={filterFormId}
+                name="reportAction"
+                value="download"
                 className="rm-download-report-btn"
-                title="Preview & Download executive report card"
+                disabled={loading}
+                title="Apply selected filters, preview and download report card"
               >
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
                   <polyline points="7 10 12 15 17 10" />
                   <line x1="12" y1="15" x2="12" y2="3" />
                 </svg>
-                Download Report
+                Download PDF
               </button>
             )}
           </div>
         }
       >
-        <AdminState loading={loading} error={error} onRetry={reload} empty={false}>
+        <RmPeriodFilters formId={filterFormId} ownRmId={currentSourceData?.id} selection={selection} onApply={changeSelection} rmId={rmId} managers={managers} canSelectRm={audience === "admin"} loading={loading || (!currentSourceData && !error)} />
+        <AdminState loading={loading || !currentSourceData} error={error} onRetry={reload} empty={false}>
           {data && kpi && (
             <>
+              {!data.hasRecords && <p className="admin-placeholder" role="status">No Data Available</p>}
               {/* Tabs */}
+              <div ref={reportSection} tabIndex={-1} className="rm-report-section" aria-label="Selected RM report">
               <div className="admin-tabs" role="tablist" style={{ marginBottom: 24 }}>
-                {TABS.map((t) => (
+                {TABS.filter(t => audience === "admin" || !["actionplan", "insight"].includes(t.id)).map((t) => (
                   <button
                     key={t.id}
                     type="button"
@@ -1448,10 +1283,15 @@ export function AdminRmDetail({ rmId }: { rmId: string }) {
                   </button>
                 ))}
               </div>
+              </div>
+
+
+
+
 
               {/* ── Report Card tab ── */}
               {tab === "performance" && (
-                <ReportCardTab data={data} kpi={kpi} period={period} onSelectTab={setTab} />
+                <ReportCardTab data={reportData} kpi={reportData.kpi} period={period} onSelectTab={setTab} />
               )}
 
               {/* ── Customer Visits tab ── */}
@@ -1460,11 +1300,11 @@ export function AdminRmDetail({ rmId }: { rmId: string }) {
                   <header className="admin-card-header">
                     <div>
                       <p className="admin-eyebrow">CRM field activity</p>
-                      <h2>Customer visit log</h2>
+                      <h2>Customer visit log {activityData.demoSections.visits && <span className="admin-pill neutral">Demo</span>}</h2>
                     </div>
                   </header>
-                  {data.customerVisits.length === 0 ? (
-                    <p className="admin-placeholder">No visits recorded in this period.</p>
+                  {activityData.customerVisits.length === 0 ? (
+                    <p className="admin-placeholder">No Data Available</p>
                   ) : (
                     <div className="admin-table-wrap">
                       <table className="admin-table">
@@ -1480,7 +1320,7 @@ export function AdminRmDetail({ rmId }: { rmId: string }) {
                           </tr>
                         </thead>
                         <tbody>
-                          {data.customerVisits.map((v: any) => (
+                          {activityData.customerVisits.map((v: any) => (
                             <tr key={v.id}>
                               <td>{formatDate(v.date)}</td>
                               <td><strong className="admin-cell-title">{v.customerName}</strong></td>
@@ -1508,11 +1348,11 @@ export function AdminRmDetail({ rmId }: { rmId: string }) {
                   <header className="admin-card-header">
                     <div>
                       <p className="admin-eyebrow">Expected orders</p>
-                      <h2>Sales pipeline</h2>
+                      <h2>Sales pipeline {activityData.demoSections.pipeline && <span className="admin-pill neutral">Demo</span>}</h2>
                     </div>
                   </header>
-                  {data.pipeline.length === 0 ? (
-                    <p className="admin-placeholder">No open expected orders.</p>
+                  {activityData.pipeline.length === 0 ? (
+                    <p className="admin-placeholder">No Data Available</p>
                   ) : (
                     <div className="admin-table-wrap">
                       <table className="admin-table">
@@ -1527,7 +1367,7 @@ export function AdminRmDetail({ rmId }: { rmId: string }) {
                           </tr>
                         </thead>
                         <tbody>
-                          {data.pipeline.map((p: any) => (
+                          {activityData.pipeline.map((p: any) => (
                             <tr key={p.id}>
                               <td><strong className="admin-cell-title">{p.customerName}</strong></td>
                               <td>{p.productName ?? <span className="admin-muted">—</span>}</td>
@@ -1553,31 +1393,31 @@ export function AdminRmDetail({ rmId }: { rmId: string }) {
                 <div className="admin-card">
                   <header className="admin-card-header">
                     <div>
-                      <p className="admin-eyebrow">Tally data</p>
-                      <h2>Actual sales invoices</h2>
+                      <p className="admin-eyebrow">{activityData.demoSections.sales ? "Sample invoices" : "Tally data"}</p>
+                      <h2>Actual sales invoices {activityData.demoSections.sales && <span className="admin-pill neutral">Demo</span>}</h2>
                     </div>
                     <div className="admin-card-header-right">
                       <dl className="admin-card-summary">
                         <div>
                           <dt>Total</dt>
-                          <dd><strong>{formatRupees(kpi.actualSalesValue)}</strong></dd>
+                          <dd><strong>{formatRupees(activityData.activitySalesTotal)}</strong></dd>
                         </div>
                         <div>
                           <dt>Invoices</dt>
-                          <dd>{formatNumber(data.salesInvoiceCount ?? kpi.salesInvoiceCount ?? data.actualSales.length)}</dd>
+                          <dd>{formatNumber(activityData.salesInvoiceCount ?? kpi.salesInvoiceCount ?? activityData.actualSales.length)}</dd>
                         </div>
                         <div>
                           <dt>Avg invoice</dt>
-                          <dd>{(data.salesInvoiceCount ?? kpi.salesInvoiceCount ?? data.actualSales.length) > 0 ? formatRupees(kpi.actualSalesValue / (data.salesInvoiceCount ?? kpi.salesInvoiceCount ?? data.actualSales.length)) : "—"}</dd>
+                          <dd>{(activityData.salesInvoiceCount ?? kpi.salesInvoiceCount ?? activityData.actualSales.length) > 0 ? formatRupees(activityData.activitySalesTotal / (activityData.salesInvoiceCount ?? kpi.salesInvoiceCount ?? activityData.actualSales.length)) : "—"}</dd>
                         </div>
                       </dl>
                     </div>
                   </header>
-                  {data.actualSales.length === 0 ? (
-                    <p className="admin-placeholder">No Tally invoices found for this RM in the selected period.</p>
+                  {activityData.actualSales.length === 0 ? (
+                    <p className="admin-placeholder">No Data Available</p>
                   ) : (
                     <div className="admin-table-wrap">
-                      {data.salesInvoiceCount > data.actualSales.length && <p className="admin-muted">Showing the 50 most recent invoices of {formatNumber(data.salesInvoiceCount)} eligible invoices; totals above include the full period.</p>}
+                      {activityData.salesInvoiceCount > activityData.actualSales.length && <p className="admin-muted">Showing the 50 most recent invoices of {formatNumber(activityData.salesInvoiceCount)} eligible invoices; totals above include the full period.</p>}
                       <table className="admin-table">
                         <thead>
                           <tr>
@@ -1588,7 +1428,7 @@ export function AdminRmDetail({ rmId }: { rmId: string }) {
                           </tr>
                         </thead>
                         <tbody>
-                          {data.actualSales.map((s: any) => (
+                          {activityData.actualSales.map((s: any) => (
                             <tr key={s.id}>
                               <td>{formatDate(s.invoiceDate)}</td>
                               <td>{s.invoiceNumber ?? <span className="admin-muted">—</span>}</td>
@@ -1609,11 +1449,11 @@ export function AdminRmDetail({ rmId }: { rmId: string }) {
                   <header className="admin-card-header">
                     <div>
                       <p className="admin-eyebrow">Product performance</p>
-                      <h2>Top products sold by {data.name}</h2>
+                      <h2>Top products sold by {activityData.name} {activityData.demoSections.products && <span className="admin-pill neutral">Demo</span>}</h2>
                     </div>
                   </header>
-                  {data.topProducts.length === 0 ? (
-                    <p className="admin-placeholder">No product sales recorded in this period.</p>
+                  {activityData.topProducts.length === 0 ? (
+                    <p className="admin-placeholder">No Data Available</p>
                   ) : (
                     <div className="admin-table-wrap">
                       <table className="admin-table">
@@ -1627,7 +1467,7 @@ export function AdminRmDetail({ rmId }: { rmId: string }) {
                           </tr>
                         </thead>
                         <tbody>
-                          {data.topProducts.map((p: any) => (
+                          {activityData.topProducts.map((p: any) => (
                             <tr key={p.name}>
                               <td><strong className="admin-cell-title">{p.name}</strong></td>
                               <td className="numeric"><strong>{formatRupees(p.salesValue)}</strong></td>
@@ -1655,11 +1495,11 @@ export function AdminRmDetail({ rmId }: { rmId: string }) {
                   <header className="admin-card-header">
                     <div>
                       <p className="admin-eyebrow">Action items</p>
-                      <h2>Open follow-ups</h2>
+                      <h2>Open follow-ups {activityData.demoSections.followups && <span className="admin-pill neutral">Demo</span>}</h2>
                     </div>
                   </header>
-                  {data.followUps.length === 0 ? (
-                    <p className="admin-placeholder">No open follow-ups.</p>
+                  {activityData.followUps.length === 0 ? (
+                    <p className="admin-placeholder">No Data Available</p>
                   ) : (
                     <div className="admin-table-wrap">
                       <table className="admin-table">
@@ -1673,7 +1513,7 @@ export function AdminRmDetail({ rmId }: { rmId: string }) {
                           </tr>
                         </thead>
                         <tbody>
-                          {data.followUps.map((f: any) => (
+                          {activityData.followUps.map((f: any) => (
                             <tr key={f.id}>
                               <td><strong className="admin-cell-title">{f.title}</strong></td>
                               <td>{f.customerName || <span className="admin-muted">—</span>}</td>
@@ -1706,7 +1546,7 @@ export function AdminRmDetail({ rmId }: { rmId: string }) {
                       <h2>AI Sales Insight — {data.name}</h2>
                     </div>
                   </header>
-                  <InsightPanel data={data} />
+                  <InsightPanel data={data} period={period} onOpenActions={() => setTab("actionplan")} />
                 </div>
               )}
 
@@ -1715,27 +1555,13 @@ export function AdminRmDetail({ rmId }: { rmId: string }) {
                 <div className="admin-card">
                   <header className="admin-card-header">
                     <div>
-                      <p className="admin-eyebrow">Supervisory directive</p>
+                      <p className="admin-eyebrow">Next steps</p>
                       <h2>Manager Action Plan — {data.name}</h2>
                     </div>
                   </header>
-                  <ManagerActionPlanTab data={data} kpi={kpi} />
+                  <ManagerActionPlanTab data={data} />
                 </div>
               )}
-              {/* Hidden off-screen render target for direct PDF capture (NO NEW TAB/PAGE OPENS) */}
-              <div
-                style={{
-                  position: "fixed",
-                  left: "-9999px",
-                  top: 0,
-                  width: "794px",
-                  zIndex: -999,
-                  pointerEvents: "none",
-                }}
-                aria-hidden="true"
-              >
-                <RmReportDocument data={data} period={period} />
-              </div>
             </>
           )}
         </AdminState>
@@ -1746,7 +1572,7 @@ export function AdminRmDetail({ rmId }: { rmId: string }) {
         <RmReportPreviewModal
           isOpen={showPreview}
           onClose={() => setShowPreview(false)}
-          data={data}
+          data={reportData}
           period={period}
         />
       )}
@@ -1763,16 +1589,6 @@ function KpiCard({ icon, iconBg, label, value }: { icon: string; iconBg: string;
         <span style={{ fontSize: 11, color: "#5d7898", fontWeight: 600 }}>{label}</span>
       </div>
       <strong style={{ fontSize: 20, fontWeight: 800, color: "#0b2a5b" }}>{value}</strong>
-    </div>
-  );
-}
-
-function FieldStat({ icon, value, label, color }: { icon: string; value: string; label: React.ReactNode; color: string }) {
-  return (
-    <div style={{ textAlign: "center", background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: 10, padding: "12px 6px", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}>
-      <span style={{ fontSize: 20 }}>{icon}</span>
-      <strong style={{ display: "block", fontSize: 18, fontWeight: 800, color, marginTop: 4 }}>{value}</strong>
-      <div style={{ fontSize: 11, color: "#475569", marginTop: 4, lineHeight: 1.2, textAlign: "center", fontWeight: 600 }}>{label}</div>
     </div>
   );
 }

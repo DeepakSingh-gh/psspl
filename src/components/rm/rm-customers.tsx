@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { rmApi } from "@/lib/api";
 import { formatRupees, formatNumber } from "@/lib/format";
 import { VoiceMicButton } from "@/components/common/voice-mic-button";
+import { LeadBoard } from "@/components/sales/lead-board";
 
 export function RmCustomers() {
   const [items, setItems] = useState<any[]>([]);
@@ -13,6 +14,7 @@ export function RmCustomers() {
   const [selected, setSelected] = useState<any>(null);
   const [detail, setDetail] = useState<any>(null);
   const [detailLoading, setDetailLoading] = useState(false);
+  const [section, setSection] = useState<"customers" | "leads">("customers");
 
   useEffect(() => {
     setLoading(true);
@@ -37,6 +39,11 @@ export function RmCustomers() {
             <p className="admin-page-description">{total} customers assigned to your team.</p>
           </div>
         </header>
+        <div role="tablist" aria-label="Customer database sections" style={{ display: "flex", gap: 8, marginBottom: 20 }}>
+          <button type="button" role="tab" aria-selected={section === "customers"} className="admin-button" onClick={() => setSection("customers")}>Customers</button>
+          <button type="button" role="tab" aria-selected={section === "leads"} className="admin-button" onClick={() => setSection("leads")}>Leads</button>
+        </div>
+        {section === "leads" ? <LeadBoard /> : <>
         <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "1.25rem", border: "1px solid var(--color-border, #cbd5e1)", borderRadius: "8px", padding: "0 0.5rem", background: "var(--color-surface, #ffffff)" }}>
           <input
             className="admin-search"
@@ -129,6 +136,7 @@ export function RmCustomers() {
           <span style={{ fontSize: "0.85rem", color: "var(--color-text-2)" }}>Page {page + 1} · {total} total</span>
           <button className="admin-button" disabled={(page + 1) * 50 >= total} onClick={() => setPage(page + 1)}>Next →</button>
         </div>
+        </>}
       </section>
     </div>
   );

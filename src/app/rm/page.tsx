@@ -1,6 +1,6 @@
-import { RmHome } from "@/components/rm/rm-home";
+import { redirect } from "next/navigation";
 
-/** RM accounts land on their team dashboard; My Day remains available in the RM navigation. */
+/** Preserve the RM field workspace and support existing dashboard bookmarks. */
 export default function RmPage() {
-  return <RmHome />;
+  redirect("/sales/my-day");
 }

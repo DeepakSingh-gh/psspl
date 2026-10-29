@@ -22,6 +22,14 @@ export async function verifyPassword(password, stored) {
   }
 }
 
+// Call inside the same transaction as the password/status update.
+export function revokeAccountAccess(userId) {
+  db.prepare("DELETE FROM sessions WHERE user_id=?").run(userId);
+  db.prepare("DELETE FROM auth_tokens WHERE user_id=?").run(userId);
+  db.prepare("UPDATE auth_email_queue SET status='canceled',encrypted_payload='',lease_until=NULL,updated_at=? WHERE user_id=? AND status IN ('queued','processing')")
+    .run(new Date().toISOString(), userId);
+}
+
 export function seedUsers() {
   const exists = db.prepare("SELECT id FROM users WHERE email = ?").get("anil.jaina@psspl.com");
   if (exists) {
@@ -125,7 +133,7 @@ export function authenticate(req, res, next) {
   }
 
   const hash = createHash("sha256").update(token).digest("hex");
-  const session = db.prepare(`SELECT u.id,u.email,u.role,s.expires_at,s.created_at FROM sessions s JOIN users u ON u.id=s.user_id WHERE s.token_hash=? AND u.active=1`).get(hash);
+  const session = db.prepare(`SELECT u.id,u.email,u.login_id loginId,u.role,s.expires_at,s.created_at FROM sessions s JOIN users u ON u.id=s.user_id WHERE s.token_hash=? AND u.active=1`).get(hash);
   const now = Date.now();
   if (!session || new Date(session.expires_at).getTime() <= now) return res.status(401).json({ error: "Session expired" });
 

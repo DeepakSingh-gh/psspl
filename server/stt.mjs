@@ -2,6 +2,7 @@ import { Router } from "express";
 import multer from "multer";
 import { authenticate } from "./auth.mjs";
 import { createRateLimiter } from "./rate-limit.mjs";
+import { usesClaude } from "./ai-provider.mjs";
 
 const allowedAudioTypes = new Set(["audio/webm", "audio/ogg", "audio/wav", "audio/mpeg", "audio/mp4", "audio/aac"]);
 const upload = multer({
@@ -24,6 +25,8 @@ sttRouter.post("/stt", authenticate, transcriptionLimiter, upload.single("audio"
     if (!req.file) {
       return res.status(400).json({ error: "No audio file provided." });
     }
+
+    if (usesClaude()) return res.status(503).json({ error: "Claude API does not provide this audio transcription endpoint. Use browser voice dictation or type the text." });
 
     const openAiKey = getOpenAIKey();
     if (!openAiKey) {

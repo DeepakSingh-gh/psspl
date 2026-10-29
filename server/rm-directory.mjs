@@ -7,6 +7,7 @@
  * instead of silently merging rows.
  */
 import { db } from "./db.mjs";
+import { feedbackCatalog } from "./rm-feedback.mjs";
 
 /** Placeholder owners used in the customer master instead of a real person. */
 const NON_PERSON_RM = new Set(["psspl", "pssplcustomer", "psspldealer", "purchaseparty", "export", "customer", "dealer"]);
@@ -68,6 +69,14 @@ function collectNameSources() {
       seen.set(key, entry);
     }
   }
+  for (const report of feedbackCatalog) {
+    const name = report.rm.name;
+    const key = normalizeName(name);
+    const entry = seen.get(key) ?? { name, key, sources: new Set(), spellings: new Set() };
+    entry.sources.add("feedback");
+    entry.spellings.add(name);
+    seen.set(key, entry);
+  }
   return [...seen.values()];
 }
 
@@ -76,7 +85,7 @@ function collectNameSources() {
  * Canonical display name prefers the spelling used by the sales ledger, then
  * targets, then the longest variant.
  */
-export function buildRmDirectory() {
+export function buildRmDirectory({ includeArchived = true } = {}) {
   const variants = collectNameSources();
   const groups = [];
 
@@ -86,6 +95,13 @@ export function buildRmDirectory() {
     else groups.push({ variants: [variant] });
   }
 
+  const archivedNames = new Set();
+  const activeNames = new Set();
+  if (!includeArchived) {
+    for (const row of db.prepare("SELECT p.full_name,u.deleted_at FROM users u JOIN salesperson_profiles p ON p.user_id=u.id WHERE u.role='rm'").all()) {
+      (row.deleted_at ? archivedNames : activeNames).add(normalizeName(row.full_name));
+    }
+  }
   return groups
     .map((group) => {
       const preferred =
@@ -100,6 +116,7 @@ export function buildRmDirectory() {
         sources: [...new Set(group.variants.flatMap((item) => [...item.sources]))].sort(),
       };
     })
+    .filter(rm => includeArchived || !rm.keys.some(key => archivedNames.has(key)) || rm.keys.some(key => activeNames.has(key)))
     .sort((a, b) => a.name.localeCompare(b.name));
 }
 

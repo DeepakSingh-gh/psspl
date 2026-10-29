@@ -7,6 +7,7 @@ import { PssplLogo } from "@/components/common/psspl-logo";
 const NAV_ITEMS = [
   { href: "/rm", label: "Home" },
   { href: "/rm/team", label: "My Team" },
+  { href: "/rm/report-card", label: "Report Card" },
   { href: "/rm/customers", label: "Customers" },
   { href: "/rm/products", label: "Product Trends" },
   { href: "/rm/alerts", label: "Alerts" },
@@ -50,6 +51,7 @@ export function RmShell({ children, activeHref }: Props) {
             <strong>{manager?.fullName ?? "Regional Manager"}</strong>
             <small>{manager?.region}</small>
           </span>
+          <a href="/profile">Profile</a>
           <button type="button" onClick={signOut}>Sign out</button>
         </div>
       </aside>

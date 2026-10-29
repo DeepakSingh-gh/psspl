@@ -27,7 +27,40 @@ function getGeminiKey() {
   return null;
 }
 
+export function claudeKey() {
+  return cleanKey(process.env.ANTHROPIC_API_KEY) || cleanKey(process.env.CLAUDE_API_KEY) || cleanKey(process.env["Claude api key"]);
+}
+
+export function usesClaude() {
+  return process.env.CRM_AI_PROVIDER === "claude" || (!process.env.CRM_AI_PROVIDER && Boolean(claudeKey()));
+}
+
+export async function askClaude(systemPrompt, userQuestion) {
+  const key = claudeKey();
+  if (!key) throw Object.assign(new Error("Claude is not configured in the backend hosting environment. Set ANTHROPIC_API_KEY on the server."), { status: 503 });
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 30000);
+  try {
+    const response = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST", signal: controller.signal,
+      headers: { "Content-Type": "application/json", "x-api-key": key, "anthropic-version": "2023-06-01" },
+      body: JSON.stringify({ model: process.env.ANTHROPIC_MODEL?.trim() || "claude-sonnet-4-6", max_tokens: 1600, system: systemPrompt, messages: [{ role: "user", content: userQuestion }] }),
+    });
+    if (!response.ok) {
+      console.warn("[AI] Claude request rejected", response.status);
+      throw new Error("provider rejected request");
+    }
+    const result = await response.json();
+    const text = (result.content ?? []).filter(block => block.type === "text").map(block => block.text).join("\n").trim();
+    if (!text || result.stop_reason === "max_tokens" || result.stop_reason === "refusal") throw new Error("incomplete provider response");
+    return text;
+  } catch {
+    throw Object.assign(new Error("Claude is unavailable. Check the backend key, model, credits or connection and try again."), { status: 503 });
+  } finally { clearTimeout(timeout); }
+}
+
 export async function askAI(systemPrompt, userQuestion) {
+  if (usesClaude()) return askClaude(systemPrompt, userQuestion);
   const geminiKey = getGeminiKey();
   const openAiKey = cleanKey(process.env.OPENAI_API_KEY);
 

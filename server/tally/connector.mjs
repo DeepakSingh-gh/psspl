@@ -34,7 +34,7 @@ class TallyConnectorClient {
     return db.prepare("SELECT id,name,COALESCE(uom,'') 'group',packing_size packingSize,rate,total_qty totalQuantity,total_value totalValue,frequency FROM tally_products ORDER BY total_value DESC").all();
   }
 
-  async salesSummary({ salespersonId, directory = buildRmDirectory() }) {
+  async salesSummary({ salespersonId, directory = buildRmDirectory(), includeRepeat = true }) {
     const profile = db.prepare("SELECT full_name, employee_code, monthly_target FROM salesperson_profiles WHERE user_id=?").get(salespersonId);
     const isAdmin = Boolean(db.prepare("SELECT 1 FROM users WHERE id=? AND role='admin' AND active=1").get(salespersonId));
     const ownerIds = this.customerOwnerIds(salespersonId);
@@ -73,7 +73,7 @@ class TallyConnectorClient {
     const actualCr = rupeesToCrore(total);
     const achievement = targetRupees > 0 ? Math.round((total / targetRupees) * 100) : null;
 
-    const repeat = ownerIds.length ? db.prepare(`SELECT COUNT(*) total,SUM(CASE WHEN active_months>1 THEN 1 ELSE 0 END) repeated FROM (
+    const repeat = includeRepeat && ownerIds.length ? db.prepare(`SELECT COUNT(*) total,SUM(CASE WHEN active_months>1 THEN 1 ELSE 0 END) repeated FROM (
       SELECT customer_id,COUNT(DISTINCT substr(invoice_date,1,7)) active_months FROM tally_invoices i
       JOIN tally_customers c ON c.id=i.customer_id
       WHERE ${authoritativeInvoiceWhere("i")} AND i.invoice_date>=date(?,'-12 months') AND c.owner_user_id IN (${ownerPlaceholders})

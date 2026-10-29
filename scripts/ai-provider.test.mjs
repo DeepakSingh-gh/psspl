@@ -7,6 +7,7 @@ test("Ask AI provider configuration and failure handling", async (t) => {
   const originalFetch = globalThis.fetch;
   t.after(() => { process.env = originalEnv; globalThis.fetch = originalFetch; });
   process.env.NODE_ENV = "production";
+  for (const key of ["ANTHROPIC_API_KEY", "CLAUDE_API_KEY", "Claude api key", "CRM_AI_PROVIDER"]) delete process.env[key];
   delete process.env.GEMINI_API_KEY;
   delete process.env["gemini api key"];
   delete process.env.OPENAI_API_KEY;

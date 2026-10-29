@@ -1,21 +1,47 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { rankRmPerformance } from "../src/lib/admin-performance.ts";
+import { rankRmPerformance, teamPerformanceMetric } from "../src/lib/admin-performance.ts";
 import { calculateDealerConcentration, calculatePeriodPerformance, classifyDealerIntelligence, classifyPlannedVisits, dedupeManagementActions, tallySyncNeedsReview } from "../server/rm-report-intelligence.mjs";
 
 const member = (id, name, achievementPercent, salesValue = 0) => ({
   id, name, achievementPercent, salesValue,
 });
 
-test("RM ranking orders verified achievement and keeps missing targets separate", () => {
-  const rows = [member("missing", "No target", null, 900000), member("low", "Low", 22), member("high", "High", 91), member("mid", "Mid", 54)];
-  assert.deepEqual(rankRmPerformance(rows, "asc").map((row) => row.id), ["low", "mid", "high", "missing"]);
-  assert.deepEqual(rankRmPerformance(rows, "desc").map((row) => row.id), ["high", "mid", "low", "missing"]);
+test("RM ranking uses achievement when every member has a target", () => {
+  const rows = [member("low", "Low", 22, 900), member("high", "High", 91, 100), member("mid", "Mid", 54, 500)];
+  assert.equal(teamPerformanceMetric(rows), "achievement");
+  assert.deepEqual(rankRmPerformance(rows, "asc").map((row) => row.id), ["low", "mid", "high"]);
+  assert.deepEqual(rankRmPerformance(rows, "desc").map((row) => row.id), ["high", "mid", "low"]);
 });
 
-test("ranking never substitutes sales value for a missing target score", () => {
-  const rows = [member("missing", "No target", null, 1_000_000), member("scored", "Scored", 1, 1)];
-  assert.deepEqual(rankRmPerformance(rows, "asc").map((row) => row.id), ["scored", "missing"]);
+test("mixed target coverage keeps known achievement ranking and lists missing targets last", () => {
+  const rows = [member("top", "Top", 280, 14_010_000), member("zero", "Zero", null, 0), member("middle", "Middle", null, 500_000)];
+  const before = structuredClone(rows);
+  assert.equal(teamPerformanceMetric(rows), "achievement");
+  assert.deepEqual(rankRmPerformance(rows, "asc").map((row) => row.id), ["top", "middle", "zero"]);
+  assert.deepEqual(rankRmPerformance(rows, "desc").map((row) => row.id), ["top", "middle", "zero"]);
+  assert.deepEqual(rows, before);
+});
+
+test("poor-to-good follows achievement rather than sales volume and keeps unknowns last in either direction", () => {
+  const rows = [member('nazmul', 'Nazmul Islam', 140, 1049000), member('vijay', 'Vijay Nair', null, 0), member('anil', 'Anil Jena', 45, 11424000), member('zero', 'Zero target achievement', 0, 900000), member('unknown', 'Unknown', NaN, 2000000)];
+  assert.deepEqual(rankRmPerformance(rows, 'asc').map(row => row.id), ['zero', 'anil', 'nazmul', 'unknown', 'vijay']);
+  assert.deepEqual(rankRmPerformance(rows, 'desc').map(row => row.id), ['nazmul', 'anil', 'zero', 'unknown', 'vijay']);
+});
+
+test("no-target, negative and zero sales sort numerically with deterministic ties", () => {
+  const rows = [member("z", "Zulu", null, 100), member("a", "Alpha", null, 100), member("zero", "Zero", null, 0), member("return", "Returns", null, -50)];
+  assert.deepEqual(rankRmPerformance(rows, "asc").map((row) => row.id), ["return", "zero", "a", "z"]);
+  assert.deepEqual(rankRmPerformance(rows, "desc").map((row) => row.id), ["a", "z", "zero", "return"]);
+  assert.deepEqual(rankRmPerformance([]), []);
+});
+
+test("zero achievement is a valid score and unavailable sales stay last", () => {
+  const rows = [member("good", "Good", 100, 10), member("zero", "Zero", 0, 999)];
+  assert.equal(teamPerformanceMetric(rows), "achievement");
+  assert.equal(rankRmPerformance(rows, "asc")[0].id, "zero");
+  const missing = [member("unknown", "Unknown", null, NaN), member("known", "Known", null, 0)];
+  for (const order of ["asc", "desc"]) assert.equal(rankRmPerformance(missing, order)[1].id, "unknown");
 });
 
 test("dealer concentration uses the top five actual attributed invoices and nulls empty totals", () => {

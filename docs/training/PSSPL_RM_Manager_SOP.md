@@ -1,5 +1,23 @@
 # PSSPL CRM SOP: RM / Manager
 
+<!-- current-admin-ui:start -->
+> Latest local UI notes (27-10-2026): explicit Rais Khan top-five sample previews and the RM-only Monthly target card removal are documented in [the latest preview and dashboard notes](../operations/2026-10-27-ui-adjustments.md#local-top-five-samples-and-rm-dashboard-cleanup). Overview cleanup, period filters and shared PDF rendering remain. Earlier dated verification retains its scope; this Markdown update does not rerun tests or establish deployment/client acceptance.
+<!-- current-admin-ui:end -->
+
+<!-- current-source-status:start -->
+> Current source status (27-10-2026): backend RM rankings remain source-backed. Local Admin preview can fill empty products or append clearly marked sample customers without changing real rows, totals or database records. See [the latest preview and dashboard notes](../operations/2026-10-27-ui-adjustments.md#local-top-five-samples-and-rm-dashboard-cleanup). Overview cleanup, period filters and shared PDF rendering remain. Earlier dated verification retains its scope; this Markdown update does not rerun tests or establish deployment/client acceptance.
+<!-- current-source-status:end -->
+
+## Current RM Report Card workflow - 24 October 2026
+
+Where your role has access to the RM Report Card, choose the FY/reporting scope in the existing toolbar, then review **Manager Action Plan** immediately below the RM header, before Performance Overview. The existing chart still drills from FY to month to four reporting weeks; actions and metrics follow that selected period. AI Insights remains after RM Save Entries.
+
+Actual has the smaller second-line legend `(<100%)`; Target met has `(≥100%)`. Colors, tooltips and chart calculations are unchanged. Attendance fillers are decorative, not additional dates or records. Desktop product cards use four columns and continue to adapt on smaller screens.
+
+Use Download PDF to review the paginated preview, then download the same pages. PDF retains four-column product rows, the complete eight-column saved-entry export and all insights/actions; screen search and the current saved-entry page do not limit export. Page count varies with content, and the old supporting-detail appendix is removed. Check the selected period before sharing a report; existing role/ownership limits still apply.
+
+
+
 Use the RM views to coach your assigned team and resolve blockers. Team visibility follows the account's manager assignment; ask an administrator to correct an ownership mapping rather than sharing accounts.
 
 ## Review your team
@@ -8,6 +26,15 @@ Use the RM views to coach your assigned team and resolve blockers. Team visibili
 2. Check the reporting period shown on the page before comparing sales, visits, or follow-ups.
 3. Review each report card for Tally sales, target availability, pipeline, visits, attendance, and outstanding actions.
 4. A blank or unavailable value means the CRM lacks reliable source data or a target. Do not treat it as zero or estimate it.
+
+For the current report card, select FY and use the chart to drill into months/four reporting
+weeks. Attendance arrows change only the attendance month; Details shows stored India times,
+worked hours and incomplete clock-outs. Sunday work is retained. Missing check-ins do not
+establish absence, and Attendance % remains N/A without verified working-day policy.
+
+Thrust Products retains its YTD scope through the displayed financial cutoff. Rais Khan alone
+may show **Demo Data · Client Snapshot 30 Sep 2026** on missing fields; populated data and
+valid zero values win. These labeled fields do not become verified CRM or AI evidence.
 
 ## Coach from report cards
 
@@ -47,7 +74,7 @@ Use the RM views to coach your assigned team and resolve blockers. Team visibili
 
 ## Phase 7 navigation and review exercise
 
-RM login normally opens **My Day**. Use the existing team/report-card navigation where available; the administrator can provide the authorized `/rm/team`, `/rm/report-card` and `/rm/alerts` links. Signing out ends the current session.
+RM login opens the **RM dashboard** at `/rm`. Use team/report-card navigation at `/rm/team`, `/rm/report-card` and `/rm/alerts`; My Day remains available for field work. Signing out ends the current session.
 
 Team Alerts now distinguishes current pending follow-ups, due-today work, upcoming visits and past scheduled visits. RM performance review notices use eligible net Tally invoices and explicit monthly Tally targets. Missing or ambiguous target mapping stays unavailable. Threshold notices may be provisional; agree a business policy before treating them as a score or disciplinary rule.
 
@@ -69,4 +96,26 @@ Record demonstrated tasks and open questions; business training acceptance remai
 - **Dormant / declining:** invoice inactivity across the configured threshold / lower sales than a comparable prior period with supporting history. No history is insufficient evidence, not proof of decline.
 - **Visit completion:** recorded completed visits against scheduled visits. Check timing and owner explanations before judging outstanding visits.
 
-> Current project status (19 October 2026): See the [production readiness report](../../PSSPL_FINAL_PRODUCTION_READINESS_REPORT.md) for the latest verified work and blockers; earlier findings in this document retain their original date.
+
+## Account security - 21 October 2026
+
+- Use your assigned Login ID or registered email with the same password. An explicitly requested professional account email can include your initial password and all saved employee details. Keep it private. New credentials work immediately on a reachable CRM; first-login password change is optional.
+- To change your password voluntarily, open **My profile** > **Security** > **Change my password**. Enter current password, new password (12 to 200 characters) and confirmation.
+- A successful change signs you out on all devices and cancels existing recovery links. Sign in again with the new password.
+- Use **Forgot Password** for a 15-minute, single-use email reset link, or ask an administrator to reset your password. Never share your password.
+
+
+## Account email and GPS notes
+
+Your account email may include name, mobile, role, reporting RM, region, territory, employee code and monthly target alongside sign-in details. If remote CRM access is pending, ask the admin for the working URL; a localhost link from another computer will not open this CRM on your device. Forgot Password uses a 15-minute single-use link when a usable URL is configured. Provider acceptance is not inbox delivery, so check Spam as well as Inbox.
+
+Allow location permission when checking in. The current flow may save attendance without GPS if location fails; the warning does not mean a location was captured. Admin sees saved coordinates through the attendance map link. Changing permission afterward does not recreate the original check-in location.
+
+## Supplied reports and AI - 21 October 2026
+
+The RM Report Card and print view use your own matched supplied PDF when available. The identity header no longer shows the source-status strip; the supplied source remains dated 30 September 2026. Check source notes, period and units before comparing figures with live Tally/CRM records. Achievement is actual divided by the positive target, rounded to a whole percentage; values above 100% are valid. Blank/future actuals and missing targets mean unavailable, not zero. Monthly, FYTD and annual targets are different denominators. See [source and calculation details](../operations/rm-feedback-snapshots.md).
+
+Ask AI uses the backend Claude provider with authorized evidence. Admin RM Manager Action Plan and AI Insights use validated recommendations inside their existing tabs; failures are labeled and retain rule-based findings. Uploaded Whisper transcription is disabled in Claude mode; browser dictation or typing remains available. See [Claude operations](../operations/claude-ai.md).
+
+<!-- current-rm-report-card-2026-10-24 -->
+> **24 October 2026 RM report-card update:** [Current implementation and recorded validation](../operations/2026-10-21-current-state.md#rm-report-card-update--24-october-2026). Earlier dated findings in this file retain their original scope.

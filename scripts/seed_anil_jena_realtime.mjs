@@ -37,7 +37,7 @@ transaction(() => {
   try { db.exec("ALTER TABLE salesperson_profiles ADD COLUMN reg_code_2 TEXT;"); } catch {}
 
   // 2. Update Anil Jena RM profile
-  // Users: rm-anil-jena and rm-anil-alias
+  // One canonical RM login; do not recreate the retired duplicate alias account.
   const anilPwd = hashPassword("psspl-rm-2026");
   db.prepare(`
     INSERT OR REPLACE INTO users (id, email, password_hash, role, active)
@@ -45,21 +45,10 @@ transaction(() => {
   `).run(anilPwd);
 
   db.prepare(`
-    INSERT OR REPLACE INTO users (id, email, password_hash, role, active)
-    VALUES ('rm-anil-alias', 'anil@psspl.com', ?, 'rm', 1)
-  `).run(anilPwd);
-
-  db.prepare(`
     INSERT OR REPLACE INTO salesperson_profiles 
     (user_id, employee_code, full_name, region, territory, operating_city, reg_code_1, reg_code_2, monthly_target)
     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
   `).run('rm-anil-jena', '075709', 'Anil Jena', 'North Region', 'Gurugram', 'Gurugram', '2111C126', '2111S126', 41.75);
-
-  db.prepare(`
-    INSERT OR REPLACE INTO salesperson_profiles 
-    (user_id, employee_code, full_name, region, territory, operating_city, reg_code_1, reg_code_2, monthly_target)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-  `).run('rm-anil-alias', '075709-ALIAS', 'Anil Jena', 'North Region', 'Gurugram', 'Gurugram', '2111C126', '2111S126', 41.75);
 
   // 3. Team (Sales Executives, Gurugram)
   const salesTeam = [

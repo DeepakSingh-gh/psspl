@@ -1,0 +1,36 @@
+.archive-summary { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 14px; margin-bottom: 24px; }
+.archive-summary > div { display: grid; gap: 10px; padding: 18px 22px; border: 1px solid #dce7ef; background: #fff; border-radius: 12px; }
+.archive-summary span { color: #577084; font-size: 12px; }
+.archive-summary strong { color: #004d73; font-size: 28px; }
+.archive-filters { display: flex; align-items: end; flex-wrap: wrap; gap: 14px; margin-bottom: 20px; }
+.archive-filters .admin-search { width: min(100%,400px); }
+.archive-layout { display: grid; grid-template-columns: 280px minmax(0,1fr); gap: 20px; align-items: start; }
+.archive-directory { background: #fff; border: 1px solid #dce7ef; border-radius: 12px; overflow: hidden; }
+.archive-directory > p { margin: 0; padding: 14px 16px; color: #647a8a; font-size: 12px; border-bottom: 1px solid #e5edf3; }
+.archive-directory ul { list-style: none; margin: 0; padding: 6px; max-height: 650px; overflow-y: auto; }
+.archive-directory button { display: grid; gap: 6px; text-align: left; width: 100%; padding: 14px 12px; background: #fff; border: 1px solid transparent; border-radius: 8px; color: #214d69; cursor: pointer; overflow-wrap: anywhere; }
+.archive-directory button[aria-pressed="true"] { background: #eaf5fc; border-color: #b9dcf1; }
+.archive-directory button:hover { background: #f2f8fc; }
+.archive-directory button strong { font-size: 13px; }
+.archive-directory button span,.archive-directory button small { color: #61798c; font-size: 11px; line-height: 1.5; }
+.archive-detail { min-width: 0; padding: 22px; border: 1px solid #dce7ef; background: #fff; border-radius: 12px; }
+.archive-detail-header { display: flex; flex-wrap: wrap; gap: 16px; justify-content: space-between; align-items: start; }
+.archive-eyebrow { color: #698296; font-size: 10px; text-transform: uppercase; letter-spacing: .08em; }
+.archive-detail h2 { margin: 6px 0 10px; font-size: 22px; color: #004d73; }
+.archive-detail-header p { margin: 4px 0; color: #587387; font-size: 12px; line-height: 1.6; }
+.archive-badge { padding: 6px 10px; color: #586f81; background: #edf2f6; border-radius: 20px; font-size: 11px; }
+.archive-detail-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; }
+.archive-restore-fields { display: grid; gap: 16px; border: 0; margin: 0; padding: 0; min-width: 0; }
+.archive-note { margin: 20px 0; padding: 12px; font-size: 12px; line-height: 1.7; color: #547087; background: #f5f9fc; border-radius: 8px; }
+.archive-sections { display: flex; flex-wrap: wrap; gap: 7px; padding-bottom: 16px; border-bottom: 1px solid #e5edf3; }
+.archive-sections button { display: inline-flex; align-items: center; gap: 7px; padding: 8px 10px; background: #fff; border: 1px solid #d7e3ec; border-radius: 7px; color: #49667e; font: inherit; font-size: 12px; cursor: pointer; }
+.archive-sections button[aria-pressed="true"] { border-color: #007cba; color: #006b9f; background: #eaf6fe; font-weight: 600; }
+.archive-sections button span { padding: 2px 5px; background: #edf2f6; border-radius: 4px; font-size: 10px; }
+.archive-section-title { display: flex; align-items: center; justify-content: space-between; gap: 14px; margin: 20px 0 14px; color: #456c87; }
+.archive-section-title h3 { font-size: 15px; margin: 0; }
+.archive-section-title > span { font-size: 11px; }
+.archive-history-table .admin-table { min-width: 620px; }
+.archive-history-table td { max-width: 300px; white-space: normal; overflow-wrap: anywhere; }
+.archive-layout button:focus-visible { outline: 3px solid #39a8dd; outline-offset: 2px; }
+@media (max-width: 1000px) { .archive-layout { grid-template-columns: 1fr; } .archive-directory ul { max-height: 240px; } }
+@media (max-width: 600px) { .archive-summary { grid-template-columns: 1fr; } .archive-detail { padding: 14px; } }

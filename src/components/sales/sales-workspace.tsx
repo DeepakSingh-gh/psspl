@@ -476,7 +476,7 @@ const tabStyle = (t: Tab): React.CSSProperties => ({
         />
       </section>
 
-      <section className="panel call-log-panel" style={{ marginTop: "1rem", padding: "1.25rem" }}>
+      {data.salesperson.role !== "rm" && <section className="panel call-log-panel" style={{ marginTop: "1rem", padding: "1.25rem" }}>
         <h2 style={{ marginTop: 0 }}>Log a customer call</h2>
         <p style={{ color: "var(--color-muted)", marginTop: 0 }}>Saved customer interaction; call connection is not technically verified.</p>
         <form className="call-log-form" onSubmit={handleLogCall}>
@@ -491,7 +491,7 @@ const tabStyle = (t: Tab): React.CSSProperties => ({
         <div className="call-log-recent"><b>Calls logged today: {data.summary.loggedCalls}</b>
           {data.calls.length > 0 && <ul>{data.calls.slice(0, 5).map((call) => <li key={call.id}>{new Date(call.occurredAt).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit", timeZone: "Asia/Kolkata" })} · {call.direction} · {call.customer} · {call.purpose}{call.notes ? ` · ${call.notes}` : ""}</li>)}</ul>}
         </div>
-      </section>
+      </section>}
       <details className="panel attendance-details" style={{ marginTop: "1rem", padding: "1rem 1.25rem" }}>
         <summary><span><b>Recent attendance</b><small>View your latest check-in and location records</small></span><span aria-hidden="true">⌄</span></summary>
         {data.attendanceHistory.length === 0 ? <p>No saved attendance history.</p> : <ul>{data.attendanceHistory.slice(0, 7).map((entry) => <li key={entry.businessDate}>{entry.businessDate} · In {new Date(entry.checkInAt).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit", timeZone: "Asia/Kolkata" })}{entry.checkOutAt ? ` · Out ${new Date(entry.checkOutAt).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit", timeZone: "Asia/Kolkata" })}` : " · Still checked in"} · {entry.latitude === null || entry.longitude === null ? "No GPS coordinates recorded" : `GPS coordinates recorded${entry.gpsAccuracyMeters == null ? "; accuracy unavailable" : `; reported accuracy ${entry.gpsAccuracyMeters} m`}`}</li>)}</ul>}
@@ -508,7 +508,7 @@ const tabStyle = (t: Tab): React.CSSProperties => ({
         </div>
       )}
 
-      <section className="workspace-grid"><article className="workspace-card route-card"><div className="card-title"><div><p>TODAY&apos;S ROUTE</p><h3>Customer visits</h3></div><span>{data.visits.length} scheduled</span></div><div className="visit-list">{data.visits.map((visit, index) => <VisitRow key={visit.id} visit={visit} index={index} onOpen={openVisit} onEdit={(v) => { const va = v as any; setEditingUnplannedVisit(v); setUvPurpose(v.purpose || "New requirement"); setUvPriority(v.priority || "high"); setUvDate(va.scheduledAt ? va.scheduledAt.slice(0, 10) : indiaDate()); setUvTime(va.scheduledAt ? va.scheduledAt.slice(11, 16) : new Date().toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", timeZone: "Asia/Kolkata" })); setModalError(""); setShowUnplanned(true); }} onDelete={async (id) => { if(window.confirm('Delete this visit?')) { try { await salesApi.deleteVisit(id); setData(await salesApi.getMyDay()); } catch(e) { handleError(e); } } }} />)}</div><button className="outline-button" onClick={() => { setEditingUnplannedVisit(null); setUvCustomer(""); setUvPurpose("New requirement"); setUvPriority("high"); setUvDate(indiaDate()); setUvTime(new Date().toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", timeZone: "Asia/Kolkata" })); setModalError(""); setShowUnplanned(true); }}>+ Add unplanned visit</button></article>
+      <section className="workspace-grid"><article className="workspace-card route-card"><div className="card-title"><div><p>TODAY&apos;S ROUTE</p><h3>Customer visits</h3></div><span>{data.visits.length} scheduled</span></div><div className="visit-list">{data.visits.map((visit, index) => <VisitRow key={visit.id} visit={visit} index={index} onOpen={openVisit} onEdit={(v) => { const va = v as any; setEditingUnplannedVisit(v); setUvPurpose(v.purpose || "New requirement"); setUvPriority(v.priority || "high"); setUvDate(va.scheduledAt ? va.scheduledAt.slice(0, 10) : indiaDate()); setUvTime(va.scheduledAt ? va.scheduledAt.slice(11, 16) : new Date().toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", timeZone: "Asia/Kolkata" })); setModalError(""); setShowUnplanned(true); }} onDelete={async (id) => { if(window.confirm('Delete this visit and its linked expected orders and follow-ups? This cannot be undone.')) { try { setData(await salesApi.deleteVisit(id)); } catch(e) { handleError(e); } } }} />)}</div><button className="outline-button" onClick={() => { setEditingUnplannedVisit(null); setUvCustomer(""); setUvPurpose("New requirement"); setUvPriority("high"); setUvDate(indiaDate()); setUvTime(new Date().toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", timeZone: "Asia/Kolkata" })); setModalError(""); setShowUnplanned(true); }}>+ Add unplanned visit</button></article>
           {followUpGroups.map(group => (
           <article key={group.title} className="workspace-card" id={group.id} style={{ overflow: "visible", marginTop: group.id === "upcoming-followups" ? "1rem" : 0 }}>
             <div className="card-title">
@@ -677,7 +677,7 @@ const tabStyle = (t: Tab): React.CSSProperties => ({
           </article>
 ))}
 
-          {(() => {
+          {data.salesperson.role !== "rm" && (() => {
             const ach = data.performance.achievement ?? achievement ?? 0;
             const isSurplus = Boolean(
               data.performance.actualRupees &&

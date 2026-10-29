@@ -1,13 +1,14 @@
 "use client";
 
 import { useState } from "react";
+import quarterStyles from "./quarterly-trend.module.css";
 import Link from "next/link";
 import { AdminState } from "./admin-shell";
 import { AskAiLauncher } from "./admin-ask-ai";
 import { SalespersonMap } from "./salesperson-map";
 import { adminApi, getSessionUser } from "@/lib/api";
 import { useAdminData } from "@/lib/use-admin-data";
-import { formatDateTime, formatFinancialYear, formatNumber, formatPercent, formatRupees } from "@/lib/format";
+import { formatFinancialYear, formatNumber, formatPercent, formatRupees } from "@/lib/format";
 
 const monthShort = new Intl.DateTimeFormat("en-IN", { month: "short" });
 const monthLong = new Intl.DateTimeFormat("en-IN", { month: "long", year: "numeric" });
@@ -16,6 +17,10 @@ const periodShort = (period: string) => monthShort.format(periodDate(period));
 const periodLong = (period: string) => monthLong.format(periodDate(period));
 
 const TODAY = new Intl.DateTimeFormat("en-IN", { day: "2-digit", month: "short", year: "numeric" });
+const LEAD_STAGE_LABELS: Record<string, string> = {
+  lead: "Lead", technical_discussion: "Technical discussion", sample: "Sample", quotation: "Quotation",
+  follow_up: "Follow-up", expected_order: "Order expected", won: "Won", lost: "Lost",
+};
 
 /** Flat glyphs for the KPI chips — one weight, one 16px box. */
 const KPI_ICONS: Record<string, React.ReactNode> = {
@@ -103,7 +108,7 @@ function AttentionCard({ tone, chip, title, detail, href, action }: { tone: "war
 
 export function AdminOverview() {
   const [financialYear, setFinancialYear] = useState("");
-  const overview = useAdminData(() => adminApi.overview(financialYear || undefined), [financialYear], undefined, true);
+  const overview = useAdminData(() => adminApi.overview(financialYear || undefined), [financialYear], `admin-overview-${financialYear || "default"}`, true);
   const alerts = useAdminData(() => adminApi.alerts(), [], undefined, true);
   const management = useAdminData(() => adminApi.managementAttention(financialYear || undefined), [financialYear], `admin-management-attention-${financialYear || "default"}`, true);
   const data = overview.data;
@@ -239,7 +244,27 @@ export function AdminOverview() {
 
         <section className="command-story">
           <div className="command-revenue"><header><div><p>Revenue performance</p><h2>How the business is moving</h2></div><Link href="/admin/reports">Detailed report →</Link></header><RevenueHero rows={months} target={data.sales.target} /></div>
-          <aside className="command-glance"><p>At a glance</p><div><span>Revenue<small>{achievement === null ? "Target not set" : achievement >= 100 ? "Ahead of target" : "Below target"}</small></span><strong>{formatRupees(data.sales.actual)}</strong></div><div><span>Collections<small className="warn">Attention required</small></span><strong>{formatRupees(data.customers.outstanding)}</strong></div><div><span>Field<small className="warn">{notCheckedIn ? `${notCheckedIn} without check-in` : "Team checked in"}</small></span><strong>{formatPercent(coverage)}</strong></div><div><span>Customers<small>Tracked in CRM</small></span><strong>{formatNumber(data.customers.count)}</strong></div><footer>Synced {formatDateTime(data.tally.lastSyncAt)}</footer></aside>
+        </section>
+
+        <section className="command-products" aria-label="Lead pipeline">
+          <header><div><p>CRM pipeline · current</p><h2>Lead pipeline</h2></div><span>{formatNumber(data.leadPipeline.total)} total leads</span></header>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: 10, marginBottom: 20 }}>
+            {Object.entries(LEAD_STAGE_LABELS).map(([stage, label]) => {
+              const row = data.leadPipeline.stages.find((item) => item.stage === stage);
+              return <div key={stage} style={{ border: "1px solid #dbe6ef", borderRadius: 10, padding: 12, background: "#f8fbfe" }}>
+                <small>{label}</small><strong style={{ display: "block", fontSize: 22 }}>{row?.count ?? 0}</strong>
+                <small>{formatRupees(row?.expectedValue ?? 0)} expected</small>
+              </div>;
+            })}
+          </div>
+          <div className="admin-table-wrap"><table className="admin-table">
+            <thead><tr><th>Lead / customer</th><th>RM</th><th>Stage</th><th className="numeric">Expected value</th></tr></thead>
+            <tbody>{data.leadPipeline.recent.map((lead) => <tr key={lead.id}>
+              <td><strong className="admin-cell-title">{lead.company || lead.name}</strong>{lead.company && lead.name !== lead.company ? <small>{lead.name}</small> : null}</td>
+              <td>{lead.ownerName}</td><td>{LEAD_STAGE_LABELS[lead.stage] ?? lead.stage}</td>
+              <td className="numeric">{formatRupees(lead.expectedValue)}</td>
+            </tr>)}</tbody>
+          </table>{!data.leadPipeline.recent.length && <p className="command-data-note">No leads have been recorded yet. A completed customer visit will appear here.</p>}</div>
         </section>
 
         {/* Quarter-wise Trend Analysis */}
@@ -258,29 +283,28 @@ export function AdminOverview() {
             return acc;
           }, []).sort((a, b) => a.qIndex - b.qIndex);
           return quarters.length > 0 && (
-            <section style={{ margin: "2rem 0" }}>
-              <header style={{ marginBottom: "1rem" }}><p style={{ fontSize: "0.85rem", textTransform: "uppercase", fontWeight: "600", color: "var(--color-text-2)" }}>Quarterly Analysis</p><h2>Quarter-wise Trend</h2></header>
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: "1rem" }}>
+            <section className={quarterStyles.card} aria-label="Quarter-wise Trend">
+              <header className={quarterStyles.header}>
+                <div><p className={quarterStyles.eyebrow}>Quarterly analysis</p><h2>Quarter-wise Trend</h2></div>
+                <span className={quarterStyles.tag}>Recorded sales</span>
+              </header>
+              <div className={quarterStyles.grid}>
                 {quarters.map((q) => (
-                  <div key={q.name} style={{ padding: "1rem", background: "var(--color-surface)", border: "1px solid var(--color-border)", borderRadius: "8px" }}>
-                    <div style={{ fontSize: "0.85rem", color: "var(--color-text-2)", marginBottom: "0.5rem" }}>{q.name}</div>
-                    <div style={{ fontSize: "1.25rem", fontWeight: "bold" }}>{formatRupees(q.salesValue)}</div>
-                    <div style={{ width: "100%", height: "4px", background: "var(--color-surface-2)", marginTop: "0.5rem", borderRadius: "2px" }}>
-                      <div style={{ width: `${Math.min((q.salesValue / Math.max(...quarters.map(qx => qx.salesValue))) * 100, 100)}%`, height: "100%", background: "var(--color-primary)", borderRadius: "2px" }} />
+                  <article key={q.name} className={quarterStyles.quarter}>
+                    <div className={quarterStyles.period}><span className={quarterStyles.badge}>Q{q.qIndex + 1}</span><span>{q.name.slice(4, -1)}</span></div>
+                    <strong className={quarterStyles.value}>{formatRupees(q.salesValue)}</strong>
+                    <div className={quarterStyles.track} aria-hidden="true">
+                      <span style={{ width: `${Math.max(0, Math.min((q.salesValue / (Math.max(...quarters.map(qx => qx.salesValue)) || 1)) * 100, 100))}%` }} />
                     </div>
-                  </div>
+                  </article>
                 ))}
               </div>
+              <p className={quarterStyles.note}>Bars compare recorded sales across the quarters shown. Current-quarter figures may be partial.</p>
             </section>
           );
         })()}
 
         <section className="command-money-field">
-          <article className="command-collections"><header><div><p>Money</p><h2>Collections</h2></div><Link href="/admin/customers">View receivables →</Link></header><div className="command-money-number"><strong>{formatRupees(data.customers.outstanding)}</strong><span>Outstanding</span><small>{outstandingShare === null ? "Outstanding balance from Tally" : `${outstandingShare.toFixed(1)}% of total billed`}</small></div><div className="command-collection-bar"><span style={{ width: `${Math.min(Math.max(outstandingShare ?? 0, 1), 100)}%` }} /></div><div className="command-collection-meta"><span>{formatNumber(data.customers.count)} customers</span><span>{formatRupees(data.customers.lifetimeSales)} billed</span></div>
-          <dl className="command-receipts">
-            <div><dt>Receipts banked</dt><dd>{formatRupees(data.collections.receiptValue)}</dd><span>{formatNumber(data.collections.receiptCount)} receipt vouchers this year</span></div>
-            <div><dt>Billed this year</dt><dd>{formatRupees(data.sales.actual)}</dd><span>{formatNumber(invoices)} invoices</span></div>
-          </dl><p className="command-data-note">Ageing will appear when bill-wise settlement dates are included in the Tally sync.</p></article>
           <article className="command-field-zone"><header><div><p>Today</p><h2>Field activity</h2></div><Link href="/admin/activity">Open activity →</Link></header><FieldMonitor people={team} checkedIn={data.fieldActivity.checkedInToday} visits={data.fieldActivity.visitsToday} completed={data.fieldActivity.visitsCompleted} followUps={data.fieldActivity.followUpsOpen} /></article>
         </section>
 
@@ -340,14 +364,6 @@ export function AdminOverview() {
               <td>{rm.ownershipMapping === "verified" ? "Verified" : rm.ownershipMapping}</td>
             </tr>)}</tbody>
           </table></div>}
-        </section>
-        <section className="attention-panel" aria-label="Planned customer visits">
-          <header><div><p>Saved activity · {management.data?.asOf ?? "today"}</p><h2>Planned customer visits</h2></div><Link href="/admin/activity">Review all activity →</Link></header>
-          {management.data && <>
-            <p className="command-data-note">{management.data.visits.completedToday} completed of {management.data.visits.scheduledToday} scheduled today. A past scheduled time with no completion is flagged for owner confirmation; it is not assumed to be a no-show.</p>
-            {management.data.visits.byRm.length > 0 && <div className="attention-grid">{management.data.visits.byRm.filter((rm) => rm.plannedToday || rm.completedToday || rm.pastScheduled).map((rm) => <article className="attention-card is-warn" key={rm.rmId ?? rm.rmName}><strong>{rm.rmName}</strong><small>{rm.completedToday} completed / {rm.plannedToday + rm.completedToday} scheduled today · {rm.pastScheduled} past scheduled time awaiting confirmation</small></article>)}</div>}
-            {!management.data.visits.pastScheduled.length && !management.data.visits.pendingToday.length && <p className="command-data-note">No incomplete planned visits are recorded for today or earlier dates.</p>}
-          </>}
         </section>
       </>;
     })()}</AdminState>

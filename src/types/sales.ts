@@ -36,6 +36,7 @@ export interface FollowUp {
 export interface SalesDay {
   salesperson: {
     id: string;
+    role?: SessionUser["role"];
     email: string;
     name: string;
     region: string;
@@ -61,8 +62,8 @@ export interface SalesDay {
   calls: Array<{ id: string; customer: string; direction: "incoming" | "outgoing" | "unspecified"; purpose: string; notes: string | null; occurredAt: string }>;
   attendanceHistory: Array<{ businessDate: string; checkInAt: string; checkOutAt: string | null; latitude: number | null; longitude: number | null; gpsAccuracyMeters: number | null }>;
   tally: { mode: string; connected: boolean; lastSyncAt: string | null; message?: string };
-  referenceData: { customers: TallyCustomer[]; products: TallyProduct[] };
-  insights: { customerCount: number; totalOutstanding: number; topProducts: Array<{ name: string; salesValue: number; quantity: number }>; decliningProducts: Array<{ name: string; previousSales: number; currentSales: number; difference: number }> };
+  referenceData: { customers: TallyCustomer[]; products: Pick<TallyProduct, "id" | "name">[] };
+  insights?: { customerCount: number; totalOutstanding: number; topProducts: Array<{ name: string; salesValue: number; quantity: number }>; decliningProducts: Array<{ name: string; previousSales: number; currentSales: number; difference: number }> };
 }
 
 export interface CompleteVisitPayload {

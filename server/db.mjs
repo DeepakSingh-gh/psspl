@@ -411,6 +411,12 @@ ensureColumn("tally_chunk_sessions", "payment_rows_stored", "INTEGER NOT NULL DE
 ensureColumn("tally_invoices", "ingest_session_id", "TEXT");
 ensureColumn("tally_payments_live", "ingest_session_id", "TEXT");
 ensureColumn("tally_customers", "owner_user_id", "TEXT REFERENCES users(id)");
+// A visit-origin lead keeps an exact customer/visit link. Existing manually
+// created leads remain untouched and are never matched by customer name.
+ensureColumn("leads", "tally_customer_id", "TEXT");
+ensureColumn("leads", "source_visit_id", "TEXT");
+db.exec("CREATE UNIQUE INDEX IF NOT EXISTS idx_leads_source_visit ON leads(source_visit_id) WHERE source_visit_id IS NOT NULL");
+db.exec("CREATE INDEX IF NOT EXISTS idx_leads_customer_owner ON leads(user_id,tally_customer_id)");
 
 db.exec(`CREATE INDEX IF NOT EXISTS idx_tally_customers_owner_user_id ON tally_customers(owner_user_id);`);
 

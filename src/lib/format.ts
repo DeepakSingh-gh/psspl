@@ -36,18 +36,20 @@ export function formatFinancialYear(financialYear: string | null | undefined): s
   return financialYear ? `FY ${financialYear.replace("-", "–")}` : "—";
 }
 
+/** Display dates as DD-MM-YYYY; timestamps use the India business timezone. */
 export function formatDate(value: string | null | undefined): string {
-  if (!value) return "—";
-  const date = new Date(value.includes("T") || value.includes(" ") ? value : `${value}T00:00:00`);
+  if (!value) return "\u2014";
+  if (/^\d{4}-\d{2}-\d{2}$/.test(value)) return value.split("-").reverse().join("-");
+  const date = new Date(value.includes(" ") ? value.replace(" ", "T") : value);
   if (Number.isNaN(date.getTime())) return value;
-  return date.toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" });
+  return date.toLocaleDateString("en-GB", { day: "2-digit", month: "2-digit", year: "numeric", timeZone: "Asia/Kolkata" }).replaceAll("/", "-");
 }
 
 export function formatDateTime(value: string | null | undefined): string {
-  if (!value) return "—";
-  const date = new Date(value.includes("T") || value.includes(" ") ? value.replace(" ", "T") : value);
+  if (!value) return "\u2014";
+  const date = new Date(value.includes(" ") ? value.replace(" ", "T") : value);
   if (Number.isNaN(date.getTime())) return value;
-  return `${date.toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })}, ${date.toLocaleTimeString("en-IN", { hour: "numeric", minute: "2-digit" })}`;
+  return `${formatDate(value)}, ${date.toLocaleTimeString("en-IN", { hour: "numeric", minute: "2-digit", timeZone: "Asia/Kolkata" })}`;
 }
 
 export function initialsOf(name: string | null | undefined, fallback = "?"): string {

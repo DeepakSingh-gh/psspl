@@ -1,18 +1,20 @@
 "use client";
 import React, { useState } from "react";
+import type { AiAnswerPresentation } from "@/types/ai-answer";
 
 interface AiResponseFormatterProps {
   text: string;
   source?: string;
   from?: string;
   to?: string;
+  presentation?: AiAnswerPresentation;
 }
 
 /**
  * Parses and formats raw AI text into executive-level visual insight cards,
  * metric pill tags, and structured recommendation blocks.
  */
-export function AiResponseFormatter({ text, source, from, to }: AiResponseFormatterProps) {
+export function AiResponseFormatter({ text, source, from, to, presentation }: AiResponseFormatterProps) {
   const [copied, setCopied] = useState(false);
 
   function handleCopy() {
@@ -31,7 +33,7 @@ export function AiResponseFormatter({ text, source, from, to }: AiResponseFormat
       <div className="askai-answer-header">
         <div className="askai-answer-header-title">
           <span className="askai-sparkle-dot"></span>
-          <span className="askai-header-tag">Executive Intelligence</span>
+          <span className="askai-header-tag">AI answer</span>
         </div>
         <button
           type="button"
@@ -59,7 +61,22 @@ export function AiResponseFormatter({ text, source, from, to }: AiResponseFormat
       </div>
 
       <div className="askai-answer-content">
-        {numberedSections.length > 0 ? (
+        {presentation ? <div className="askai-simple-answer">
+          <p className="askai-simple-period">{presentation.period}</p>
+          <h3>{presentation.title}</h3>
+          <p className="askai-simple-summary">{presentation.summary}</p>
+          {presentation.metrics.length > 0 && <div className="askai-simple-metrics">
+            {presentation.metrics.map(item => <div key={item.label}><span>{item.label}</span><strong>{item.value}</strong></div>)}
+          </div>}
+          <div className="askai-simple-sections">
+            {presentation.sections.map((section, index) => <section key={`${section.title}-${index}`}>
+              <h4>{section.title}</h4>
+              <ul>{section.points.map((point, i) => <li key={i}>{point}</li>)}</ul>
+            </section>)}
+          </div>
+          {presentation.missing.length > 0 && <details className="askai-simple-missing"><summary>RMs with missing numbers ({presentation.missing.length})</summary><p>{presentation.missing.join(", ")}</p></details>}
+          <div className="askai-simple-note"><strong>{presentation.update}</strong><p>{presentation.note}</p></div>
+        </div> : numberedSections.length > 0 ? (
           <div className="askai-cards-grid">
             {numberedSections.map((sec, idx) => (
               <div key={idx} className="askai-insight-card">
@@ -102,9 +119,9 @@ export function AiResponseFormatter({ text, source, from, to }: AiResponseFormat
           <svg viewBox="0 0 16 16" fill="currentColor" width="11" height="11">
             <path d="M8 1a7 7 0 100 14A7 7 0 008 1zm0 2.5a4.5 4.5 0 110 9 4.5 4.5 0 010-9z"/>
           </svg>
-          Live PSSPL PostgreSQL/SQL DB
+          Tally and CRM records
         </span>
-        {from && to && (
+        {!presentation && from && to && (
           <span className="askai-date-range">
             Period: {from} to {to}
           </span>

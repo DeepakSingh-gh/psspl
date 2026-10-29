@@ -1,0 +1,4581 @@
+{
+  "schemaVersion": 1,
+  "reports": [
+    {
+      "id": "ketanbhatt",
+      "reportDate": "30.09.2026",
+      "asOf": "2026-09-30",
+      "financialYear": "2026-27",
+      "units": "INR lakh",
+      "source": {
+        "kind": "supplied_pdf_snapshot",
+        "fileName": "PSS Ketan Bhatt Sales Feedback.pdf",
+        "sha256": "2ff55564a54d09326a92d12dbb7afa2156f3dea7ca094152fe9f3d01e3dca1c5",
+        "page": 1
+      },
+      "rm": {
+        "name": "Ketan Bhatt",
+        "sourceName": "Ketan Bhat",
+        "rmCode": "271704",
+        "operatingFrom": "Mumbai",
+        "businessRegistrationForm": "Yes",
+        "registrationCodes": [
+          "2711M126"
+        ]
+      },
+      "annual": {
+        "currentYearTarget": 766.0,
+        "currentYearTargetTillMonth": 389.38,
+        "currentYearActual": 378.05,
+        "currentYearPct": 97.0,
+        "lastYearTarget": 701.0,
+        "lastYearTargetTillMonth": 356.34,
+        "lastYearActual": 337.43,
+        "lastYearPct": 95.0
+      },
+      "monthlyMetrics": [
+        {
+          "month": "Apr",
+          "period": "2026-04",
+          "target": 57.45,
+          "achieved": 58.9,
+          "pct": 103.0,
+          "variation": 1.45
+        },
+        {
+          "month": "May",
+          "period": "2026-05",
+          "target": 76.6,
+          "achieved": 55.39,
+          "pct": 72.0,
+          "variation": -21.21
+        },
+        {
+          "month": "June",
+          "period": "2026-06",
+          "target": 63.83,
+          "achieved": 60.03,
+          "pct": 94.0,
+          "variation": -3.81
+        },
+        {
+          "month": "July",
+          "period": "2026-07",
+          "target": 57.45,
+          "achieved": 71.37,
+          "pct": 124.0,
+          "variation": 13.92
+        },
+        {
+          "month": "Aug",
+          "period": "2026-08",
+          "target": 63.83,
+          "achieved": 53.22,
+          "pct": 83.0,
+          "variation": -10.61
+        },
+        {
+          "month": "Sep",
+          "period": "2026-09",
+          "target": 70.22,
+          "achieved": 79.15,
+          "pct": 113.0,
+          "variation": 8.93
+        },
+        {
+          "month": "Oct",
+          "period": "2026-10",
+          "target": 70.22,
+          "achieved": null,
+          "pct": 0.0,
+          "variation": 0.0
+        },
+        {
+          "month": "Nov",
+          "period": "2026-11",
+          "target": 57.45,
+          "achieved": null,
+          "pct": 0.0,
+          "variation": 0.0
+        },
+        {
+          "month": "Dec",
+          "period": "2026-12",
+          "target": 51.07,
+          "achieved": null,
+          "pct": 0.0,
+          "variation": 0.0
+        },
+        {
+          "month": "Jan",
+          "period": "2027-01",
+          "target": 57.45,
+          "achieved": null,
+          "pct": 0.0,
+          "variation": 0.0
+        },
+        {
+          "month": "Feb",
+          "period": "2027-02",
+          "target": 63.83,
+          "achieved": null,
+          "pct": 0.0,
+          "variation": 0.0
+        },
+        {
+          "month": "Mar",
+          "period": "2027-03",
+          "target": 76.6,
+          "achieved": null,
+          "pct": 0.0,
+          "variation": 0.0
+        }
+      ],
+      "monthlyTotals": {
+        "target": 766.0,
+        "achieved": 378.05,
+        "pct": 49.0,
+        "variation": -11.34
+      },
+      "weeklySummary": [
+        {
+          "weekLabel": "Wk 1",
+          "targetTotal": 191.5,
+          "achievedTotal": 60.19,
+          "targets": [
+            14.36,
+            19.15,
+            15.96,
+            14.36,
+            15.96,
+            17.55,
+            17.55,
+            14.36,
+            12.77,
+            14.36,
+            15.96,
+            19.15
+          ],
+          "achieved": [
+            5.22,
+            13.03,
+            8.29,
+            9.03,
+            9.86,
+            14.76,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null
+          ]
+        },
+        {
+          "weekLabel": "Wk 2",
+          "targetTotal": 191.5,
+          "achievedTotal": 107.48,
+          "targets": [
+            14.36,
+            19.15,
+            15.96,
+            14.36,
+            15.96,
+            17.55,
+            17.55,
+            14.36,
+            12.77,
+            14.36,
+            15.96,
+            19.15
+          ],
+          "achieved": [
+            19.16,
+            13.89,
+            14.26,
+            25.25,
+            13.26,
+            21.65,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null
+          ]
+        },
+        {
+          "weekLabel": "Wk 3",
+          "targetTotal": 191.5,
+          "achievedTotal": 61.79,
+          "targets": [
+            14.36,
+            19.15,
+            15.96,
+            14.36,
+            15.96,
+            17.55,
+            17.55,
+            14.36,
+            12.77,
+            14.36,
+            15.96,
+            19.15
+          ],
+          "achieved": [
+            12.31,
+            8.22,
+            8.04,
+            5.73,
+            12.94,
+            14.56,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null
+          ]
+        },
+        {
+          "weekLabel": "Wk 4",
+          "targetTotal": 191.5,
+          "achievedTotal": 148.59,
+          "targets": [
+            14.36,
+            19.15,
+            15.96,
+            14.36,
+            15.96,
+            17.55,
+            17.55,
+            14.36,
+            12.77,
+            14.36,
+            15.96,
+            19.15
+          ],
+          "achieved": [
+            22.21,
+            20.25,
+            29.43,
+            31.36,
+            17.16,
+            28.18,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null
+          ]
+        }
+      ],
+      "previousYearPerformance": [
+        {
+          "month": "Apr",
+          "target": 52.58,
+          "actual": 59.35
+        },
+        {
+          "month": "May",
+          "target": 70.1,
+          "actual": 47.9
+        },
+        {
+          "month": "June",
+          "target": 58.42,
+          "actual": 70.51
+        },
+        {
+          "month": "July",
+          "target": 52.58,
+          "actual": 51.71
+        },
+        {
+          "month": "Aug",
+          "target": 58.42,
+          "actual": 52.88
+        },
+        {
+          "month": "Sep",
+          "target": 64.26,
+          "actual": 55.07
+        },
+        {
+          "month": "Oct",
+          "target": 64.26,
+          "actual": 43.82
+        },
+        {
+          "month": "Nov",
+          "target": 52.58,
+          "actual": 70.33
+        },
+        {
+          "month": "Dec",
+          "target": 46.73,
+          "actual": 57.58
+        },
+        {
+          "month": "Jan",
+          "target": 52.58,
+          "actual": 51.76
+        },
+        {
+          "month": "Feb",
+          "target": 58.42,
+          "actual": 43.02
+        },
+        {
+          "month": "Mar",
+          "target": 70.1,
+          "actual": 73.55
+        }
+      ],
+      "previousYearTotals": {
+        "target": 701.0,
+        "actual": 677.5
+      },
+      "territoryExpansion": {
+        "targetExpansionCities": "Vasai\nJaipur\nGoa",
+        "visitsMade": "",
+        "newDealersText": "1)M-Tech Chemicals"
+      },
+      "teamSourceText": "Hema \nNagendra\nSurendra \nKumar \nGupta\nDevendra \nSahu\nHeera lal \nmeena",
+      "territoriesSourceText": "Machilipattanam Mumbai\nIndore\nJaipur",
+      "teamEntries": [
+        {
+          "name": "Hema Nagendra",
+          "citiesCovered": "Machilipattanam"
+        },
+        {
+          "name": "Surendra Kumar Gupta",
+          "citiesCovered": "Mumbai"
+        },
+        {
+          "name": "Devendra Sahu",
+          "citiesCovered": "Indore"
+        },
+        {
+          "name": "Heera lal meena",
+          "citiesCovered": "Jaipur"
+        }
+      ],
+      "thrustTotalLakh": 0.0,
+      "technicalService": {
+        "center": "Mumbai",
+        "executive": "Suhas Parab"
+      },
+      "thrustProductGroups": [
+        {
+          "productsText": "",
+          "achievedText": ""
+        },
+        {
+          "productsText": "",
+          "achievedText": ""
+        }
+      ],
+      "specialAchievementsNotes": "",
+      "sourceWarnings": [],
+      "sourceText": "     PSSPL REGIONAL MANAGER SALES                                         30.09.2026                                Ketan Bhat                   RM Code                  271704                     Operting             Mumbai\n         TARGET FEED BACK SUPPORT                                                                                                                                                                  from: City\nTargetfor Territory                              Vasai                               Jaipur                                Goa                                                      Annual         Target till       Actual        % Actual\nExpansion / Penetraion                                                                                                                                                              Target           Month            Total\nVisits made by you to                                                                                                                                                                 766.00         389.38          378.05           97%\nnew Territory (dates)\nNew Dealer or Customer                                                                                       Business\nappointed in new territory          1)M-Tech Chemicals                                                       Registrat'n            Yes        1)2711M126                            701.00          356.34           337.43           95%\nthis year                                                                                                    form Yes/No\nTeam Mates  ,                       Hema                Surendra        Devendra           Heera lal                                                                                              Tech Serv\nSales Executives                    Nagendra            Kumar           Sahu               meena                                                                                                  Center                   Mumbai\n                                                        Gupta\nExisting Sales Territory            Machilipattanam     Mumbai          Indore             Jaipur                                                                                                 Tech Serv            Suhas Parab\n: Cities                                                                                                                                                                                          Executive\n      0.00                 Thrust\n                          Product\n\n                         YTD Sales\n                     Achieved Rs.L\n\n                           Thrust\n                          Product\n\n                         YTD Sales\n                     Achieved Rs.L\n\n                      Monthly Sales Target Vs Achievement\n\n  90.00\n  80.00            76.60                             79.15                                         76.60\n                                     71.37         70.22   70.22\n  70.00                    63.83           63.83                                           63.83\n           57.45 58.90 55.39 60.03 57.45                           57.45           57.45\n  60.00                                      53.22                         51.07\n\n  50.00\n  40.00\n\n  30.00\n\n  20.00\n  10.00\n                                                                -       -       -       -       -       -\n      -\n             Apr     May     June    July    Aug     Sep     Oct     Nov     Dec     Jan     Feb     Mar\n\n                                              Series1      Series7\n\n    Target              766.00                57.45          76.60                63.83             57.45            63.83            70.22            70.22            57.45            51.07           57.45          63.83          76.60\n\n  Achieved              378.05                58.90          55.39                60.03             71.37            53.22            79.15                -                -               -                -               -             -\n % Achieve              49%               103%               72%              94%               124%               83%             113%              0%               0%               0%               0%              0%             0%\n     ment\n  Variation           -11.34               1.45            -21.21             -3.81             13.92            -10.61             8.93            0.00             0.00             0.00             0.00            0.00            0.00\n\n Purchases          Total Rs.L             Apr              May              June                July              Aug              Sep              Oct             Nov              Dec              Jan             Feb            Mar\n\nWk 1 Target              191.50                  14.36          19.15               15.96             14.36            15.96            17.55           17.55            14.36            12.77            14.36          15.96         19.15\n\n     Wk 1                   60.19                5.22           13.03                 8.29              9.03             9.86           14.76\n  Achieved\n\nWk 2 Target              191.50                  14.36          19.15               15.96             14.36            15.96            17.55           17.55            14.36            12.77            14.36          15.96         19.15\n\n     Wk 2                107.48                  19.16          13.89               14.26             25.25            13.26            21.65\n  Achieved\n\nWk 3 Target              191.50                  14.36          19.15               15.96             14.36            15.96            17.55           17.55            14.36            12.77            14.36          15.96         19.15\n\n     Wk 3                   61.79                12.31            8.22                8.04              5.73           12.94            14.56\n  Achieved\n\nWk 4 Target              191.50                  14.36          19.15               15.96             14.36            15.96            17.55           17.55            14.36            12.77            14.36          15.96         19.15\n     Wk 4                148.59                  22.21          20.25               29.43             31.36            17.16            28.18\n  Achieved\n    Special                     -\n    Targets\n\n  Achieved                      -\n\nPrevious year          701.00                    52.58          70.10               58.42             52.58            58.42            64.26           64.26            52.58            46.73            52.58          58.42         70.10\n     Target\nPrevious year          677.50                    59.35          47.90               70.51             51.71            52.88            55.07           43.82            70.33            57.58            51.76          43.02         73.55\n Actual Sales\n\n\n   Special Achievement\n     and Other Notes"
+    },
+    {
+      "id": "aniljena",
+      "reportDate": "30.09.2026",
+      "asOf": "2026-09-30",
+      "financialYear": "2026-27",
+      "units": "INR lakh",
+      "source": {
+        "kind": "supplied_pdf_snapshot",
+        "fileName": "PSS RM Anil Jena Sales Feedback.pdf",
+        "sha256": "473a6bf16910eea2a857ff59a02fcff4f1582e982da166221dbc6cf7b6cd7bc7",
+        "page": 1
+      },
+      "rm": {
+        "name": "Anil Jena",
+        "sourceName": "Anil Jena",
+        "rmCode": "075709",
+        "operatingFrom": "Gurugram",
+        "businessRegistrationForm": "Yes",
+        "registrationCodes": [
+          "2111C126",
+          "2111S126"
+        ]
+      },
+      "annual": {
+        "currentYearTarget": 501.0,
+        "currentYearTargetTillMonth": 254.68,
+        "currentYearActual": 114.24,
+        "currentYearPct": 45.0,
+        "lastYearTarget": 606.0,
+        "lastYearTargetTillMonth": 308.05,
+        "lastYearActual": 136.98,
+        "lastYearPct": 44.0
+      },
+      "monthlyMetrics": [
+        {
+          "month": "Apr",
+          "period": "2026-04",
+          "target": 37.58,
+          "achieved": 35.64,
+          "pct": 95.0,
+          "variation": -1.94
+        },
+        {
+          "month": "May",
+          "period": "2026-05",
+          "target": 50.1,
+          "achieved": 7.64,
+          "pct": 15.0,
+          "variation": -42.46
+        },
+        {
+          "month": "June",
+          "period": "2026-06",
+          "target": 41.75,
+          "achieved": 20.2,
+          "pct": 48.0,
+          "variation": -21.55
+        },
+        {
+          "month": "July",
+          "period": "2026-07",
+          "target": 37.58,
+          "achieved": 7.89,
+          "pct": 21.0,
+          "variation": -29.68
+        },
+        {
+          "month": "Aug",
+          "period": "2026-08",
+          "target": 41.75,
+          "achieved": 23.02,
+          "pct": 55.0,
+          "variation": -18.73
+        },
+        {
+          "month": "Sep",
+          "period": "2026-09",
+          "target": 45.93,
+          "achieved": 19.85,
+          "pct": 43.0,
+          "variation": -26.08
+        },
+        {
+          "month": "Oct",
+          "period": "2026-10",
+          "target": 45.93,
+          "achieved": null,
+          "pct": 0.0,
+          "variation": 0.0
+        },
+        {
+          "month": "Nov",
+          "period": "2026-11",
+          "target": 37.58,
+          "achieved": null,
+          "pct": 0.0,
+          "variation": 0.0
+        },
+        {
+          "month": "Dec",
+          "period": "2026-12",
+          "target": 33.4,
+          "achieved": null,
+          "pct": 0.0,
+          "variation": 0.0
+        },
+        {
+          "month": "Jan",
+          "period": "2027-01",
+          "target": 37.58,
+          "achieved": null,
+          "pct": 0.0,
+          "variation": 0.0
+        },
+        {
+          "month": "Feb",
+          "period": "2027-02",
+          "target": 41.75,
+          "achieved": null,
+          "pct": 0.0,
+          "variation": 0.0
+        },
+        {
+          "month": "Mar",
+          "period": "2027-03",
+          "target": 50.1,
+          "achieved": null,
+          "pct": 0.0,
+          "variation": 0.0
+        }
+      ],
+      "monthlyTotals": {
+        "target": 501.0,
+        "achieved": 114.24,
+        "pct": 23.0,
+        "variation": -140.44
+      },
+      "weeklySummary": [
+        {
+          "weekLabel": "Wk 1",
+          "targetTotal": 125.25,
+          "achievedTotal": 17.88,
+          "targets": [
+            9.39,
+            12.53,
+            10.44,
+            9.39,
+            10.44,
+            11.48,
+            11.48,
+            9.39,
+            8.35,
+            9.39,
+            10.44,
+            12.53
+          ],
+          "achieved": [
+            null,
+            null,
+            null,
+            null,
+            13.72,
+            4.16,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null
+          ]
+        },
+        {
+          "weekLabel": "Wk 2",
+          "targetTotal": 125.25,
+          "achievedTotal": 49.55,
+          "targets": [
+            9.39,
+            12.53,
+            10.44,
+            9.39,
+            10.44,
+            11.48,
+            11.48,
+            9.39,
+            8.35,
+            9.39,
+            10.44,
+            12.53
+          ],
+          "achieved": [
+            27.25,
+            1.01,
+            9.73,
+            2.35,
+            4.66,
+            4.55,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null
+          ]
+        },
+        {
+          "weekLabel": "Wk 3",
+          "targetTotal": 125.25,
+          "achievedTotal": 12.67,
+          "targets": [
+            9.39,
+            12.53,
+            10.44,
+            9.39,
+            10.44,
+            11.48,
+            11.48,
+            9.39,
+            8.35,
+            9.39,
+            10.44,
+            12.53
+          ],
+          "achieved": [
+            4.15,
+            2.34,
+            4.11,
+            null,
+            1.65,
+            0.42,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null
+          ]
+        },
+        {
+          "weekLabel": "Wk 4",
+          "targetTotal": 125.25,
+          "achievedTotal": 34.14,
+          "targets": [
+            9.39,
+            12.53,
+            10.44,
+            9.39,
+            10.44,
+            11.48,
+            11.48,
+            9.39,
+            8.35,
+            9.39,
+            10.44,
+            12.53
+          ],
+          "achieved": [
+            4.24,
+            4.29,
+            6.36,
+            5.54,
+            2.99,
+            10.71,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null
+          ]
+        }
+      ],
+      "previousYearPerformance": [
+        {
+          "month": "Apr",
+          "target": 45.45,
+          "actual": 21.59
+        },
+        {
+          "month": "May",
+          "target": 60.6,
+          "actual": 20.51
+        },
+        {
+          "month": "June",
+          "target": 50.5,
+          "actual": 38.58
+        },
+        {
+          "month": "July",
+          "target": 45.45,
+          "actual": 10.18
+        },
+        {
+          "month": "Aug",
+          "target": 50.5,
+          "actual": 22.7
+        },
+        {
+          "month": "Sep",
+          "target": 55.55,
+          "actual": 23.43
+        },
+        {
+          "month": "Oct",
+          "target": 55.55,
+          "actual": 13.03
+        },
+        {
+          "month": "Nov",
+          "target": 45.45,
+          "actual": 21.57
+        },
+        {
+          "month": "Dec",
+          "target": 40.4,
+          "actual": 21.0
+        },
+        {
+          "month": "Jan",
+          "target": 45.45,
+          "actual": 17.12
+        },
+        {
+          "month": "Feb",
+          "target": 50.5,
+          "actual": 13.46
+        },
+        {
+          "month": "Mar",
+          "target": 60.6,
+          "actual": 37.27
+        }
+      ],
+      "previousYearTotals": {
+        "target": 606.0,
+        "actual": 260.43
+      },
+      "territoryExpansion": {
+        "targetExpansionCities": "Deeper \nFaridabad\nDeeper \nNoida\nDeeper \nGurgoan",
+        "visitsMade": "",
+        "newDealersText": "1)Chem X Enterprises 2)S.B.Refractory"
+      },
+      "teamSourceText": "Sandeep \nKumar\nSushil \nKumar\nTika Prasad \nYadav\nPurshottam \nSarang\nAtal Trevidi Girand \nKumar\nSoumya \nDas\nPrashant \nJadon\nVikrant \nJadon",
+      "territoriesSourceText": "Ghaziabad\nDelhi, \nSonepat, \nBahadurgarh\nDelhi, Sonepat, \nBahadurgarh, \nSahibabad\nRudrapur\nGurgoan\nGurgoan\nFaridabad\nGurgaon\nNoida",
+      "teamEntries": [
+        {
+          "name": "Sandeep Kumar",
+          "citiesCovered": "Ghaziabad"
+        },
+        {
+          "name": "Sushil Kumar",
+          "citiesCovered": "Delhi, Sonepat, Bahadurgarh"
+        },
+        {
+          "name": "Tika Prasad Yadav",
+          "citiesCovered": "Delhi, Sonepat, Bahadurgarh, Sahibabad"
+        },
+        {
+          "name": "Purshottam Sarang",
+          "citiesCovered": "Rudrapur"
+        },
+        {
+          "name": "Atal Trevidi",
+          "citiesCovered": "Gurgoan"
+        },
+        {
+          "name": "Girand Kumar",
+          "citiesCovered": "Gurgoan"
+        },
+        {
+          "name": "Soumya Das",
+          "citiesCovered": "Faridabad"
+        },
+        {
+          "name": "Prashant Jadon",
+          "citiesCovered": "Gurgaon"
+        },
+        {
+          "name": "Vikrant Jadon",
+          "citiesCovered": "Noida"
+        }
+      ],
+      "thrustTotalLakh": 0.09,
+      "technicalService": {
+        "center": "Gurugram",
+        "executive": "Girand Kumar"
+      },
+      "thrustProductGroups": [
+        {
+          "productsText": "Zpn Blue 15\nZpn 200\nZpn Black\nShimaclad Peony\nClearclad Lcbh",
+          "achievedText": ""
+        },
+        {
+          "productsText": "Enilex Chorme Catalyst\nPOP\nUviclad 612\nPatinas",
+          "achievedText": "0.09"
+        }
+      ],
+      "specialAchievementsNotes": "",
+      "sourceWarnings": [],
+      "sourceText": "     PSSPL REGIONAL MANAGER SALES                                       30.09.2026             Regional            Anil Jena                    RM Code                  075709                   Operting            Gurugram\n         TARGET FEED BACK SUPPORT                                                              Manager                                                                                           from: City\nTarget for Territory                Deeper             Deeper          Deeper                                                                                                     Annual         Target till        Actual       % Actual\nExpansion - Cities                  Faridabad          Noida           Gurgoan                                                                                                     Target          Month             Total\n\nVisits made to new                                                                                                                                                                  501.00         254.68          114.24           45%\nTerritory\n\nNew Dealer or Customer                                                                                      Business                          1)2111C126\nappointed in new territory          1)Chem X Enterprises 2)S.B.Refractory                                   Registrat'n            Yes        2)2111S126                           606.00           308.05          136.98           44%\nthis year                                                                                                   form Yes/No\n\nTeam Mates  ,                       Sandeep            Sushil          Tika Prasad        Purshottam        Atal Trevidi     Girand           Soumya           Prashant        Vikrant          Tech Serv               Gurugram\nSales Executives                    Kumar              Kumar           Yadav              Sarang                             Kumar            Das              Jadon           Jadon            Center\nExisting Sales Territory                               Delhi,          Delhi, Sonepat,                                                                                                          Tech Serv\n: Cities                            Ghaziabad          Sonepat,        Bahadurgarh,       Rudrapur          Gurgoan          Gurgoan          Faridabad        Gurgaon         Noida            Executive             Girand Kumar\n                                                       Bahadurgarh     Sahibabad\n      0.09                 Thrust            Zpn Blue 15                            Zpn 200                           Zpn Black                    Shimaclad Peony                    Clearclad Lcbh\n                         Product\n\n                         YTD Sales\n                    Achieved Rs.L\n\n                           Thrust    Enilex Chorme Catalyst                           POP                            Uviclad 612                         Patinas\n                         Product\n\n                         YTD Sales                                                                                                                         0.09\n                    Achieved Rs.L\n\n                    Monthly Sales Target Vs Achievement\n\n  80.00\n  70.00\n  60.00            50.10                                                                        50.10\n  50.00                   41.75           41.75   45.93  45.93                          41.75\n  40.00    37.58 35.64            37.58                          37.58 33.40 37.58\n\n  30.00                      20.20          23.02   19.85\n  20.00\n  10.00               7.64           7.89\n                                                              -       -       -      -       -       -\n      -\n             Apr    May     June    July    Aug    Sep     Oct     Nov     Dec     Jan    Feb    Mar\n\n                                            Series1      Series7\n\n\n    Target              501.00                37.58           50.10              41.75              37.58           41.75            45.93           45.93            37.58            33.40           37.58          41.75          50.10\n\n  Achieved              114.24                35.64             7.64             20.20                7.89          23.02            19.85               -                -                -                -              -             -\n % Achieve              23%               95%              15%               48%                21%              55%              43%               0%              0%               0%               0%              0%             0%\n     ment\n  Variation          -140.44             -1.94            -42.46           -21.55             -29.68            -18.73          -26.08             0.00            0.00             0.00             0.00            0.00           0.00\n\n Purchases          Total Rs.L            Apr              May               June               July             Aug              Sep              Oct              Nov             Dec               Jan             Feb           Mar\n\nWk 1 Target              125.25                    9.39        12.53               10.44               9.39           10.44           11.48            11.48              9.39            8.35             9.39         10.44          12.53\n     Wk 1                  17.88                                                                                      13.72             4.16\n  Achieved\nWk 2 Target              125.25                    9.39        12.53               10.44               9.39           10.44           11.48            11.48              9.39            8.35             9.39         10.44          12.53\n\n     Wk 2                  49.55                 27.25           1.01                9.73              2.35             4.66            4.55\n  Achieved\nWk 3 Target              125.25                    9.39        12.53               10.44               9.39           10.44           11.48            11.48              9.39            8.35             9.39         10.44          12.53\n     Wk 3                  12.67                   4.15          2.34                4.11                               1.65            0.42\n  Achieved\nWk 4 Target              125.25                    9.39        12.53               10.44               9.39           10.44           11.48            11.48              9.39            8.35             9.39         10.44          12.53\n     Wk 4                  34.14                   4.24          4.29                6.36              5.54             2.99          10.71\n  Achieved\n    Special                     -\n    Targets\n  Achieved                      -\n\n Previous year         606.00                    45.45        60.60                50.50             45.45            50.50           55.55            55.55            45.45           40.40            45.45          50.50          60.60\n     Target\n Previous year         260.43                    21.59         20.51               38.58             10.18            22.70           23.43            13.03            21.57           21.00            17.12          13.46          37.27\n  Actual Sales\n\n\n  Special Achievement\n     and Other Notes"
+    },
+    {
+      "id": "gowrishankar",
+      "reportDate": "30.09.2026",
+      "asOf": "2026-09-30",
+      "financialYear": "2026-27",
+      "units": "INR lakh",
+      "source": {
+        "kind": "supplied_pdf_snapshot",
+        "fileName": "PSS RM Gowri Shankar Sales Feedback.pdf",
+        "sha256": "16963835ecaad75de98530ac26336d41164af72adab403f091af7cce3230f846",
+        "page": 1
+      },
+      "rm": {
+        "name": "Gowri Shankar",
+        "sourceName": "Gowri Shankar",
+        "rmCode": "333716",
+        "operatingFrom": "Chidambaram",
+        "businessRegistrationForm": "Yes",
+        "registrationCodes": []
+      },
+      "annual": {
+        "currentYearTarget": 54.0,
+        "currentYearTargetTillMonth": 22.95,
+        "currentYearActual": 25.55,
+        "currentYearPct": 111.0,
+        "lastYearTarget": 35.0,
+        "lastYearTargetTillMonth": 14.88,
+        "lastYearActual": 20.19,
+        "lastYearPct": 136.0
+      },
+      "monthlyMetrics": [
+        {
+          "month": "Apr",
+          "period": "2026-04",
+          "target": 4.05,
+          "achieved": 4.91,
+          "pct": 121.0,
+          "variation": 0.86
+        },
+        {
+          "month": "May",
+          "period": "2026-05",
+          "target": 5.4,
+          "achieved": 4.07,
+          "pct": 75.0,
+          "variation": -1.33
+        },
+        {
+          "month": "June",
+          "period": "2026-06",
+          "target": 4.5,
+          "achieved": 5.25,
+          "pct": 117.0,
+          "variation": 0.75
+        },
+        {
+          "month": "July",
+          "period": "2026-07",
+          "target": 4.05,
+          "achieved": 6.03,
+          "pct": 149.0,
+          "variation": 1.98
+        },
+        {
+          "month": "Aug",
+          "period": "2026-08",
+          "target": 4.5,
+          "achieved": null,
+          "pct": 0.0,
+          "variation": 0.0
+        },
+        {
+          "month": "Sep",
+          "period": "2026-09",
+          "target": 4.95,
+          "achieved": 5.28,
+          "pct": 107.0,
+          "variation": 0.33
+        },
+        {
+          "month": "Oct",
+          "period": "2026-10",
+          "target": 4.95,
+          "achieved": null,
+          "pct": 0.0,
+          "variation": 0.0
+        },
+        {
+          "month": "Nov",
+          "period": "2026-11",
+          "target": 4.05,
+          "achieved": null,
+          "pct": 0.0,
+          "variation": 0.0
+        },
+        {
+          "month": "Dec",
+          "period": "2026-12",
+          "target": 3.6,
+          "achieved": null,
+          "pct": 0.0,
+          "variation": 0.0
+        },
+        {
+          "month": "Jan",
+          "period": "2027-01",
+          "target": 4.05,
+          "achieved": null,
+          "pct": 0.0,
+          "variation": 0.0
+        },
+        {
+          "month": "Feb",
+          "period": "2027-02",
+          "target": 4.5,
+          "achieved": null,
+          "pct": 0.0,
+          "variation": 0.0
+        },
+        {
+          "month": "Mar",
+          "period": "2027-03",
+          "target": 5.4,
+          "achieved": null,
+          "pct": 0.0,
+          "variation": 0.0
+        }
+      ],
+      "monthlyTotals": {
+        "target": 54.0,
+        "achieved": 25.55,
+        "pct": 47.0,
+        "variation": 2.6
+      },
+      "weeklySummary": [
+        {
+          "weekLabel": "Wk 1",
+          "targetTotal": 13.5,
+          "achievedTotal": null,
+          "targets": [
+            1.01,
+            1.35,
+            1.13,
+            1.01,
+            1.13,
+            1.24,
+            1.24,
+            1.01,
+            0.9,
+            1.01,
+            1.13,
+            1.35
+          ],
+          "achieved": [
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null
+          ]
+        },
+        {
+          "weekLabel": "Wk 2",
+          "targetTotal": 13.5,
+          "achievedTotal": 4.07,
+          "targets": [
+            1.01,
+            1.35,
+            1.13,
+            1.01,
+            1.13,
+            1.24,
+            1.24,
+            1.01,
+            0.9,
+            1.01,
+            1.13,
+            1.35
+          ],
+          "achieved": [
+            null,
+            4.07,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null
+          ]
+        },
+        {
+          "weekLabel": "Wk 3",
+          "targetTotal": 13.5,
+          "achievedTotal": 6.03,
+          "targets": [
+            1.01,
+            1.35,
+            1.13,
+            1.01,
+            1.13,
+            1.24,
+            1.24,
+            1.01,
+            0.9,
+            1.01,
+            1.13,
+            1.35
+          ],
+          "achieved": [
+            null,
+            null,
+            null,
+            6.03,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null
+          ]
+        },
+        {
+          "weekLabel": "Wk 4",
+          "targetTotal": 13.5,
+          "achievedTotal": 15.44,
+          "targets": [
+            1.01,
+            1.35,
+            1.13,
+            1.01,
+            1.13,
+            1.24,
+            1.24,
+            1.01,
+            0.9,
+            1.01,
+            1.13,
+            1.35
+          ],
+          "achieved": [
+            4.91,
+            null,
+            5.25,
+            null,
+            null,
+            5.28,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null
+          ]
+        }
+      ],
+      "previousYearPerformance": [
+        {
+          "month": "Apr",
+          "target": 2.63,
+          "actual": 0.45
+        },
+        {
+          "month": "May",
+          "target": 3.5,
+          "actual": null
+        },
+        {
+          "month": "June",
+          "target": 2.92,
+          "actual": 6.96
+        },
+        {
+          "month": "July",
+          "target": 2.63,
+          "actual": 5.61
+        },
+        {
+          "month": "Aug",
+          "target": 2.92,
+          "actual": null
+        },
+        {
+          "month": "Sep",
+          "target": 3.21,
+          "actual": 7.17
+        },
+        {
+          "month": "Oct",
+          "target": 3.21,
+          "actual": 5.25
+        },
+        {
+          "month": "Nov",
+          "target": 2.63,
+          "actual": null
+        },
+        {
+          "month": "Dec",
+          "target": 2.33,
+          "actual": null
+        },
+        {
+          "month": "Jan",
+          "target": 2.63,
+          "actual": 5.93
+        },
+        {
+          "month": "Feb",
+          "target": 2.92,
+          "actual": 6.7
+        },
+        {
+          "month": "Mar",
+          "target": 3.5,
+          "actual": 5.25
+        }
+      ],
+      "previousYearTotals": {
+        "target": 35.0,
+        "actual": 43.32
+      },
+      "territoryExpansion": {
+        "targetExpansionCities": "More Deeper \nChidambaram",
+        "visitsMade": "",
+        "newDealersText": ""
+      },
+      "teamSourceText": "Gowri \nShankar\nGowri \nShankar\nGowri \nShankar",
+      "territoriesSourceText": "Chidambaram \nTrichi\nMailadura",
+      "teamEntries": [
+        {
+          "name": "Gowri Shankar",
+          "citiesCovered": "Chidambaram"
+        },
+        {
+          "name": "Gowri Shankar",
+          "citiesCovered": "Trichi"
+        },
+        {
+          "name": "Gowri Shankar",
+          "citiesCovered": "Mailadura"
+        }
+      ],
+      "thrustTotalLakh": 0.0,
+      "technicalService": {
+        "center": "Chidambaram",
+        "executive": "Gauri Shankar"
+      },
+      "thrustProductGroups": [
+        {
+          "productsText": "Acid Copper \nShimaclad E-coat\nGold Salts",
+          "achievedText": ""
+        },
+        {
+          "productsText": "",
+          "achievedText": ""
+        }
+      ],
+      "specialAchievementsNotes": "",
+      "sourceWarnings": [],
+      "sourceText": "     PSSPL REGIONAL MANAGER SALES                                           30.09.2026            Regional          Gowri Shankar                    RM Code                   333716                     Operting         Chidambaram\n         TARGET FEED BACK SUPPORT                                                                 Manager                                                                                               from: City\nTargetfor Territory                          More Deeper                                                                                                                                 Annual         Target till        Actual        % Actual\nExpansion / Penetraion                      Chidambaram                                                                                                                                  Target           Month             Total\nVisits made by you to                                                                                                                                                                        54.00         22.95            25.55          111%\nnew Territory (dates)\n\nNew Dealer or Customer                                                                                          Business                           Over Write\nappointed in new territory                                                                                      Registrat'n                        Dealer Codes                           35.00             14.88           20.19           136%\nthis year                                                                                                       form Yes/No                        here\n\nTeam Mates  ,                        Gowri               Gowri            Gowri                                                                                                                        Tech Serv           Chidambaram\nSales Executives                     Shankar             Shankar          Shankar                                                                                                                      Center\n\nExisting Sales Territory             Chidambaram         Trichi           Mailadura                                                                                                                    Tech Serv           Gauri Shankar\n: Cities                                                                                                                                                                                               Executive\n\n      0.00                  Thrust            Acid Copper                        Shimaclad E-coat                         Gold Salts\n                          Product\n\n                          YTD Sales\n                     Achieved Rs.L\n\n                            Thrust\n                          Product\n\n                          YTD Sales\n                     Achieved Rs.L\n\n                     Monthly Sales Target Vs Achievement\n\n  60.00\n\n  50.00\n\n  40.00\n\n  30.00\n\n  20.00\n\n  10.00     4.05 4.91 5.40 4.07 4.50 5.25 4.05 6.03 4.50 4.95 5.28 4.95 4.05 3.60   4.05    4.50    5.40\n                                                -                -      -       -       -        -      -\n      -\n             Apr     May     June    July    Aug     Sep     Oct     Nov     Dec      Jan    Feb     Mar\n\n                                              Series1      Series7\n\n\n    Target                 54.00                  4.05            5.40                4.50               4.05             4.50             4.95              4.95             4.05             3.60             4.05            4.50           5.40\n\n  Achieved                 25.55                  4.91            4.07                5.25               6.03               -              5.28                -                -                -                 -               -             -\n % Achieve               47%               121%               75%              117%                149%                0%             107%               0%                0%               0%               0%               0%              0%\n     ment\n  Variation              2.60               0.86             -1.33              0.75                1.98              0.00             0.33             0.00              0.00             0.00             0.00             0.00            0.00\n\n Purchases          Total Rs.L              Apr               May               June                July              Aug              Sep               Oct             Nov               Dec               Jan             Feb            Mar\n\nWk 1 Target                 13.50                   1.01           1.35                 1.13               1.01             1.13             1.24             1.24              1.01             0.90             1.01            1.13           1.35\n\n     Wk 1                       -\n   Achieved\n\nWk 2 Target                 13.50                   1.01           1.35                 1.13               1.01             1.13             1.24             1.24              1.01             0.90             1.01            1.13           1.35\n\n     Wk 2                     4.07                                 4.07\n   Achieved\nWk 3 Target                 13.50                   1.01           1.35                 1.13               1.01             1.13             1.24             1.24              1.01             0.90             1.01            1.13           1.35\n\n     Wk 3                     6.03                    -                                                    6.03\n   Achieved\nWk 4 Target                 13.50                   1.01           1.35                 1.13               1.01             1.13             1.24             1.24              1.01             0.90             1.01            1.13           1.35\n\n     Wk 4                   15.44                   4.91                                5.25                                                 5.28\n   Achieved\n    Special                     -\n    Targets\n   Achieved                     -\n\nPrevious year           35.00                       2.63           3.50                 2.92               2.63             2.92             3.21             3.21              2.63             2.33             2.63            2.92           3.50\n     Target\nPrevious year           43.32                       0.45             -                  6.96               5.61               -              7.17             5.25                -                -              5.93            6.70           5.25\n Actual Sales\n\n\n   Special Achievement\n      and Other Notes"
+    },
+    {
+      "id": "harshshah",
+      "reportDate": "30.09.2026",
+      "asOf": "2026-09-30",
+      "financialYear": "2026-27",
+      "units": "INR lakh",
+      "source": {
+        "kind": "supplied_pdf_snapshot",
+        "fileName": "PSS RM Harsh Shah Sales Feedback.pdf",
+        "sha256": "885aa4094c42b2321b9cf8e20a3da944251731c2e847d4fb7fb5d75acda7f154",
+        "page": 1
+      },
+      "rm": {
+        "name": "Harsh Shah",
+        "sourceName": "Harsh Shah",
+        "rmCode": "271702",
+        "operatingFrom": "Mumbai",
+        "businessRegistrationForm": "Yes",
+        "registrationCodes": [
+          "2425R126",
+          "2715S126",
+          "2715J426"
+        ]
+      },
+      "annual": {
+        "currentYearTarget": 247.0,
+        "currentYearTargetTillMonth": 125.56,
+        "currentYearActual": 122.25,
+        "currentYearPct": 97.0,
+        "lastYearTarget": 257.0,
+        "lastYearTargetTillMonth": 130.64,
+        "lastYearActual": 107.24,
+        "lastYearPct": 82.0
+      },
+      "monthlyMetrics": [
+        {
+          "month": "Apr",
+          "period": "2026-04",
+          "target": 18.53,
+          "achieved": 22.97,
+          "pct": 124.0,
+          "variation": 4.45
+        },
+        {
+          "month": "May",
+          "period": "2026-05",
+          "target": 24.7,
+          "achieved": 18.3,
+          "pct": 74.0,
+          "variation": -6.4
+        },
+        {
+          "month": "June",
+          "period": "2026-06",
+          "target": 20.58,
+          "achieved": 14.72,
+          "pct": 72.0,
+          "variation": -5.86
+        },
+        {
+          "month": "July",
+          "period": "2026-07",
+          "target": 18.53,
+          "achieved": 20.18,
+          "pct": 109.0,
+          "variation": 1.66
+        },
+        {
+          "month": "Aug",
+          "period": "2026-08",
+          "target": 20.58,
+          "achieved": 22.85,
+          "pct": 111.0,
+          "variation": 2.26
+        },
+        {
+          "month": "Sep",
+          "period": "2026-09",
+          "target": 22.64,
+          "achieved": 23.23,
+          "pct": 103.0,
+          "variation": 0.59
+        },
+        {
+          "month": "Oct",
+          "period": "2026-10",
+          "target": 22.64,
+          "achieved": null,
+          "pct": 0.0,
+          "variation": 0.0
+        },
+        {
+          "month": "Nov",
+          "period": "2026-11",
+          "target": 18.53,
+          "achieved": null,
+          "pct": 0.0,
+          "variation": 0.0
+        },
+        {
+          "month": "Dec",
+          "period": "2026-12",
+          "target": 16.47,
+          "achieved": null,
+          "pct": 0.0,
+          "variation": 0.0
+        },
+        {
+          "month": "Jan",
+          "period": "2027-01",
+          "target": 18.53,
+          "achieved": null,
+          "pct": 0.0,
+          "variation": 0.0
+        },
+        {
+          "month": "Feb",
+          "period": "2027-02",
+          "target": 20.58,
+          "achieved": null,
+          "pct": 0.0,
+          "variation": 0.0
+        },
+        {
+          "month": "Mar",
+          "period": "2027-03",
+          "target": 24.7,
+          "achieved": null,
+          "pct": 0.0,
+          "variation": 0.0
+        }
+      ],
+      "monthlyTotals": {
+        "target": 247.0,
+        "achieved": 122.25,
+        "pct": 49.0,
+        "variation": -3.31
+      },
+      "weeklySummary": [
+        {
+          "weekLabel": "Wk 1",
+          "targetTotal": 61.75,
+          "achievedTotal": 29.75,
+          "targets": [
+            4.63,
+            6.18,
+            5.15,
+            4.63,
+            5.15,
+            5.66,
+            5.66,
+            4.63,
+            4.12,
+            4.63,
+            5.15,
+            6.18
+          ],
+          "achieved": [
+            4.58,
+            2.72,
+            5.46,
+            0.68,
+            10.39,
+            5.92,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null
+          ]
+        },
+        {
+          "weekLabel": "Wk 2",
+          "targetTotal": 61.75,
+          "achievedTotal": 18.28,
+          "targets": [
+            4.63,
+            6.18,
+            5.15,
+            4.63,
+            5.15,
+            5.66,
+            5.66,
+            4.63,
+            4.12,
+            4.63,
+            5.15,
+            6.18
+          ],
+          "achieved": [
+            2.25,
+            7.06,
+            0.51,
+            1.31,
+            4.34,
+            2.81,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null
+          ]
+        },
+        {
+          "weekLabel": "Wk 3",
+          "targetTotal": 61.75,
+          "achievedTotal": 21.72,
+          "targets": [
+            4.63,
+            6.18,
+            5.15,
+            4.63,
+            5.15,
+            5.66,
+            5.66,
+            4.63,
+            4.12,
+            4.63,
+            5.15,
+            6.18
+          ],
+          "achieved": [
+            6.73,
+            5.99,
+            2.18,
+            0.49,
+            5.77,
+            0.56,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null
+          ]
+        },
+        {
+          "weekLabel": "Wk 4",
+          "targetTotal": 61.75,
+          "achievedTotal": 52.5,
+          "targets": [
+            4.63,
+            6.18,
+            5.15,
+            4.63,
+            5.15,
+            5.66,
+            5.66,
+            4.63,
+            4.12,
+            4.63,
+            5.15,
+            6.18
+          ],
+          "achieved": [
+            9.41,
+            2.53,
+            6.57,
+            17.7,
+            2.34,
+            13.95,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null
+          ]
+        }
+      ],
+      "previousYearPerformance": [
+        {
+          "month": "Apr",
+          "target": 19.28,
+          "actual": 22.51
+        },
+        {
+          "month": "May",
+          "target": 25.7,
+          "actual": 18.29
+        },
+        {
+          "month": "June",
+          "target": 21.42,
+          "actual": 15.77
+        },
+        {
+          "month": "July",
+          "target": 19.28,
+          "actual": 17.47
+        },
+        {
+          "month": "Aug",
+          "target": 21.42,
+          "actual": 18.37
+        },
+        {
+          "month": "Sep",
+          "target": 23.56,
+          "actual": 14.83
+        },
+        {
+          "month": "Oct",
+          "target": 23.56,
+          "actual": 17.35
+        },
+        {
+          "month": "Nov",
+          "target": 19.28,
+          "actual": 23.84
+        },
+        {
+          "month": "Dec",
+          "target": 17.13,
+          "actual": 20.18
+        },
+        {
+          "month": "Jan",
+          "target": 19.28,
+          "actual": 22.14
+        },
+        {
+          "month": "Feb",
+          "target": 21.42,
+          "actual": 18.89
+        },
+        {
+          "month": "Mar",
+          "target": 25.7,
+          "actual": 12.5
+        }
+      ],
+      "previousYearTotals": {
+        "target": 257.0,
+        "actual": 222.14
+      },
+      "territoryExpansion": {
+        "targetExpansionCities": "",
+        "visitsMade": "",
+        "newDealersText": "1)Radha Patel'S, 2)Electra Enterprise LLP, 3)Streem \nEnterprises 4)Jagruti Décor"
+      },
+      "teamSourceText": "4)2715J426\nAshok Matal",
+      "territoriesSourceText": "Mumbai",
+      "teamEntries": [
+        {
+          "name": "Ashok Matal",
+          "citiesCovered": ""
+        }
+      ],
+      "thrustTotalLakh": 2.53,
+      "technicalService": {
+        "center": "Mumbai",
+        "executive": "Ashok Matal"
+      },
+      "thrustProductGroups": [
+        {
+          "productsText": "Patina",
+          "achievedText": "2.53"
+        },
+        {
+          "productsText": "",
+          "achievedText": ""
+        }
+      ],
+      "specialAchievementsNotes": "",
+      "sourceWarnings": [],
+      "sourceText": "     PSSPL REGIONAL MANAGER SALES                                           30.09.2026           Regional             Harsh Shah                     RM Code                  271702                     Operting              Mumbai\n         TARGET FEED BACK SUPPORT                                                                 Manager                                                                                              from: City\nTargetfor Territory                                                                                                                                                                     Annual         Target till        Actual        % Actual\nExpansion / Penetraion                                                                                                                                                                  Target           Month             Total\nVisits made by you to                                                                                                                                                                     247.00         125.56           122.25           97%\nnew Territory (dates)\nNew Dealer or Customer                                                                                          Business                           1)2425R126,\nappointed in new territory           1)Radha Patel'S, 2)Electra Enterprise LLP, 3)Streem                        Registrat'n            Yes         2)2415E 126,                          257.00           130.64           107.24           82%\nthis year                            Enterprises 4)Jagruti Décor                                                form Yes/No                        3)2715S126,\n                                                                                                                                                   4)2715J426\nTeam Mates  ,                        Ashok Matal                                                                                                                                                      Tech Serv                 Mumbai\nSales Executives                                                                                                                                                                                      Center\n\nExisting Sales Territory Mumbai                                                                                                                                                                       Tech Serv              Ashok Matal\n: Cities                                                                                                                                                                                              Executive\n\n      2.53                  Thrust                Patina\n                          Product\n\n                          YTD Sales                2.53\n                     Achieved Rs.L\n\n                            Thrust\n                          Product\n\n                          YTD Sales\n                     Achieved Rs.L\n\n                     Monthly Sales Target Vs Achievement\n\n  60.00\n\n  50.00\n\n  40.00\n\n  30.00       22.97 24.70                     22.85 23.23                                          24.70\n                           20.58      20.18 20.58  22.64 22.64                             20.58\n  20.00    18.53      18.30        18.53                           18.53 16.47     18.53\n                              14.72\n\n  10.00\n                                                                -       -       -       -       -       -\n      -\n             Apr     May     June    July    Aug     Sep     Oct     Nov     Dec     Jan     Feb     Mar\n\n                                              Series1      Series7\n\n\n    Target              247.00                 18.53           24.70                20.58             18.53            20.58            22.64            22.64             18.53            16.47            18.53           20.58          24.70\n\n  Achieved              122.25                 22.97           18.30                14.72             20.18            22.85            23.23                 -                -                -                 -              -              -\n % Achieve               49%               124%               74%               72%               109%              111%              103%               0%               0%               0%               0%               0%              0%\n     ment\n  Variation             -3.31              4.45              -6.40             -5.86               1.66              2.26             0.59              0.00             0.00             0.00             0.00             0.00            0.00\n\n Purchases          Total Rs.L              Apr              May               June                July              Aug               Sep              Oct              Nov              Dec               Jan             Feb            Mar\n\nWk 1 Target                 61.75                   4.63           6.18                5.15               4.63             5.15             5.66              5.66             4.63             4.12             4.63            5.15           6.18\n     Wk 1                   29.75                   4.58           2.72                5.46               0.68           10.39              5.92\n  Achieved\n\nWk 2 Target                 61.75                   4.63           6.18                5.15               4.63             5.15             5.66              5.66             4.63             4.12             4.63            5.15           6.18\n\n     Wk 2                   18.28                   2.25           7.06                0.51               1.31             4.34             2.81\n  Achieved\nWk 3 Target                 61.75                   4.63           6.18                5.15               4.63             5.15             5.66              5.66             4.63             4.12             4.63            5.15           6.18\n\n     Wk 3                   21.72                   6.73           5.99                2.18               0.49             5.77             0.56\n  Achieved\nWk 4 Target                 61.75                   4.63           6.18                5.15               4.63             5.15             5.66              5.66             4.63             4.12             4.63            5.15           6.18\n\n     Wk 4                   52.50                   9.41           2.53                6.57             17.70              2.34           13.95\n  Achieved\n    Special                     -\n    Targets\n\n  Achieved                      -\n\nPrevious year           257.00                   19.28          25.70                21.42              19.28            21.42            23.56             23.56            19.28            17.13            19.28           21.42          25.70\n     Target\nPrevious year           222.14                   22.51          18.29                15.77              17.47            18.37            14.83             17.35            23.84            20.18            22.14           18.89          12.50\n Actual Sales\n\n\n  Special Achievement\n     and Other Notes"
+    },
+    {
+      "id": "jithinthomas",
+      "reportDate": "30.09.2026",
+      "asOf": "2026-09-30",
+      "financialYear": "2026-27",
+      "units": "INR lakh",
+      "source": {
+        "kind": "supplied_pdf_snapshot",
+        "fileName": "PSS RM Jithin Thomas Sales Feedback.pdf",
+        "sha256": "3338ca3e22d1a44a4adb2db0b255135dd84c7e4aa5fd89b32b27941c13dc84a0",
+        "page": 1
+      },
+      "rm": {
+        "name": "Jithin Thomas",
+        "sourceName": "Jithin Thomas",
+        "rmCode": "322631",
+        "operatingFrom": "Kerala",
+        "businessRegistrationForm": "Yes",
+        "registrationCodes": []
+      },
+      "annual": {
+        "currentYearTarget": 148.0,
+        "currentYearTargetTillMonth": 75.23,
+        "currentYearActual": 80.37,
+        "currentYearPct": 107.0,
+        "lastYearTarget": 182.0,
+        "lastYearTargetTillMonth": 92.52,
+        "lastYearActual": 78.81,
+        "lastYearPct": 85.0
+      },
+      "monthlyMetrics": [
+        {
+          "month": "Apr",
+          "period": "2026-04",
+          "target": 11.1,
+          "achieved": 4.38,
+          "pct": 39.0,
+          "variation": -6.72
+        },
+        {
+          "month": "May",
+          "period": "2026-05",
+          "target": 14.8,
+          "achieved": 5.11,
+          "pct": 35.0,
+          "variation": -9.69
+        },
+        {
+          "month": "June",
+          "period": "2026-06",
+          "target": 12.33,
+          "achieved": 17.6,
+          "pct": 143.0,
+          "variation": 5.27
+        },
+        {
+          "month": "July",
+          "period": "2026-07",
+          "target": 11.1,
+          "achieved": 21.3,
+          "pct": 192.0,
+          "variation": 10.2
+        },
+        {
+          "month": "Aug",
+          "period": "2026-08",
+          "target": 12.33,
+          "achieved": 8.23,
+          "pct": 67.0,
+          "variation": -4.1
+        },
+        {
+          "month": "Sep",
+          "period": "2026-09",
+          "target": 13.57,
+          "achieved": 23.75,
+          "pct": 175.0,
+          "variation": 10.18
+        },
+        {
+          "month": "Oct",
+          "period": "2026-10",
+          "target": 13.57,
+          "achieved": null,
+          "pct": 0.0,
+          "variation": 0.0
+        },
+        {
+          "month": "Nov",
+          "period": "2026-11",
+          "target": 11.1,
+          "achieved": null,
+          "pct": 0.0,
+          "variation": 0.0
+        },
+        {
+          "month": "Dec",
+          "period": "2026-12",
+          "target": 9.87,
+          "achieved": null,
+          "pct": 0.0,
+          "variation": 0.0
+        },
+        {
+          "month": "Jan",
+          "period": "2027-01",
+          "target": 11.1,
+          "achieved": null,
+          "pct": 0.0,
+          "variation": 0.0
+        },
+        {
+          "month": "Feb",
+          "period": "2027-02",
+          "target": 12.33,
+          "achieved": null,
+          "pct": 0.0,
+          "variation": 0.0
+        },
+        {
+          "month": "Mar",
+          "period": "2027-03",
+          "target": 14.8,
+          "achieved": null,
+          "pct": 0.0,
+          "variation": 0.0
+        }
+      ],
+      "monthlyTotals": {
+        "target": 148.0,
+        "achieved": 80.37,
+        "pct": 54.0,
+        "variation": 5.14
+      },
+      "weeklySummary": [
+        {
+          "weekLabel": "Wk 1",
+          "targetTotal": 37.0,
+          "achievedTotal": 5.35,
+          "targets": [
+            2.78,
+            3.7,
+            3.08,
+            2.78,
+            3.08,
+            3.39,
+            3.39,
+            2.78,
+            2.47,
+            2.78,
+            3.08,
+            3.7
+          ],
+          "achieved": [
+            1.6,
+            null,
+            null,
+            null,
+            0.14,
+            3.61,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null
+          ]
+        },
+        {
+          "weekLabel": "Wk 2",
+          "targetTotal": 37.0,
+          "achievedTotal": 25.78,
+          "targets": [
+            2.78,
+            3.7,
+            3.08,
+            2.78,
+            3.08,
+            3.39,
+            3.39,
+            2.78,
+            2.47,
+            2.78,
+            3.08,
+            3.7
+          ],
+          "achieved": [
+            2.74,
+            1.99,
+            11.32,
+            9.41,
+            0.32,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null
+          ]
+        },
+        {
+          "weekLabel": "Wk 3",
+          "targetTotal": 37.0,
+          "achievedTotal": 22.51,
+          "targets": [
+            2.78,
+            3.7,
+            3.08,
+            2.78,
+            3.08,
+            3.39,
+            3.39,
+            2.78,
+            2.47,
+            2.78,
+            3.08,
+            3.7
+          ],
+          "achieved": [
+            null,
+            3.12,
+            4.91,
+            0.13,
+            7.15,
+            7.21,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null
+          ]
+        },
+        {
+          "weekLabel": "Wk 4",
+          "targetTotal": 37.0,
+          "achievedTotal": 26.73,
+          "targets": [
+            2.78,
+            3.7,
+            3.08,
+            2.78,
+            3.08,
+            3.39,
+            3.39,
+            2.78,
+            2.47,
+            2.78,
+            3.08,
+            3.7
+          ],
+          "achieved": [
+            0.05,
+            null,
+            1.37,
+            11.76,
+            0.62,
+            12.93,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null
+          ]
+        }
+      ],
+      "previousYearPerformance": [
+        {
+          "month": "Apr",
+          "target": 13.65,
+          "actual": 14.37
+        },
+        {
+          "month": "May",
+          "target": 18.2,
+          "actual": 10.4
+        },
+        {
+          "month": "June",
+          "target": 15.17,
+          "actual": 12.82
+        },
+        {
+          "month": "July",
+          "target": 13.65,
+          "actual": 18.31
+        },
+        {
+          "month": "Aug",
+          "target": 15.17,
+          "actual": 8.29
+        },
+        {
+          "month": "Sep",
+          "target": 16.68,
+          "actual": 14.63
+        },
+        {
+          "month": "Oct",
+          "target": 16.68,
+          "actual": 13.81
+        },
+        {
+          "month": "Nov",
+          "target": 13.65,
+          "actual": 10.94
+        },
+        {
+          "month": "Dec",
+          "target": 12.13,
+          "actual": 13.21
+        },
+        {
+          "month": "Jan",
+          "target": 13.65,
+          "actual": 12.97
+        },
+        {
+          "month": "Feb",
+          "target": 15.17,
+          "actual": 13.95
+        },
+        {
+          "month": "Mar",
+          "target": 18.2,
+          "actual": 24.48
+        }
+      ],
+      "previousYearTotals": {
+        "target": 182.0,
+        "actual": 168.17
+      },
+      "territoryExpansion": {
+        "targetExpansionCities": "Calicut",
+        "visitsMade": "",
+        "newDealersText": ""
+      },
+      "teamSourceText": "Mohammed \nArif\nYadav P",
+      "territoriesSourceText": "Thrissur\nkerala",
+      "teamEntries": [
+        {
+          "name": "Mohammed Arif",
+          "citiesCovered": "Thrissur"
+        },
+        {
+          "name": "Yadav P",
+          "citiesCovered": "kerala"
+        }
+      ],
+      "thrustTotalLakh": 1.46,
+      "technicalService": {
+        "center": "",
+        "executive": ""
+      },
+      "thrustProductGroups": [
+        {
+          "productsText": "Jcu\nGold Salts\nShimaclad Peony\nAcid Copper",
+          "achievedText": "1.46"
+        },
+        {
+          "productsText": "",
+          "achievedText": ""
+        }
+      ],
+      "specialAchievementsNotes": "",
+      "sourceWarnings": [],
+      "sourceText": "    PSSPL REGIONAL MANAGER SALES                                          30.09.2026             Regional           Jithin Thomas                   RM Code                   322631                   Operting                 Kerala\n         TARGET FEED BACK SUPPORT                                                                Manager                                                                                              from: City\nTargetfor Territory                              Calicut                                                                                                                                Annual         Target till        Actual        % Actual\nExpansion / Penetraion                                                                                                                                                                  Target           Month             Total\nVisits made by you to                                                                                                                                                                    148.00           75.23           80.37           107%\nnew Territory (dates)\n\nNew Dealer or Customer                                                                                          Business                          Over Write\nappointed in new territory                                                                                      Registrat'n                       Dealer Codes                          182.00            92.52            78.81           85%\nthis year                                                                                                       form Yes/No                       here\n\nTeam Mates  ,                        Mohammed            Yadav P                                                                                                                                      Tech Serv\nSales Executives                     Arif                                                                                                                                                             Center\n\nExisting Sales Territory             Thrissur            kerala                                                                                                                                       Tech Serv\n: Cities                                                                                                                                                                                              Executive\n\n      1.46                  Thrust             Gold Salts                       Shimaclad Peony                         Acid Copper                             Jcu\n                          Product\n\n                          YTD Sales                                                                                                                             1.46\n                     Achieved Rs.L\n\n                            Thrust\n                          Product\n\n                          YTD Sales\n                     Achieved Rs.L\n\n                     Monthly Sales Target Vs Achievement\n  60.00\n\n  50.00\n\n  40.00\n\n  30.00                                              23.75\n                              17.60 21.30\n  20.00            14.80 12.33             12.33   13.57   13.57                           12.33   14.80\n           11.10                   11.10      8.23                 11.10    9.87   11.10\n  10.00       4.38    5.11\n                                                                -       -       -       -       -       -\n      -\n             Apr     May     June    July    Aug     Sep     Oct     Nov     Dec     Jan     Feb    Mar\n\n                                              Series1      Series7\n\n\n    Target              148.00                 11.10            14.80               12.33              11.10           12.33            13.57             13.57            11.10              9.87           11.10           12.33          14.80\n\n  Achieved                 80.37                  4.38           5.11               17.60              21.30             8.23           23.75                 -                -                -                -                -             -\n % Achieve               54%               39%               35%              143%                192%               67%             175%               0%               0%               0%                0%              0%              0%\n     ment\n  Variation              5.14             -6.72              -9.69             5.27               10.20             -4.10            10.18             0.00             0.00             0.00              0.00            0.00            0.00\n\n Purchases          Total Rs.L              Apr              May               June                July              Aug              Sep               Oct             Nov               Dec              Jan              Feb            Mar\n\nWk 1 Target                 37.00                   2.78           3.70                3.08               2.78             3.08             3.39             3.39              2.78             2.47             2.78            3.08          3.70\n     Wk 1                     5.35                  1.60                                                                   0.14             3.61\n  Achieved\nWk 2 Target                 37.00                   2.78           3.70                3.08               2.78             3.08             3.39             3.39              2.78             2.47             2.78            3.08          3.70\n     Wk 2                   25.78                   2.74           1.99              11.32                9.41             0.32\n  Achieved\nWk 3 Target                 37.00                   2.78           3.70                3.08               2.78             3.08             3.39             3.39              2.78             2.47             2.78            3.08          3.70\n     Wk 3                   22.51                                  3.12                4.91               0.13             7.15             7.21\n  Achieved\nWk 4 Target                 37.00                   2.78           3.70                3.08               2.78             3.08             3.39             3.39              2.78             2.47             2.78            3.08          3.70\n     Wk 4                   26.73                   0.05                               1.37             11.76              0.62           12.93\n  Achieved\n    Special                     -\n    Targets\n  Achieved                      -\n\nPrevious year          182.00                     13.65         18.20                15.17              13.65            15.17            16.68            16.68             13.65            12.13            13.65          15.17          18.20\n     Target\nPrevious year          168.17                     14.37          10.40               12.82              18.31              8.29           14.63            13.81             10.94            13.21            12.97          13.95          24.48\n  Actual Sales\n\n\n  Special Achievement\n     and Other Notes"
+    },
+    {
+      "id": "nazmulislam",
+      "reportDate": "30.09.2026",
+      "asOf": "2026-09-30",
+      "financialYear": "2026-27",
+      "units": "INR lakh",
+      "source": {
+        "kind": "supplied_pdf_snapshot",
+        "fileName": "PSS RM Nazmul Islam Sales Feedback.pdf",
+        "sha256": "30685a018c31319d015f6bf3d455564069bdc4dad6e895643d997ab78f5802e6",
+        "page": 1
+      },
+      "rm": {
+        "name": "Nazmul Islam",
+        "sourceName": "Nazmul Islam",
+        "rmCode": "000739",
+        "operatingFrom": "Bangladesh",
+        "businessRegistrationForm": "Yes",
+        "registrationCodes": [
+          "9715U126"
+        ]
+      },
+      "annual": {
+        "currentYearTarget": 100.0,
+        "currentYearTargetTillMonth": 7.5,
+        "currentYearActual": 10.49,
+        "currentYearPct": 140.0,
+        "lastYearTarget": 100.0,
+        "lastYearTargetTillMonth": 7.5,
+        "lastYearActual": 0.0,
+        "lastYearPct": 0.0
+      },
+      "monthlyMetrics": [
+        {
+          "month": "Apr",
+          "period": "2026-04",
+          "target": 7.5,
+          "achieved": null,
+          "pct": 0.0,
+          "variation": 0.0
+        },
+        {
+          "month": "May",
+          "period": "2026-05",
+          "target": 10.0,
+          "achieved": null,
+          "pct": 0.0,
+          "variation": 0.0
+        },
+        {
+          "month": "June",
+          "period": "2026-06",
+          "target": 8.33,
+          "achieved": null,
+          "pct": 0.0,
+          "variation": 0.0
+        },
+        {
+          "month": "July",
+          "period": "2026-07",
+          "target": 7.5,
+          "achieved": 10.49,
+          "pct": 140.0,
+          "variation": 2.99
+        },
+        {
+          "month": "Aug",
+          "period": "2026-08",
+          "target": 8.33,
+          "achieved": null,
+          "pct": 0.0,
+          "variation": 0.0
+        },
+        {
+          "month": "Sep",
+          "period": "2026-09",
+          "target": 9.17,
+          "achieved": null,
+          "pct": 0.0,
+          "variation": 0.0
+        },
+        {
+          "month": "Oct",
+          "period": "2026-10",
+          "target": 9.17,
+          "achieved": null,
+          "pct": 0.0,
+          "variation": 0.0
+        },
+        {
+          "month": "Nov",
+          "period": "2026-11",
+          "target": 7.5,
+          "achieved": null,
+          "pct": 0.0,
+          "variation": 0.0
+        },
+        {
+          "month": "Dec",
+          "period": "2026-12",
+          "target": 6.67,
+          "achieved": null,
+          "pct": 0.0,
+          "variation": 0.0
+        },
+        {
+          "month": "Jan",
+          "period": "2027-01",
+          "target": 7.5,
+          "achieved": null,
+          "pct": 0.0,
+          "variation": 0.0
+        },
+        {
+          "month": "Feb",
+          "period": "2027-02",
+          "target": 8.33,
+          "achieved": null,
+          "pct": 0.0,
+          "variation": 0.0
+        },
+        {
+          "month": "Mar",
+          "period": "2027-03",
+          "target": 10.0,
+          "achieved": null,
+          "pct": 0.0,
+          "variation": 0.0
+        }
+      ],
+      "monthlyTotals": {
+        "target": 100.0,
+        "achieved": 10.49,
+        "pct": 10.0,
+        "variation": 2.99
+      },
+      "weeklySummary": [
+        {
+          "weekLabel": "Wk 1",
+          "targetTotal": 25.0,
+          "achievedTotal": null,
+          "targets": [
+            1.88,
+            2.5,
+            2.08,
+            1.88,
+            2.08,
+            2.29,
+            2.29,
+            1.88,
+            1.67,
+            1.88,
+            2.08,
+            2.5
+          ],
+          "achieved": [
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null
+          ]
+        },
+        {
+          "weekLabel": "Wk 2",
+          "targetTotal": 25.0,
+          "achievedTotal": null,
+          "targets": [
+            1.88,
+            2.5,
+            2.08,
+            1.88,
+            2.08,
+            2.29,
+            2.29,
+            1.88,
+            1.67,
+            1.88,
+            2.08,
+            2.5
+          ],
+          "achieved": [
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null
+          ]
+        },
+        {
+          "weekLabel": "Wk 3",
+          "targetTotal": 25.0,
+          "achievedTotal": null,
+          "targets": [
+            1.88,
+            2.5,
+            2.08,
+            1.88,
+            2.08,
+            2.29,
+            2.29,
+            1.88,
+            1.67,
+            1.88,
+            2.08,
+            2.5
+          ],
+          "achieved": [
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null
+          ]
+        },
+        {
+          "weekLabel": "Wk 4",
+          "targetTotal": 25.0,
+          "achievedTotal": 10.49,
+          "targets": [
+            1.88,
+            2.5,
+            2.08,
+            1.88,
+            2.08,
+            2.29,
+            2.29,
+            1.88,
+            1.67,
+            1.88,
+            2.08,
+            2.5
+          ],
+          "achieved": [
+            null,
+            null,
+            null,
+            10.49,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null
+          ]
+        }
+      ],
+      "previousYearPerformance": [
+        {
+          "month": "Apr",
+          "target": 7.5,
+          "actual": null
+        },
+        {
+          "month": "May",
+          "target": 10.0,
+          "actual": null
+        },
+        {
+          "month": "June",
+          "target": 8.33,
+          "actual": null
+        },
+        {
+          "month": "July",
+          "target": 7.5,
+          "actual": null
+        },
+        {
+          "month": "Aug",
+          "target": 8.33,
+          "actual": null
+        },
+        {
+          "month": "Sep",
+          "target": 9.17,
+          "actual": null
+        },
+        {
+          "month": "Oct",
+          "target": 9.17,
+          "actual": null
+        },
+        {
+          "month": "Nov",
+          "target": 7.5,
+          "actual": null
+        },
+        {
+          "month": "Dec",
+          "target": 6.67,
+          "actual": null
+        },
+        {
+          "month": "Jan",
+          "target": 7.5,
+          "actual": null
+        },
+        {
+          "month": "Feb",
+          "target": 8.33,
+          "actual": null
+        },
+        {
+          "month": "Mar",
+          "target": 10.0,
+          "actual": null
+        }
+      ],
+      "previousYearTotals": {
+        "target": 100.0,
+        "actual": 0.0
+      },
+      "territoryExpansion": {
+        "targetExpansionCities": "",
+        "visitsMade": "",
+        "newDealersText": "1)Unique Enterprise"
+      },
+      "teamSourceText": "Nazmul Islam",
+      "territoriesSourceText": "Bangladesh",
+      "teamEntries": [
+        {
+          "name": "Nazmul Islam",
+          "citiesCovered": "Bangladesh"
+        }
+      ],
+      "thrustTotalLakh": 0.02,
+      "technicalService": {
+        "center": "",
+        "executive": ""
+      },
+      "thrustProductGroups": [
+        {
+          "productsText": "Cooper Salts\nBrass Salts\nPatina\nTin Process\nNickel Salts",
+          "achievedText": "0.02"
+        },
+        {
+          "productsText": "Chrome Salt\nSoak Cleaners\nElectrocleaner",
+          "achievedText": ""
+        }
+      ],
+      "specialAchievementsNotes": "",
+      "sourceWarnings": [],
+      "sourceText": "     PSSPL REGIONAL MANAGER SALES                                         30.09.2026             Regional         Nazmul Islam                      RM Code                   000739                   Operting            Bangladesh\n          TARGET FEED BACK SUPPORT                                                               Manager                                                                                              from: City\nTargetfor Territory                                                                                                                                                                    Annual          Target till        Actual       % Actual\nExpansion / Penetraion                                                                                                                                                                  Target           Month             Total\nVisits made by you to                                                                                                                                                                    100.00           7.50            10.49           140%\nnew Territory (dates)\n\nNew Dealer or Customer                                                                                          Business\nappointed in new territory           1)Unique Enterprise                                                        Registrat'n           Yes         1)9715U126                            100.00             7.50             0.00            0%\nthis year                                                                                                       form Yes/No\n\nTeam Mates  ,                        Nazmul Islam                                                                                                                                                     Tech Serv\nSales Executives                                                                                                                                                                                            Center\n\nExisting Sales Territory             Bangladesh                                                                                                                                                         Tech Serv\n: Cities                                                                                                                                                                                                 Executive\n\n      0.02                  Thrust                Patina                            Tin Process                         Nickel Salts                      Cooper Salts                       Brass Salts\n                          Product\n\n                          YTD Sales                0.02\n                     Achieved Rs.L\n\n                            Thrust            Chrome Salt                         Soak Cleaners                        Electrocleaner\n                          Product\n\n                          YTD Sales\n                     Achieved Rs.L\n\n                     Monthly Sales Target Vs Achievement\n  30.00\n\n  25.00\n\n  20.00\n\n  15.00\n                   10.00    8.33     10.49 8.33     9.17    9.17                           8.33    10.00\n  10.00     7.50                    7.50                            7.50    6.67    7.50\n\n    5.00\n      -         -       -       -               -       -       -       -       -       -       -       -\n\n             Apr     May     June    July    Aug     Sep     Oct     Nov     Dec     Jan     Feb    Mar\n\n                                              Series1      Series7\n\n\n    Target               100.00                  7.50         10.00                  8.33                7.50            8.33              9.17             9.17             7.50             6.67             7.50           8.33         10.00\n\n  Achieved                10.49                    -                -                   -            10.49                 -                -                -                 -                -                -              -              -\n % Achieve               10%                0%                0%                0%                140%               0%                0%               0%               0%               0%               0%               0%              0%\n     ment\n  Variation             2.99               0.00              0.00              0.00               2.99              0.00              0.00             0.00             0.00             0.00             0.00             0.00           0.00\n\n Purchases          Total Rs.L             Apr               May               June                July              Aug              Sep              Oct              Nov               Dec              Jan              Feb            Mar\n\nWk 1 Target                 25.00                   1.88           2.50                2.08               1.88             2.08             2.29             2.29             1.88             1.67              1.88            2.08          2.50\n\n     Wk 1                       -\n  Achieved\n\nWk 2 Target                 25.00                   1.88           2.50                2.08               1.88             2.08             2.29             2.29             1.88             1.67              1.88            2.08          2.50\n\n     Wk 2                       -\n  Achieved\n\nWk 3 Target                 25.00                   1.88           2.50                2.08               1.88             2.08             2.29             2.29             1.88             1.67              1.88            2.08          2.50\n\n     Wk 3                       -\n  Achieved\nWk 4 Target                 25.00                   1.88           2.50                2.08               1.88             2.08             2.29             2.29             1.88             1.67              1.88            2.08          2.50\n\n     Wk 4                   10.49                                                                       10.49\n  Achieved\n    Special                     -\n    Targets\n\n  Achieved                      -\n\nPrevious year          100.00                       7.50         10.00                 8.33               7.50             8.33             9.17             9.17             7.50             6.67              7.50           8.33         10.00\n     Target\nPrevious year            0.00                                                            -                  -                                                                   -                                                 -              -\n Actual Sales\n\n\n   Special Achievement\n      and Other Notes"
+    },
+    {
+      "id": "pradeepmulik",
+      "reportDate": "30.09.2026",
+      "asOf": "2026-09-30",
+      "financialYear": "2026-27",
+      "units": "INR lakh",
+      "source": {
+        "kind": "supplied_pdf_snapshot",
+        "fileName": "PSS RM Pradeep Mulik Sales Feedback.pdf",
+        "sha256": "46694b50c87c8b9898d56b87b87c14cdfaae3501d8804583931c1f3fef4ad1f4",
+        "page": 1
+      },
+      "rm": {
+        "name": "Pradeep Mulik",
+        "sourceName": "Pradeep Mulik",
+        "rmCode": "273707",
+        "operatingFrom": "Pune",
+        "businessRegistrationForm": "Yes",
+        "registrationCodes": []
+      },
+      "annual": {
+        "currentYearTarget": 132.0,
+        "currentYearTargetTillMonth": 67.1,
+        "currentYearActual": 397.92,
+        "currentYearPct": 593.0,
+        "lastYearTarget": 154.0,
+        "lastYearTargetTillMonth": 78.28,
+        "lastYearActual": 55.71,
+        "lastYearPct": 71.0
+      },
+      "monthlyMetrics": [
+        {
+          "month": "Apr",
+          "period": "2026-04",
+          "target": 9.9,
+          "achieved": 11.15,
+          "pct": 113.0,
+          "variation": 1.25
+        },
+        {
+          "month": "May",
+          "period": "2026-05",
+          "target": 13.2,
+          "achieved": 17.24,
+          "pct": 131.0,
+          "variation": 4.04
+        },
+        {
+          "month": "June",
+          "period": "2026-06",
+          "target": 11.0,
+          "achieved": 18.65,
+          "pct": 170.0,
+          "variation": 7.65
+        },
+        {
+          "month": "July",
+          "period": "2026-07",
+          "target": 9.9,
+          "achieved": 65.58,
+          "pct": 662.0,
+          "variation": 55.68
+        },
+        {
+          "month": "Aug",
+          "period": "2026-08",
+          "target": 11.0,
+          "achieved": 160.72,
+          "pct": 1461.0,
+          "variation": 149.72
+        },
+        {
+          "month": "Sep",
+          "period": "2026-09",
+          "target": 12.1,
+          "achieved": 124.58,
+          "pct": 1030.0,
+          "variation": 112.48
+        },
+        {
+          "month": "Oct",
+          "period": "2026-10",
+          "target": 12.1,
+          "achieved": null,
+          "pct": 0.0,
+          "variation": 0.0
+        },
+        {
+          "month": "Nov",
+          "period": "2026-11",
+          "target": 9.9,
+          "achieved": null,
+          "pct": 0.0,
+          "variation": 0.0
+        },
+        {
+          "month": "Dec",
+          "period": "2026-12",
+          "target": 8.8,
+          "achieved": null,
+          "pct": 0.0,
+          "variation": 0.0
+        },
+        {
+          "month": "Jan",
+          "period": "2027-01",
+          "target": 9.9,
+          "achieved": null,
+          "pct": 0.0,
+          "variation": 0.0
+        },
+        {
+          "month": "Feb",
+          "period": "2027-02",
+          "target": 11.0,
+          "achieved": null,
+          "pct": 0.0,
+          "variation": 0.0
+        },
+        {
+          "month": "Mar",
+          "period": "2027-03",
+          "target": 13.2,
+          "achieved": null,
+          "pct": 0.0,
+          "variation": 0.0
+        }
+      ],
+      "monthlyTotals": {
+        "target": 132.0,
+        "achieved": 397.92,
+        "pct": 301.0,
+        "variation": 330.82
+      },
+      "weeklySummary": [
+        {
+          "weekLabel": "Wk 1",
+          "targetTotal": 33.0,
+          "achievedTotal": 39.72,
+          "targets": [
+            2.48,
+            3.3,
+            2.75,
+            2.48,
+            2.75,
+            3.03,
+            3.03,
+            2.48,
+            2.2,
+            2.48,
+            2.75,
+            3.3
+          ],
+          "achieved": [
+            3.95,
+            11.01,
+            4.4,
+            2.08,
+            5.48,
+            12.79,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null
+          ]
+        },
+        {
+          "weekLabel": "Wk 2",
+          "targetTotal": 33.0,
+          "achievedTotal": 119.46,
+          "targets": [
+            2.48,
+            3.3,
+            2.75,
+            2.48,
+            2.75,
+            3.03,
+            3.03,
+            2.48,
+            2.2,
+            2.48,
+            2.75,
+            3.3
+          ],
+          "achieved": [
+            0.75,
+            null,
+            5.06,
+            7.35,
+            1.51,
+            104.79,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null
+          ]
+        },
+        {
+          "weekLabel": "Wk 3",
+          "targetTotal": 33.0,
+          "achievedTotal": 73.06,
+          "targets": [
+            2.48,
+            3.3,
+            2.75,
+            2.48,
+            2.75,
+            3.03,
+            3.03,
+            2.48,
+            2.2,
+            2.48,
+            2.75,
+            3.3
+          ],
+          "achieved": [
+            4.26,
+            5.58,
+            5.73,
+            2.37,
+            52.36,
+            2.76,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null
+          ]
+        },
+        {
+          "weekLabel": "Wk 4",
+          "targetTotal": 33.0,
+          "achievedTotal": 165.69,
+          "targets": [
+            2.48,
+            3.3,
+            2.75,
+            2.48,
+            2.75,
+            3.03,
+            3.03,
+            2.48,
+            2.2,
+            2.48,
+            2.75,
+            3.3
+          ],
+          "achieved": [
+            2.19,
+            0.65,
+            3.46,
+            53.78,
+            101.37,
+            4.24,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null
+          ]
+        }
+      ],
+      "previousYearPerformance": [
+        {
+          "month": "Apr",
+          "target": 11.55,
+          "actual": 9.69
+        },
+        {
+          "month": "May",
+          "target": 15.4,
+          "actual": 9.35
+        },
+        {
+          "month": "June",
+          "target": 12.83,
+          "actual": 8.02
+        },
+        {
+          "month": "July",
+          "target": 11.55,
+          "actual": 7.34
+        },
+        {
+          "month": "Aug",
+          "target": 12.83,
+          "actual": 12.25
+        },
+        {
+          "month": "Sep",
+          "target": 14.12,
+          "actual": 9.05
+        },
+        {
+          "month": "Oct",
+          "target": 14.12,
+          "actual": 6.5
+        },
+        {
+          "month": "Nov",
+          "target": 11.55,
+          "actual": 9.65
+        },
+        {
+          "month": "Dec",
+          "target": 10.27,
+          "actual": 9.32
+        },
+        {
+          "month": "Jan",
+          "target": 11.55,
+          "actual": 6.02
+        },
+        {
+          "month": "Feb",
+          "target": 12.83,
+          "actual": 10.02
+        },
+        {
+          "month": "Mar",
+          "target": 15.4,
+          "actual": 8.17
+        }
+      ],
+      "previousYearTotals": {
+        "target": 154.0,
+        "actual": 105.39
+      },
+      "territoryExpansion": {
+        "targetExpansionCities": "Deeper \nPune\nDeeper Aurangabad\nBelgoan\nDeeper Kolhapur",
+        "visitsMade": "",
+        "newDealersText": ""
+      },
+      "teamSourceText": "Aijaj Shaikh \nMunaf\nPradeep \nMulik\nPradeep \nMulik\nPradeep \nMulik\nPradeep \nMulik",
+      "territoriesSourceText": "Nasik, Shagpur, \nNice Area, Midc, \nAmber Midc\nAhmednagar Aurangabad\nSolapur\nKolhapur",
+      "teamEntries": [
+        {
+          "name": "Aijaj Shaikh Munaf",
+          "citiesCovered": "Nasik, Shagpur, Nice Area, Midc, Amber Midc"
+        },
+        {
+          "name": "Pradeep Mulik",
+          "citiesCovered": "Ahmednagar"
+        },
+        {
+          "name": "Pradeep Mulik",
+          "citiesCovered": "Aurangabad"
+        },
+        {
+          "name": "Pradeep Mulik",
+          "citiesCovered": "Solapur"
+        },
+        {
+          "name": "Pradeep Mulik",
+          "citiesCovered": "Kolhapur"
+        }
+      ],
+      "thrustTotalLakh": 0.0,
+      "technicalService": {
+        "center": "Pune",
+        "executive": "Pradeep Mulik"
+      },
+      "thrustProductGroups": [
+        {
+          "productsText": "Zpn 200\nZpn Blue 15\nZpn Black\nZinc Nickel",
+          "achievedText": ""
+        },
+        {
+          "productsText": "",
+          "achievedText": ""
+        }
+      ],
+      "specialAchievementsNotes": "Note: 1)Sales Return amount Rs. 78300/-",
+      "sourceWarnings": [],
+      "sourceText": "     PSSPL REGIONAL MANAGER SALES                                          30.09.2026           Regional          Pradeep Mulik                    RM Code                  273707                     Operting                Pune\n         TARGET FEED BACK SUPPORT                                                                Manager                                                                                             from: City\nTargetfor Territory                   Deeper Aurangabad                              Belgoan                      Deeper Kolhapur                Deeper                               Annual         Target till        Actual        % Actual\nExpansion / Penetraion                                                                                                                           Pune                                 Target           Month             Total\nVisits made by you to                                                                                                                                                                  132.00           67.10          397.92           593%\nnew Territory (dates)\n\nNew Dealer or Customer                                                                                         Business\nappointed in new territory                                                                                     Registrat'n                                                             154.00           78.28            55.71           71%\nthis year                                                                                                      form Yes/No\n\nTeam Mates  ,                       Aijaj Shaikh        Pradeep          Pradeep            Pradeep            Pradeep                                                                              Tech Serv                  Pune\nSales Executives                    Munaf               Mulik            Mulik              Mulik              Mulik                                                                                Center\n\nExisting Sales Territory            Nasik, Shagpur,                                                                                                                                                 Tech Serv\n: Cities                            Nice Area, Midc,    Ahmednagar      Aurangabad          Solapur            Kolhapur                                                                             Executive           Pradeep Mulik\n                                    Amber Midc\n      0.00                 Thrust             Zpn Blue 15                           Zpn Black                           Zinc Nickel                         Zpn 200\n                          Product\n\n                         YTD Sales\n                     Achieved Rs.L\n\n                           Thrust\n                          Product\n\n                         YTD Sales\n                     Achieved Rs.L\n\n                     Monthly Sales Target Vs Achievement\n  60.00\n\n  50.00\n\n  40.00\n\n  30.00\n  20.00              17.24 18.65\n            9.90 11.15 13.20 11.00  9.90   11.00 12.10 12.10       9.90            9.90   11.00   13.20\n  10.00                                                                    8.80\n\n                                                               -       -       -       -       -       -\n      -\n             Apr     May    June     July    Aug     Sep     Oct    Nov     Dec     Jan     Feb     Mar\n\n                                             Series1      Series7\n\n\n    Target              132.00                   9.90         13.20                11.00               9.90           11.00            12.10             12.10             9.90             8.80             9.90          11.00         13.20\n\n  Achieved              397.92                 11.15          17.24                18.65             65.58         160.72           124.58                  -                -                -                -                -            -\n % Achieve             301%               113%              131%              170%               662%             1461%            1030%               0%               0%               0%               0%              0%              0%\n     ment\n  Variation           330.82               1.25              4.04              7.65              55.68            149.72           112.48             0.00             0.00             0.00             0.00            0.00            0.00\n\n Purchases          Total Rs.L             Apr               May              June                July              Aug              Sep              Oct              Nov              Dec               Jan             Feb            Mar\n\nWk 1 Target                 33.00                   2.48           3.30                2.75              2.48             2.75             3.03             3.03             2.48             2.20             2.48           2.75           3.30\n\n     Wk 1                   39.72                 3.95           11.01                 4.40              2.08             5.48           12.79\n  Achieved\n\nWk 2 Target                 33.00                   2.48           3.30                2.75              2.48             2.75             3.03             3.03             2.48             2.20             2.48           2.75           3.30\n     Wk 2                119.46                     0.75                               5.06              7.35             1.51         104.79\n  Achieved\nWk 3 Target                 33.00                   2.48           3.30                2.75              2.48             2.75             3.03             3.03             2.48             2.20             2.48           2.75           3.30\n\n     Wk 3                   73.06                   4.26           5.58                5.73              2.37           52.36              2.76\n  Achieved\n\nWk 4 Target                 33.00                   2.48           3.30                2.75              2.48             2.75             3.03             3.03             2.48             2.20             2.48           2.75           3.30\n\n     Wk 4                165.69                     2.19           0.65                3.46            53.78          101.37               4.24\n  Achieved\n    Special                     -\n    Targets\n\n  Achieved                      -\n\nPrevious year          154.00                     11.55          15.40               12.83             11.55            12.83            14.12            14.12            11.55            10.27            11.55          12.83          15.40\n     Target\nPrevious year          105.39                       9.69           9.35                8.02              7.34           12.25              9.05             6.50             9.65             9.32             6.02         10.02            8.17\n Actual Sales\n\n\n   Special Achievement              Note: 1)Sales Return amount Rs. 78300/-\n      and Other Notes"
+    },
+    {
+      "id": "raiskhan",
+      "reportDate": "30.09.2026",
+      "asOf": "2026-09-30",
+      "financialYear": "2026-27",
+      "units": "INR lakh",
+      "source": {
+        "kind": "supplied_pdf_snapshot",
+        "fileName": "PSS RM Rais Khan Sales Feedback.pdf",
+        "sha256": "73ef1cb793605b3cf6de04ffd07012b5b6cedebc508767755d6a3af157207df4",
+        "page": 1
+      },
+      "rm": {
+        "name": "Rais Khan",
+        "sourceName": "Rais Khan",
+        "rmCode": "033705",
+        "operatingFrom": "Ludhiana",
+        "businessRegistrationForm": "Yes",
+        "registrationCodes": []
+      },
+      "annual": {
+        "currentYearTarget": 123.0,
+        "currentYearTargetTillMonth": 62.53,
+        "currentYearActual": 53.14,
+        "currentYearPct": 85.0,
+        "lastYearTarget": 138.0,
+        "lastYearTargetTillMonth": 70.15,
+        "lastYearActual": 63.34,
+        "lastYearPct": 90.0
+      },
+      "monthlyMetrics": [
+        {
+          "month": "Apr",
+          "period": "2026-04",
+          "target": 9.23,
+          "achieved": 8.22,
+          "pct": 89.0,
+          "variation": -1.01
+        },
+        {
+          "month": "May",
+          "period": "2026-05",
+          "target": 12.3,
+          "achieved": 15.72,
+          "pct": 128.0,
+          "variation": 3.42
+        },
+        {
+          "month": "June",
+          "period": "2026-06",
+          "target": 10.25,
+          "achieved": 10.8,
+          "pct": 105.0,
+          "variation": 0.55
+        },
+        {
+          "month": "July",
+          "period": "2026-07",
+          "target": 9.23,
+          "achieved": 4.51,
+          "pct": 49.0,
+          "variation": -4.71
+        },
+        {
+          "month": "Aug",
+          "period": "2026-08",
+          "target": 10.25,
+          "achieved": 7.34,
+          "pct": 72.0,
+          "variation": -2.91
+        },
+        {
+          "month": "Sep",
+          "period": "2026-09",
+          "target": 11.28,
+          "achieved": 6.56,
+          "pct": 58.0,
+          "variation": -4.72
+        },
+        {
+          "month": "Oct",
+          "period": "2026-10",
+          "target": 11.28,
+          "achieved": null,
+          "pct": 0.0,
+          "variation": 0.0
+        },
+        {
+          "month": "Nov",
+          "period": "2026-11",
+          "target": 9.23,
+          "achieved": null,
+          "pct": 0.0,
+          "variation": 0.0
+        },
+        {
+          "month": "Dec",
+          "period": "2026-12",
+          "target": 8.2,
+          "achieved": null,
+          "pct": 0.0,
+          "variation": 0.0
+        },
+        {
+          "month": "Jan",
+          "period": "2027-01",
+          "target": 9.23,
+          "achieved": null,
+          "pct": 0.0,
+          "variation": 0.0
+        },
+        {
+          "month": "Feb",
+          "period": "2027-02",
+          "target": 10.25,
+          "achieved": null,
+          "pct": 0.0,
+          "variation": 0.0
+        },
+        {
+          "month": "Mar",
+          "period": "2027-03",
+          "target": 12.3,
+          "achieved": null,
+          "pct": 0.0,
+          "variation": 0.0
+        }
+      ],
+      "monthlyTotals": {
+        "target": 123.0,
+        "achieved": 53.14,
+        "pct": 43.0,
+        "variation": -9.38
+      },
+      "weeklySummary": [
+        {
+          "weekLabel": "Wk 1",
+          "targetTotal": 30.75,
+          "achievedTotal": 9.39,
+          "targets": [
+            2.31,
+            3.08,
+            2.56,
+            2.31,
+            2.56,
+            2.82,
+            2.82,
+            2.31,
+            2.05,
+            2.31,
+            2.56,
+            3.08
+          ],
+          "achieved": [
+            null,
+            7.26,
+            null,
+            null,
+            2.13,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null
+          ]
+        },
+        {
+          "weekLabel": "Wk 2",
+          "targetTotal": 30.75,
+          "achievedTotal": 15.02,
+          "targets": [
+            2.31,
+            3.08,
+            2.56,
+            2.31,
+            2.56,
+            2.82,
+            2.82,
+            2.31,
+            2.05,
+            2.31,
+            2.56,
+            3.08
+          ],
+          "achieved": [
+            5.37,
+            3.81,
+            1.31,
+            3.11,
+            null,
+            1.43,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null
+          ]
+        },
+        {
+          "weekLabel": "Wk 3",
+          "targetTotal": 30.75,
+          "achievedTotal": 12.39,
+          "targets": [
+            2.31,
+            3.08,
+            2.56,
+            2.31,
+            2.56,
+            2.82,
+            2.82,
+            2.31,
+            2.05,
+            2.31,
+            2.56,
+            3.08
+          ],
+          "achieved": [
+            1.08,
+            3.82,
+            4.52,
+            null,
+            2.98,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null
+          ]
+        },
+        {
+          "weekLabel": "Wk 4",
+          "targetTotal": 30.75,
+          "achievedTotal": 16.34,
+          "targets": [
+            2.31,
+            3.08,
+            2.56,
+            2.31,
+            2.56,
+            2.82,
+            2.82,
+            2.31,
+            2.05,
+            2.31,
+            2.56,
+            3.08
+          ],
+          "achieved": [
+            1.78,
+            0.83,
+            4.97,
+            1.41,
+            2.23,
+            5.13,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null
+          ]
+        }
+      ],
+      "previousYearPerformance": [
+        {
+          "month": "Apr",
+          "target": 10.35,
+          "actual": 11.97
+        },
+        {
+          "month": "May",
+          "target": 13.8,
+          "actual": 9.16
+        },
+        {
+          "month": "June",
+          "target": 11.5,
+          "actual": 17.58
+        },
+        {
+          "month": "July",
+          "target": 10.35,
+          "actual": 9.78
+        },
+        {
+          "month": "Aug",
+          "target": 11.5,
+          "actual": 6.6
+        },
+        {
+          "month": "Sep",
+          "target": 12.65,
+          "actual": 8.24
+        },
+        {
+          "month": "Oct",
+          "target": 12.65,
+          "actual": 8.45
+        },
+        {
+          "month": "Nov",
+          "target": 10.35,
+          "actual": 7.12
+        },
+        {
+          "month": "Dec",
+          "target": 9.2,
+          "actual": 5.61
+        },
+        {
+          "month": "Jan",
+          "target": 10.35,
+          "actual": 4.78
+        },
+        {
+          "month": "Feb",
+          "target": 11.5,
+          "actual": 7.57
+        },
+        {
+          "month": "Mar",
+          "target": 13.8,
+          "actual": 8.65
+        }
+      ],
+      "previousYearTotals": {
+        "target": 138.0,
+        "actual": 105.52
+      },
+      "territoryExpansion": {
+        "targetExpansionCities": "Deeper Chandigarh\nDeeper Jalandhar\nDeeper Amritsar",
+        "visitsMade": "",
+        "newDealersText": ""
+      },
+      "teamSourceText": "Rais Khan\nRais Khan\nRais Khan\nRais Khan\nRais Khan\nSartaj Khan Devendra \nShingh\nWasim \nKhan",
+      "territoriesSourceText": "Ludhiana, \nJalandhar, \nAmritsar and \nChandigarh\nAmbala\nSonipat\nKurukshetra\nKundli\nLudhiana\nRajkot\nLudhiana",
+      "teamEntries": [
+        {
+          "name": "Rais Khan",
+          "citiesCovered": "Ludhiana, Jalandhar, Amritsar and Chandigarh"
+        },
+        {
+          "name": "Rais Khan",
+          "citiesCovered": "Ambala"
+        },
+        {
+          "name": "Rais Khan",
+          "citiesCovered": "Sonipat"
+        },
+        {
+          "name": "Rais Khan",
+          "citiesCovered": "Kurukshetra"
+        },
+        {
+          "name": "Rais Khan",
+          "citiesCovered": "Kundli"
+        },
+        {
+          "name": "Sartaj Khan",
+          "citiesCovered": "Ludhiana"
+        },
+        {
+          "name": "Devendra Shingh",
+          "citiesCovered": "Rajkot"
+        },
+        {
+          "name": "Wasim Khan",
+          "citiesCovered": "Ludhiana"
+        }
+      ],
+      "thrustTotalLakh": 0.0,
+      "technicalService": {
+        "center": "Ludhiana",
+        "executive": "Sartaj Khan"
+      },
+      "thrustProductGroups": [
+        {
+          "productsText": "Acid Zinc Brighteners\nPretreatment Chemicals \n(Surfactants)",
+          "achievedText": ""
+        },
+        {
+          "productsText": "",
+          "achievedText": ""
+        }
+      ],
+      "specialAchievementsNotes": "",
+      "sourceWarnings": [],
+      "sourceText": "     PSSPL REGIONAL MANAGER SALES                                         30.09.2026             Regional            Rais Khan                      RM Code                  033705                   Operting               Ludhiana\n         TARGET FEED BACK SUPPORT                                                                Manager                                                                                             from: City\nTargetfor Territory                    Deeper Chandigarh                      Deeper Jalandhar                     Deeper Amritsar                                                     Annual         Target till        Actual        % Actual\nExpansion / Penetraion                                                                                                                                                                 Target           Month             Total\nVisits made by you to                                                                                                                                                                   123.00           62.53           53.14            85%\nnew Territory (dates)\n\nNew Dealer or Customer                                                                                         Business                           Over Write\nappointed in new territory                                                                                     Registrat'n                        Dealer Codes                          138.00           70.15            63.34           90%\nthis year                                                                                                      form Yes/No                        here\n\nTeam Mates  ,                        Rais Khan           Rais Khan       Rais Khan           Rais Khan         Rais Khan        Sartaj Khan       Devendra         Wasim                             Tech Serv                Ludhiana\nSales Executives                                                                                                                                  Shingh           Khan                              Center\n\n                                     Ludhiana,\nExisting Sales Territory             Jalandhar,          Ambala          Sonipat             Kurukshetra       Kundli           Ludhiana          Rajkot           Ludhiana                          Tech Serv              Sartaj Khan\n: Cities                             Amritsar and                                                                                                                                                    Executive\n                                     Chandigarh\n      0.00                  Thrust      Acid Zinc Brighteners              Pretreatment Chemicals\n                          Product                                                  (Surfactants)\n\n                         YTD Sales\n                     Achieved Rs.L\n\n                            Thrust\n                          Product\n\n                         YTD Sales\n                     Achieved Rs.L\n\n                     Monthly Sales Target Vs Achievement\n  60.00\n\n  50.00\n\n  40.00\n\n  30.00\n\n  20.00            12.30 15.72                                                                    12.30\n            9.23 8.22      10.25 10.80 9.23 10.25 11.28 11.28      9.23    8.20    9.23   10.25\n  10.00                               4.51    7.34    6.56\n                                                                -       -       -       -      -       -\n      -\n             Apr     May     June    July    Aug     Sep     Oct    Nov     Dec      Jan    Feb     Mar\n\n                                             Series1      Series7\n\n\n    Target              123.00                   9.23         12.30                 10.25               9.23           10.25            11.28            11.28              9.23             8.20             9.23          10.25          12.30\n\n  Achieved                53.14                  8.22         15.72                 10.80               4.51             7.34             6.56               -                -                -                -                -             -\n % Achieve              43%                89%              128%              105%                49%               72%              58%               0%                0%               0%               0%              0%              0%\n     ment\n  Variation             -9.38             -1.01              3.42              0.55               -4.71             -2.91            -4.72            0.00             0.00              0.00             0.00            0.00            0.00\n\n Purchases          Total Rs.L             Apr               May               June                July             Aug               Sep              Oct              Nov              Dec               Jan             Feb            Mar\n\nWk 1 Target                 30.75                   2.31           3.08                2.56               2.31            2.56              2.82             2.82             2.31             2.05             2.31           2.56           3.08\n\n     Wk 1                     9.39                                 7.26                                                   2.13\n  Achieved\n\nWk 2 Target                 30.75                   2.31           3.08                2.56               2.31            2.56              2.82             2.82             2.31             2.05             2.31           2.56           3.08\n     Wk 2                   15.02                   5.37           3.81                1.31               3.11                              1.43\n  Achieved\nWk 3 Target                 30.75                   2.31           3.08                2.56               2.31            2.56              2.82             2.82             2.31             2.05             2.31           2.56           3.08\n\n     Wk 3                   12.39                   1.08           3.82                4.52                               2.98\n  Achieved\n\nWk 4 Target                 30.75                   2.31           3.08                2.56               2.31            2.56              2.82             2.82             2.31             2.05             2.31           2.56           3.08\n\n     Wk 4                   16.34                   1.78           0.83                4.97               1.41            2.23              5.13\n  Achieved\n    Special                     -\n    Targets\n\n  Achieved                      -\n\nPrevious year          138.00                     10.35          13.80               11.50              10.35           11.50             12.65            12.65            10.35              9.20           10.35          11.50          13.80\n     Target\nPrevious year          105.52                     11.97            9.16              17.58                9.78            6.60              8.24             8.45             7.12             5.61             4.78           7.57           8.65\n Actual Sales\n\n\n   Special Achievement\n      and Other Notes"
+    },
+    {
+      "id": "souravranjit",
+      "reportDate": "30.09.2026",
+      "asOf": "2026-09-30",
+      "financialYear": "2026-27",
+      "units": "INR lakh",
+      "source": {
+        "kind": "supplied_pdf_snapshot",
+        "fileName": "PSS RM Sourav Ranjit  Sales Feedback.pdf",
+        "sha256": "238597d72e38833f88ac591e7377e53d48f992a97f0d5ad08c9d6d2819cbaca5",
+        "page": 1
+      },
+      "rm": {
+        "name": "Sourav Ranjit",
+        "sourceName": "Sourav Ranjit",
+        "rmCode": "191732",
+        "operatingFrom": "Kolkata",
+        "businessRegistrationForm": "Yes",
+        "registrationCodes": []
+      },
+      "annual": {
+        "currentYearTarget": 157.0,
+        "currentYearTargetTillMonth": 79.81,
+        "currentYearActual": 74.93,
+        "currentYearPct": 94.0,
+        "lastYearTarget": 130.0,
+        "lastYearTargetTillMonth": 66.08,
+        "lastYearActual": 61.46,
+        "lastYearPct": 93.0
+      },
+      "monthlyMetrics": [
+        {
+          "month": "Apr",
+          "period": "2026-04",
+          "target": 11.78,
+          "achieved": 11.8,
+          "pct": 100.0,
+          "variation": 0.03
+        },
+        {
+          "month": "May",
+          "period": "2026-05",
+          "target": 15.7,
+          "achieved": 9.24,
+          "pct": 59.0,
+          "variation": -6.46
+        },
+        {
+          "month": "June",
+          "period": "2026-06",
+          "target": 13.08,
+          "achieved": 19.02,
+          "pct": 145.0,
+          "variation": 5.93
+        },
+        {
+          "month": "July",
+          "period": "2026-07",
+          "target": 11.78,
+          "achieved": 6.62,
+          "pct": 56.0,
+          "variation": -5.16
+        },
+        {
+          "month": "Aug",
+          "period": "2026-08",
+          "target": 13.08,
+          "achieved": 7.43,
+          "pct": 57.0,
+          "variation": -5.65
+        },
+        {
+          "month": "Sep",
+          "period": "2026-09",
+          "target": 14.39,
+          "achieved": 20.83,
+          "pct": 145.0,
+          "variation": 6.43
+        },
+        {
+          "month": "Oct",
+          "period": "2026-10",
+          "target": 14.39,
+          "achieved": null,
+          "pct": 0.0,
+          "variation": 0.0
+        },
+        {
+          "month": "Nov",
+          "period": "2026-11",
+          "target": 11.78,
+          "achieved": null,
+          "pct": 0.0,
+          "variation": 0.0
+        },
+        {
+          "month": "Dec",
+          "period": "2026-12",
+          "target": 10.47,
+          "achieved": null,
+          "pct": 0.0,
+          "variation": 0.0
+        },
+        {
+          "month": "Jan",
+          "period": "2027-01",
+          "target": 11.78,
+          "achieved": null,
+          "pct": 0.0,
+          "variation": 0.0
+        },
+        {
+          "month": "Feb",
+          "period": "2027-02",
+          "target": 13.08,
+          "achieved": null,
+          "pct": 0.0,
+          "variation": 0.0
+        },
+        {
+          "month": "Mar",
+          "period": "2027-03",
+          "target": 15.7,
+          "achieved": null,
+          "pct": 0.0,
+          "variation": 0.0
+        }
+      ],
+      "monthlyTotals": {
+        "target": 157.0,
+        "achieved": 74.93,
+        "pct": 48.0,
+        "variation": -4.88
+      },
+      "weeklySummary": [
+        {
+          "weekLabel": "Wk 1",
+          "targetTotal": 39.25,
+          "achievedTotal": 15.84,
+          "targets": [
+            2.94,
+            3.93,
+            3.27,
+            2.94,
+            3.27,
+            3.6,
+            3.6,
+            2.94,
+            2.62,
+            2.94,
+            3.27,
+            3.93
+          ],
+          "achieved": [
+            5.61,
+            null,
+            2.26,
+            0.94,
+            1.35,
+            5.68,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null
+          ]
+        },
+        {
+          "weekLabel": "Wk 2",
+          "targetTotal": 39.25,
+          "achievedTotal": 18.43,
+          "targets": [
+            2.94,
+            3.93,
+            3.27,
+            2.94,
+            3.27,
+            3.6,
+            3.6,
+            2.94,
+            2.62,
+            2.94,
+            3.27,
+            3.93
+          ],
+          "achieved": [
+            5.08,
+            null,
+            6.22,
+            1.99,
+            null,
+            5.14,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null
+          ]
+        },
+        {
+          "weekLabel": "Wk 3",
+          "targetTotal": 39.25,
+          "achievedTotal": 22.73,
+          "targets": [
+            2.94,
+            3.93,
+            3.27,
+            2.94,
+            3.27,
+            3.6,
+            3.6,
+            2.94,
+            2.62,
+            2.94,
+            3.27,
+            3.93
+          ],
+          "achieved": [
+            null,
+            7.72,
+            8.1,
+            3.69,
+            1.79,
+            1.43,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null
+          ]
+        },
+        {
+          "weekLabel": "Wk 4",
+          "targetTotal": 39.25,
+          "achievedTotal": 17.93,
+          "targets": [
+            2.94,
+            3.93,
+            3.27,
+            2.94,
+            3.27,
+            3.6,
+            3.6,
+            2.94,
+            2.62,
+            2.94,
+            3.27,
+            3.93
+          ],
+          "achieved": [
+            1.11,
+            1.52,
+            2.44,
+            null,
+            4.29,
+            8.57,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null
+          ]
+        }
+      ],
+      "previousYearPerformance": [
+        {
+          "month": "Apr",
+          "target": 9.75,
+          "actual": 8.39
+        },
+        {
+          "month": "May",
+          "target": 13.0,
+          "actual": 10.9
+        },
+        {
+          "month": "June",
+          "target": 10.83,
+          "actual": 12.66
+        },
+        {
+          "month": "July",
+          "target": 9.75,
+          "actual": 8.47
+        },
+        {
+          "month": "Aug",
+          "target": 10.83,
+          "actual": 8.75
+        },
+        {
+          "month": "Sep",
+          "target": 11.92,
+          "actual": 12.29
+        },
+        {
+          "month": "Oct",
+          "target": 11.92,
+          "actual": 10.52
+        },
+        {
+          "month": "Nov",
+          "target": 9.75,
+          "actual": 21.64
+        },
+        {
+          "month": "Dec",
+          "target": 8.67,
+          "actual": 9.37
+        },
+        {
+          "month": "Jan",
+          "target": 9.75,
+          "actual": 7.94
+        },
+        {
+          "month": "Feb",
+          "target": 10.83,
+          "actual": 6.94
+        },
+        {
+          "month": "Mar",
+          "target": 13.0,
+          "actual": 9.73
+        }
+      ],
+      "previousYearTotals": {
+        "target": 130.0,
+        "actual": 127.61
+      },
+      "territoryExpansion": {
+        "targetExpansionCities": "Kolkata Suburb",
+        "visitsMade": "",
+        "newDealersText": ""
+      },
+      "teamSourceText": "Sourav Ranjit Sourav \nRanjit\nSourav Ranjit",
+      "territoriesSourceText": "Howrah, Salkia, \nPashim\nRanaghat, \nBongaon\nBarrack pur, \nCentral Kolkata",
+      "teamEntries": [
+        {
+          "name": "Sourav Ranjit",
+          "citiesCovered": "Howrah, Salkia, Pashim"
+        },
+        {
+          "name": "Sourav Ranjit",
+          "citiesCovered": "Ranaghat, Bongaon"
+        },
+        {
+          "name": "Sourav Ranjit",
+          "citiesCovered": "Barrack pur, Central Kolkata"
+        }
+      ],
+      "thrustTotalLakh": 0.0,
+      "technicalService": {
+        "center": "Kolkata",
+        "executive": "Sourav Ranjit"
+      },
+      "thrustProductGroups": [
+        {
+          "productsText": "Gold Salts\nAcid Copper\nElectrophoretic \nLacquers",
+          "achievedText": ""
+        },
+        {
+          "productsText": "",
+          "achievedText": ""
+        }
+      ],
+      "specialAchievementsNotes": "",
+      "sourceWarnings": [],
+      "sourceText": "     PSSPL REGIONAL MANAGER SALES                                          30.09.2026             Regional          Sourav Ranjit                     RM Code                  191732                    Operting                Kolkata\n         TARGET FEED BACK SUPPORT                                                                 Manager                                                                                               from: City\nTargetfor Territory                        Kolkata Suburb                                                                                                                                Annual          Target till        Actual        % Actual\nExpansion / Penetraion                                                                                                                                                                    Target           Month             Total\nVisits made by you to                                                                                                                                                                      157.00           79.81           74.93            94%\nnew Territory (dates)\n\nNew Dealer or Customer                                                                                           Business\nappointed in new territory                                                                                       Registrat'n                                                              130.00            66.08            61.46            93%\nthis year                                                                                                        form Yes/No\n\nTeam Mates  ,                        Sourav Ranjit        Sourav          Sourav Ranjit                                                                                                                 Tech Serv                 Kolkata\nSales Executives                                          Ranjit                                                                                                                                        Center\n\nExisting Sales Territory             Howrah, Salkia,     Ranaghat,        Barrack pur,                                                                                                                  Tech Serv             Sourav Ranjit\n: Cities                             Pashim              Bongaon          Central Kolkata                                                                                                               Executive\n\n      0.00                  Thrust              Gold Salts                          Acid Copper                        Electrophoretic\n                          Product                                                                                          Lacquers\n\n                          YTD Sales\n                     Achieved Rs.L\n\n                            Thrust\n                          Product\n\n                          YTD Sales\n                     Achieved Rs.L\n\n                     Monthly Sales Target Vs Achievement\n\n  50.00\n  45.00\n  40.00\n  35.00\n  30.00\n  25.00                       19.02                   20.83\n  20.00            15.70                            14.39 14.39                                     15.70\n  15.00    11.78 11.80     13.08    11.78   13.08                   11.78   10.47   11.78   13.08\n  10.00               9.24             6.62    7.43\n\n    5.00                                                         -       -       -       -       -       -\n      -\n             Apr     May     June    July    Aug      Sep     Oct    Nov      Dec     Jan     Feb    Mar\n\n                                              Series1      Series7\n\n\n    Target              157.00                  11.78          15.70                 13.08             11.78             13.08            14.39            14.39             11.78            10.47            11.78           13.08          15.70\n\n  Achieved                 74.93                11.80             9.24               19.02               6.62             7.43            20.83                -                -                 -                -                -             -\n % Achieve               48%               100%               59%               145%                56%               57%              145%               0%               0%               0%                0%               0%             0%\n     ment\n  Variation             -4.88               0.03              -6.46             5.93               -5.16             -5.65             6.43              0.00             0.00             0.00              0.00             0.00           0.00\n\n Purchases           Total Rs.L             Apr               May               June                July              Aug               Sep              Oct              Nov               Dec              Jan              Feb            Mar\n\nWk 1 Target                 39.25                   2.94            3.93                3.27               2.94             3.27             3.60              3.60             2.94             2.62              2.94           3.27           3.93\n\n      Wk 1                  15.84                 5.61                                  2.26               0.94             1.35             5.68\n   Achieved\n\nWk 2 Target                 39.25                   2.94            3.93                3.27               2.94             3.27             3.60              3.60             2.94             2.62              2.94           3.27           3.93\n\n      Wk 2                  18.43                   5.08                                6.22               1.99                              5.14\n   Achieved\n\nWk 3 Target                 39.25                   2.94            3.93                3.27               2.94             3.27             3.60              3.60             2.94             2.62              2.94           3.27           3.93\n\n      Wk 3                  22.73                                   7.72                8.10               3.69             1.79             1.43\n   Achieved\n\nWk 4 Target                 39.25                   2.94            3.93                3.27               2.94             3.27             3.60              3.60             2.94             2.62              2.94           3.27           3.93\n\n      Wk 4                  17.93                   1.11            1.52                2.44                                4.29             8.57\n   Achieved\n    Special                     -\n    Targets\n\n   Achieved                     -\n\nPrevious year           130.00                      9.75          13.00               10.83                9.75           10.83            11.92             11.92              9.75             8.67              9.75         10.83          13.00\n     Target\nPrevious year           127.61                      8.39          10.90               12.66                8.47             8.75           12.29             10.52            21.64              9.37              7.94           6.94           9.73\n Actual Sales\n\n\n   Special Achievement\n      and Other Notes"
+    },
+    {
+      "id": "vrameshkumar",
+      "reportDate": "30.09.2026",
+      "asOf": "2026-09-30",
+      "financialYear": "2026-27",
+      "units": "INR lakh",
+      "source": {
+        "kind": "supplied_pdf_snapshot",
+        "fileName": "PSS RM V Ramesh Kumar Sales Feedback.pdf",
+        "sha256": "717505156294ce5e2d05610be1eb13c6e08910088df6a2172404f9477aa211f8",
+        "page": 1
+      },
+      "rm": {
+        "name": "V Ramesh Kumar",
+        "sourceName": "V Ramesh Kumar",
+        "rmCode": "337713",
+        "operatingFrom": "Coimbatore",
+        "businessRegistrationForm": "Yes",
+        "registrationCodes": [
+          "2915B126"
+        ]
+      },
+      "annual": {
+        "currentYearTarget": 573.0,
+        "currentYearTargetTillMonth": 291.28,
+        "currentYearActual": 227.27,
+        "currentYearPct": 78.0,
+        "lastYearTarget": 507.0,
+        "lastYearTargetTillMonth": 257.73,
+        "lastYearActual": 216.8,
+        "lastYearPct": 84.0
+      },
+      "monthlyMetrics": [
+        {
+          "month": "Apr",
+          "period": "2026-04",
+          "target": 42.98,
+          "achieved": 26.81,
+          "pct": 62.0,
+          "variation": -16.17
+        },
+        {
+          "month": "May",
+          "period": "2026-05",
+          "target": 57.3,
+          "achieved": 44.98,
+          "pct": 78.0,
+          "variation": -12.32
+        },
+        {
+          "month": "June",
+          "period": "2026-06",
+          "target": 47.75,
+          "achieved": 35.97,
+          "pct": 75.0,
+          "variation": -11.78
+        },
+        {
+          "month": "July",
+          "period": "2026-07",
+          "target": 42.98,
+          "achieved": 42.5,
+          "pct": 99.0,
+          "variation": -0.48
+        },
+        {
+          "month": "Aug",
+          "period": "2026-08",
+          "target": 47.75,
+          "achieved": 34.29,
+          "pct": 72.0,
+          "variation": -13.46
+        },
+        {
+          "month": "Sep",
+          "period": "2026-09",
+          "target": 52.53,
+          "achieved": 42.72,
+          "pct": 81.0,
+          "variation": -9.81
+        },
+        {
+          "month": "Oct",
+          "period": "2026-10",
+          "target": 52.53,
+          "achieved": null,
+          "pct": 0.0,
+          "variation": 0.0
+        },
+        {
+          "month": "Nov",
+          "period": "2026-11",
+          "target": 42.98,
+          "achieved": null,
+          "pct": 0.0,
+          "variation": 0.0
+        },
+        {
+          "month": "Dec",
+          "period": "2026-12",
+          "target": 38.2,
+          "achieved": null,
+          "pct": 0.0,
+          "variation": 0.0
+        },
+        {
+          "month": "Jan",
+          "period": "2027-01",
+          "target": 42.98,
+          "achieved": null,
+          "pct": 0.0,
+          "variation": 0.0
+        },
+        {
+          "month": "Feb",
+          "period": "2027-02",
+          "target": 47.75,
+          "achieved": null,
+          "pct": 0.0,
+          "variation": 0.0
+        },
+        {
+          "month": "Mar",
+          "period": "2027-03",
+          "target": 57.3,
+          "achieved": null,
+          "pct": 0.0,
+          "variation": 0.0
+        }
+      ],
+      "monthlyTotals": {
+        "target": 573.0,
+        "achieved": 227.27,
+        "pct": 40.0,
+        "variation": -64.01
+      },
+      "weeklySummary": [
+        {
+          "weekLabel": "Wk 1",
+          "targetTotal": 143.25,
+          "achievedTotal": 23.01,
+          "targets": [
+            10.74,
+            14.33,
+            11.94,
+            10.74,
+            11.94,
+            13.13,
+            13.13,
+            10.74,
+            9.55,
+            10.74,
+            11.94,
+            14.33
+          ],
+          "achieved": [
+            null,
+            6.28,
+            0.18,
+            null,
+            3.94,
+            12.61,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null
+          ]
+        },
+        {
+          "weekLabel": "Wk 2",
+          "targetTotal": 143.25,
+          "achievedTotal": 83.15,
+          "targets": [
+            10.74,
+            14.33,
+            11.94,
+            10.74,
+            11.94,
+            13.13,
+            13.13,
+            10.74,
+            9.55,
+            10.74,
+            11.94,
+            14.33
+          ],
+          "achieved": [
+            13.39,
+            19.37,
+            19.25,
+            15.2,
+            5.57,
+            10.37,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null
+          ]
+        },
+        {
+          "weekLabel": "Wk 3",
+          "targetTotal": 143.25,
+          "achievedTotal": 37.12,
+          "targets": [
+            10.74,
+            14.33,
+            11.94,
+            10.74,
+            11.94,
+            13.13,
+            13.13,
+            10.74,
+            9.55,
+            10.74,
+            11.94,
+            14.33
+          ],
+          "achieved": [
+            5.72,
+            3.01,
+            4.61,
+            2.62,
+            8.73,
+            12.43,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null
+          ]
+        },
+        {
+          "weekLabel": "Wk 4",
+          "targetTotal": 143.25,
+          "achievedTotal": 83.99,
+          "targets": [
+            10.74,
+            14.33,
+            11.94,
+            10.74,
+            11.94,
+            13.13,
+            13.13,
+            10.74,
+            9.55,
+            10.74,
+            11.94,
+            14.33
+          ],
+          "achieved": [
+            7.71,
+            16.32,
+            11.92,
+            24.68,
+            16.05,
+            7.31,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null
+          ]
+        }
+      ],
+      "previousYearPerformance": [
+        {
+          "month": "Apr",
+          "target": 38.03,
+          "actual": 35.19
+        },
+        {
+          "month": "May",
+          "target": 50.7,
+          "actual": 28.12
+        },
+        {
+          "month": "June",
+          "target": 42.25,
+          "actual": 34.83
+        },
+        {
+          "month": "July",
+          "target": 38.03,
+          "actual": 45.11
+        },
+        {
+          "month": "Aug",
+          "target": 42.25,
+          "actual": 27.35
+        },
+        {
+          "month": "Sep",
+          "target": 46.48,
+          "actual": 46.2
+        },
+        {
+          "month": "Oct",
+          "target": 46.48,
+          "actual": 18.25
+        },
+        {
+          "month": "Nov",
+          "target": 38.03,
+          "actual": 48.59
+        },
+        {
+          "month": "Dec",
+          "target": 33.8,
+          "actual": 30.43
+        },
+        {
+          "month": "Jan",
+          "target": 38.03,
+          "actual": 46.62
+        },
+        {
+          "month": "Feb",
+          "target": 42.25,
+          "actual": 41.39
+        },
+        {
+          "month": "Mar",
+          "target": 50.7,
+          "actual": 56.43
+        }
+      ],
+      "previousYearTotals": {
+        "target": 507.0,
+        "actual": 458.51
+      },
+      "territoryExpansion": {
+        "targetExpansionCities": "Banglore\nChennai",
+        "visitsMade": "",
+        "newDealersText": "1) Bright Surface Innovators"
+      },
+      "teamSourceText": "Sasikumar \nsakthivel\nV Ramesh\nV Ramesh\nV Ramesh\nV Ramesh\nV Ramesh\nSuriya B\nPalanivel R. Shrinath",
+      "territoriesSourceText": "Selam\nThrissur\nThoothukudi\nTiruchirappalli\nErode\nChidambaram Madhurai\nTamil Nadu Bangalore",
+      "teamEntries": [
+        {
+          "name": "Sasikumar sakthivel",
+          "citiesCovered": "Selam"
+        },
+        {
+          "name": "V Ramesh",
+          "citiesCovered": "Thrissur"
+        },
+        {
+          "name": "V Ramesh",
+          "citiesCovered": "Thoothukudi"
+        },
+        {
+          "name": "V Ramesh",
+          "citiesCovered": "Tiruchirappalli"
+        },
+        {
+          "name": "V Ramesh",
+          "citiesCovered": "Erode"
+        },
+        {
+          "name": "V Ramesh",
+          "citiesCovered": "Chidambaram"
+        },
+        {
+          "name": "Suriya B",
+          "citiesCovered": "Madhurai"
+        },
+        {
+          "name": "Palanivel R.",
+          "citiesCovered": "Tamil Nadu"
+        },
+        {
+          "name": "Shrinath",
+          "citiesCovered": "Bangalore"
+        }
+      ],
+      "thrustTotalLakh": 4.92,
+      "technicalService": {
+        "center": "",
+        "executive": ""
+      },
+      "thrustProductGroups": [
+        {
+          "productsText": "Chrome Salt\nElectrocleaners\nNickel Salts\nCopper Salts\nBrass Salts",
+          "achievedText": "4.92"
+        },
+        {
+          "productsText": "Soak Cleaners",
+          "achievedText": ""
+        }
+      ],
+      "specialAchievementsNotes": "",
+      "sourceWarnings": [],
+      "sourceText": "    PSSPL REGIONAL MANAGER SALES                                         30.09.2026           Regional       V Ramesh Kumar                     RM Code                 337713                    Operting           Coimbatore\n         TARGET FEED BACK SUPPORT                                                              Manager                                                                                           from: City\nTargetfor Territory                           Banglore                             Chennai                                                                                        Annual         Target till       Actual        % Actual\nExpansion / Penetraion                                                                                                                                                            Target           Month            Total\nVisits made by you to                                                                                                                                                               573.00        291.28           227.27           78%\nnew Territory (dates)\n\nNew Dealer or Customer                                                                                      Business\nappointed in new territory          1) Bright Surface Innovators                                            Registrat'n           Yes         1)2915B126                           507.00          257.73          216.80           84%\nthis year                                                                                                   form Yes/No\n\nTeam Mates  ,                       Sasikumar          V Ramesh        V Ramesh           V Ramesh          V Ramesh         V Ramesh         Suriya B        Palanivel R.     Shrinath         Tech Serv\nSales Executives                    sakthivel                                                                                                                                                   Center\n\nExisting Sales Territory            Selam              Thrissur        Thoothukudi        Tiruchirappalli                                     Madhurai        Tamil Nadu       Bangalore        Tech Serv\n: Cities                                                                                                    Erode            Chidambaram                                                        Executive\n\n      4.92                 Thrust            Nickel Salts                        Copper Salts                        Brass Salts                      Chrome Salt                    Electrocleaners\n                         Product\n\n                         YTD Sales                                                    4.92\n                    Achieved Rs.L\n\n                           Thrust          Soak Cleaners\n                         Product\n\n                         YTD Sales\n                    Achieved Rs.L\n                  Monthly Sales Targets Vs Achievements\n\n  70.00\n\n  60.00           57.30                                                                         57.30\n                                                 52.53   52.53\n  50.00              44.98 47.75          47.75                                         47.75\n           42.98                  42.98 42.50      42.72         42.98          42.98\n  40.00                     35.97           34.29                       38.20\n\n  30.00      26.81\n\n  20.00\n\n  10.00\n                                                              -       -      -       -       -      -\n      -\n              1       2      3       4       5      6       7       8       9      10     11      12\n\n                                            Series1      Series7\n\n    Target              573.00                42.98          57.30                47.75            42.98            47.75            52.53           52.53            42.98            38.20           42.98          47.75         57.30\n\n  Achieved              227.27                26.81          44.98                35.97            42.50            34.29            42.72               -                -               -                -               -             -\n % Achieve              40%               62%              78%               75%                99%              72%              81%              0%               0%               0%              0%               0%             0%\n     ment\n  Variation           -64.01            -16.17            -12.32           -11.78              -0.48           -13.46            -9.81            0.00             0.00             0.00            0.00            0.00            0.00\n\n Purchases          Total Rs.L            Apr              May               June               July             Aug              Sep              Oct             Nov              Dec              Jan             Feb            Mar\n\nWk 1 Target              143.25                  10.74         14.33               11.94             10.74           11.94            13.13            13.13           10.74              9.55           10.74          11.94         14.33\n\n     Wk 1                   23.01                                6.28                0.18                              3.94           12.61\n  Achieved\n\nWk 2 Target              143.25                  10.74         14.33               11.94             10.74           11.94            13.13            13.13           10.74              9.55           10.74          11.94         14.33\n\n     Wk 2                   83.15                13.39         19.37               19.25             15.20             5.57           10.37\n  Achieved\nWk 3 Target              143.25                  10.74         14.33               11.94             10.74           11.94            13.13            13.13           10.74              9.55           10.74          11.94         14.33\n\n     Wk 3                   37.12                  5.72          3.01                4.61              2.62            8.73           12.43\n  Achieved\n\nWk 4 Target              143.25                  10.74         14.33               11.94             10.74           11.94            13.13            13.13           10.74              9.55           10.74          11.94         14.33\n\n     Wk 4                   83.99                  7.71        16.32               11.92             24.68           16.05              7.31\n  Achieved\n    Special                     -\n    Targets\n\n  Achieved                      -\n\nPrevious year          507.00                    38.03         50.70               42.25             38.03           42.25            46.48            46.48           38.03            33.80            38.03          42.25         50.70\n     Target\nPrevious year          458.51                    35.19         28.12               34.83             45.11           27.35            46.20            18.25           48.59            30.43            46.62          41.39         56.43\n Actual Sales\n\n\n  Special Achievement\n     and Other Notes"
+    },
+    {
+      "id": "vilaskharabe",
+      "reportDate": "30.09.2026",
+      "asOf": "2026-09-30",
+      "financialYear": "2026-27",
+      "units": "INR lakh",
+      "source": {
+        "kind": "supplied_pdf_snapshot",
+        "fileName": "PSS RM Vilas Kharabe Sales Feedback.pdf",
+        "sha256": "08ee980c4b97aa59b4d0b934efe3ab156f90cb135a950bb0e23b56a413302128",
+        "page": 1
+      },
+      "rm": {
+        "name": "Vilas Kharabe",
+        "sourceName": "Vilas Kharabe",
+        "rmCode": "243712",
+        "operatingFrom": "Rajkot",
+        "businessRegistrationForm": "Yes",
+        "registrationCodes": []
+      },
+      "annual": {
+        "currentYearTarget": 297.0,
+        "currentYearTargetTillMonth": 150.98,
+        "currentYearActual": 103.33,
+        "currentYearPct": 68.0,
+        "lastYearTarget": 368.0,
+        "lastYearTargetTillMonth": 187.07,
+        "lastYearActual": 145.63,
+        "lastYearPct": 78.0
+      },
+      "monthlyMetrics": [
+        {
+          "month": "Apr",
+          "period": "2026-04",
+          "target": 22.28,
+          "achieved": 15.74,
+          "pct": 71.0,
+          "variation": -6.53
+        },
+        {
+          "month": "May",
+          "period": "2026-05",
+          "target": 29.7,
+          "achieved": 13.99,
+          "pct": 47.0,
+          "variation": -15.71
+        },
+        {
+          "month": "June",
+          "period": "2026-06",
+          "target": 24.75,
+          "achieved": 16.48,
+          "pct": 67.0,
+          "variation": -8.27
+        },
+        {
+          "month": "July",
+          "period": "2026-07",
+          "target": 22.28,
+          "achieved": 22.95,
+          "pct": 103.0,
+          "variation": 0.68
+        },
+        {
+          "month": "Aug",
+          "period": "2026-08",
+          "target": 24.75,
+          "achieved": 13.47,
+          "pct": 54.0,
+          "variation": -11.28
+        },
+        {
+          "month": "Sep",
+          "period": "2026-09",
+          "target": 27.23,
+          "achieved": 20.69,
+          "pct": 76.0,
+          "variation": -6.53
+        },
+        {
+          "month": "Oct",
+          "period": "2026-10",
+          "target": 27.23,
+          "achieved": null,
+          "pct": 0.0,
+          "variation": 0.0
+        },
+        {
+          "month": "Nov",
+          "period": "2026-11",
+          "target": 22.28,
+          "achieved": null,
+          "pct": 0.0,
+          "variation": 0.0
+        },
+        {
+          "month": "Dec",
+          "period": "2026-12",
+          "target": 19.8,
+          "achieved": null,
+          "pct": 0.0,
+          "variation": 0.0
+        },
+        {
+          "month": "Jan",
+          "period": "2027-01",
+          "target": 22.28,
+          "achieved": null,
+          "pct": 0.0,
+          "variation": 0.0
+        },
+        {
+          "month": "Feb",
+          "period": "2027-02",
+          "target": 24.75,
+          "achieved": null,
+          "pct": 0.0,
+          "variation": 0.0
+        },
+        {
+          "month": "Mar",
+          "period": "2027-03",
+          "target": 29.7,
+          "achieved": null,
+          "pct": 0.0,
+          "variation": 0.0
+        }
+      ],
+      "monthlyTotals": {
+        "target": 297.0,
+        "achieved": 103.33,
+        "pct": 35.0,
+        "variation": -47.65
+      },
+      "weeklySummary": [
+        {
+          "weekLabel": "Wk 1",
+          "targetTotal": 74.25,
+          "achievedTotal": 29.8,
+          "targets": [
+            5.57,
+            7.43,
+            6.19,
+            5.57,
+            6.19,
+            6.81,
+            6.81,
+            5.57,
+            4.95,
+            5.57,
+            6.19,
+            7.43
+          ],
+          "achieved": [
+            5.68,
+            6.25,
+            6.76,
+            2.05,
+            4.0,
+            5.06,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null
+          ]
+        },
+        {
+          "weekLabel": "Wk 2",
+          "targetTotal": 74.25,
+          "achievedTotal": 27.99,
+          "targets": [
+            5.57,
+            7.43,
+            6.19,
+            5.57,
+            6.19,
+            6.81,
+            6.81,
+            5.57,
+            4.95,
+            5.57,
+            6.19,
+            7.43
+          ],
+          "achieved": [
+            3.18,
+            4.55,
+            4.9,
+            8.38,
+            4.41,
+            2.58,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null
+          ]
+        },
+        {
+          "weekLabel": "Wk 3",
+          "targetTotal": 74.25,
+          "achievedTotal": 18.97,
+          "targets": [
+            5.57,
+            7.43,
+            6.19,
+            5.57,
+            6.19,
+            6.81,
+            6.81,
+            5.57,
+            4.95,
+            5.57,
+            6.19,
+            7.43
+          ],
+          "achieved": [
+            1.01,
+            2.88,
+            4.58,
+            1.85,
+            4.14,
+            4.51,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null
+          ]
+        },
+        {
+          "weekLabel": "Wk 4",
+          "targetTotal": 74.25,
+          "achievedTotal": 26.57,
+          "targets": [
+            5.57,
+            7.43,
+            6.19,
+            5.57,
+            6.19,
+            6.81,
+            6.81,
+            5.57,
+            4.95,
+            5.57,
+            6.19,
+            7.43
+          ],
+          "achieved": [
+            5.87,
+            0.31,
+            0.24,
+            10.67,
+            0.93,
+            8.54,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null
+          ]
+        }
+      ],
+      "previousYearPerformance": [
+        {
+          "month": "Apr",
+          "target": 27.6,
+          "actual": 20.99
+        },
+        {
+          "month": "May",
+          "target": 36.8,
+          "actual": 18.59
+        },
+        {
+          "month": "June",
+          "target": 30.67,
+          "actual": 24.96
+        },
+        {
+          "month": "July",
+          "target": 27.6,
+          "actual": 33.62
+        },
+        {
+          "month": "Aug",
+          "target": 30.67,
+          "actual": 18.49
+        },
+        {
+          "month": "Sep",
+          "target": 33.73,
+          "actual": 28.99
+        },
+        {
+          "month": "Oct",
+          "target": 33.73,
+          "actual": 12.32
+        },
+        {
+          "month": "Nov",
+          "target": 27.6,
+          "actual": 18.4
+        },
+        {
+          "month": "Dec",
+          "target": 24.53,
+          "actual": 27.48
+        },
+        {
+          "month": "Jan",
+          "target": 27.6,
+          "actual": 20.09
+        },
+        {
+          "month": "Feb",
+          "target": 30.67,
+          "actual": 11.2
+        },
+        {
+          "month": "Mar",
+          "target": 36.8,
+          "actual": 21.03
+        }
+      ],
+      "previousYearTotals": {
+        "target": 368.0,
+        "actual": 256.15
+      },
+      "territoryExpansion": {
+        "targetExpansionCities": "",
+        "visitsMade": "",
+        "newDealersText": ""
+      },
+      "teamSourceText": "Manish",
+      "territoriesSourceText": "Jamnagar",
+      "teamEntries": [
+        {
+          "name": "Manish",
+          "citiesCovered": "Jamnagar"
+        }
+      ],
+      "thrustTotalLakh": 2.39,
+      "technicalService": {
+        "center": "Rajkot",
+        "executive": ""
+      },
+      "thrustProductGroups": [
+        {
+          "productsText": "Zinc \nClearclad LCBG",
+          "achievedText": "2.39"
+        },
+        {
+          "productsText": "",
+          "achievedText": ""
+        }
+      ],
+      "specialAchievementsNotes": "",
+      "sourceWarnings": [],
+      "sourceText": "     PSSPL REGIONAL MANAGER SALES                                           30.09.2026            Regional           Vilas Kharabe                   RM Code                   243712                     Operting                Rajkot\n         TARGET FEED BACK SUPPORT                                                                 Manager                                                                                               from: City\nTargetfor Territory                                                                                                                                                                      Annual         Target till        Actual        % Actual\nExpansion / Penetraion                                                                                                                                                                   Target           Month             Total\nVisits made by you to                                                                                                                                                                     297.00          150.98           103.33           68%\nnew Territory (dates)\n\nNew Dealer or Customer                                                                                           Business                          Over Write\nappointed in new territory                                                                                       Registrat'n                       Dealer Codes                           368.00           187.07           145.63           78%\nthis year                                                                                                        form Yes/No                       here\n\nTeam Mates  ,                        Manish                                                                                                                                                            Tech Serv                   Rajkot\nSales Executives                                                                                                                                                                                       Center\n\nExisting Sales Territory             Jamnagar                                                                                                                                                          Tech Serv\n: Cities                                                                                                                                                                                               Executive\n      2.39                  Thrust                  Zinc                          Clearclad LCBG\n                          Product\n\n                          YTD Sales                 2.39\n                     Achieved Rs.L\n\n                            Thrust\n                          Product\n\n                          YTD Sales\n                     Achieved Rs.L\n\n                     Monthly Sales Target Vs Achievement\n\n  70.00\n  60.00\n\n  50.00\n\n  40.00\n  30.00            29.70                           27.23 27.23                                     29.70\n           22.28           24.75   22.28 22.95 24.75  20.69        22.28           22.28   24.75\n  20.00       15.74           16.48                                        19.80\n                      13.99                   13.47\n  10.00\n                                                                 -       -       -       -       -       -\n      -\n             Apr     May     June    July    Aug     Sep      Oct    Nov     Dec      Jan    Feb     Mar\n\n                                              Series1      Series7\n\n\n    Target              297.00                  22.28          29.70                24.75             22.28             24.75             27.23            27.23            22.28             19.80            22.28          24.75          29.70\n\n  Achieved              103.33                  15.74          13.99                16.48             22.95             13.47             20.69                -                -                -                 -               -             -\n % Achieve               35%               71%                47%               67%               103%               54%               76%               0%               0%                0%               0%               0%             0%\n     ment\n  Variation            -47.65              -6.53            -15.71             -8.27               0.68             -11.28            -6.53             0.00             0.00              0.00             0.00             0.00           0.00\n\n Purchases          Total Rs.L              Apr               May               June                July              Aug              Sep               Oct              Nov              Dec               Jan             Feb             Mar\n\nWk 1 Target                 74.25                   5.57            7.43                6.19               5.57             6.19             6.81             6.81              5.57             4.95             5.57            6.19           7.43\n\n     Wk 1                   29.80                 5.68              6.25                6.76               2.05             4.00             5.06\n   Achieved\n\nWk 2 Target                 74.25                   5.57            7.43                6.19               5.57             6.19             6.81             6.81              5.57             4.95             5.57            6.19           7.43\n\n     Wk 2                   27.99                   3.18            4.55                4.90               8.38             4.41             2.58\n   Achieved\nWk 3 Target                 74.25                   5.57            7.43                6.19               5.57             6.19             6.81             6.81              5.57             4.95             5.57            6.19           7.43\n\n     Wk 3                   18.97                   1.01            2.88                4.58               1.85             4.14             4.51\n   Achieved\n\nWk 4 Target                 74.25                   5.57            7.43                6.19               5.57             6.19             6.81             6.81              5.57             4.95             5.57            6.19           7.43\n\n     Wk 4                   26.57                   5.87            0.31                0.24             10.67              0.93             8.54\n   Achieved\n    Special                     -\n    Targets\n\n   Achieved                     -\n\nPrevious year           368.00                    27.60           36.80               30.67              27.60            30.67            33.73            33.73             27.60            24.53            27.60           30.67          36.80\n     Target\nPrevious year           256.15                    20.99           18.59               24.96              33.62            18.49            28.99            12.32             18.40            27.48            20.09           11.20          21.03\n Actual Sales\n\n\n   Special Achievement\n      and Other Notes"
+    },
+    {
+      "id": "ypsharma",
+      "reportDate": "30.09.2026",
+      "asOf": "2026-09-30",
+      "financialYear": "2026-27",
+      "units": "INR lakh",
+      "source": {
+        "kind": "supplied_pdf_snapshot",
+        "fileName": "PSS RM YP Sharma Sales Feedback.pdf",
+        "sha256": "9d9ff41fc4376e2e1db2dbc10ef493014a6b0caaef2d71ddaf0a99a51f201346",
+        "page": 1
+      },
+      "rm": {
+        "name": "YP Sharma",
+        "sourceName": "YP Sharma",
+        "rmCode": "092703",
+        "operatingFrom": "Aligarh",
+        "businessRegistrationForm": "Yes",
+        "registrationCodes": [
+          "0911R526",
+          "0911A126"
+        ]
+      },
+      "annual": {
+        "currentYearTarget": 341.0,
+        "currentYearTargetTillMonth": 173.34,
+        "currentYearActual": 167.67,
+        "currentYearPct": 97.0,
+        "lastYearTarget": 410.0,
+        "lastYearTargetTillMonth": 208.42,
+        "lastYearActual": 115.28,
+        "lastYearPct": 55.0
+      },
+      "monthlyMetrics": [
+        {
+          "month": "Apr",
+          "period": "2026-04",
+          "target": 25.58,
+          "achieved": 28.32,
+          "pct": 111.0,
+          "variation": 2.75
+        },
+        {
+          "month": "May",
+          "period": "2026-05",
+          "target": 34.1,
+          "achieved": 22.63,
+          "pct": 66.0,
+          "variation": -11.47
+        },
+        {
+          "month": "June",
+          "period": "2026-06",
+          "target": 28.42,
+          "achieved": 24.96,
+          "pct": 88.0,
+          "variation": -3.46
+        },
+        {
+          "month": "July",
+          "period": "2026-07",
+          "target": 25.58,
+          "achieved": 27.56,
+          "pct": 108.0,
+          "variation": 1.99
+        },
+        {
+          "month": "Aug",
+          "period": "2026-08",
+          "target": 28.42,
+          "achieved": 31.74,
+          "pct": 112.0,
+          "variation": 3.33
+        },
+        {
+          "month": "Sep",
+          "period": "2026-09",
+          "target": 31.26,
+          "achieved": 32.45,
+          "pct": 104.0,
+          "variation": 1.19
+        },
+        {
+          "month": "Oct",
+          "period": "2026-10",
+          "target": 31.26,
+          "achieved": null,
+          "pct": 0.0,
+          "variation": 0.0
+        },
+        {
+          "month": "Nov",
+          "period": "2026-11",
+          "target": 25.58,
+          "achieved": null,
+          "pct": 0.0,
+          "variation": 0.0
+        },
+        {
+          "month": "Dec",
+          "period": "2026-12",
+          "target": 22.73,
+          "achieved": null,
+          "pct": 0.0,
+          "variation": 0.0
+        },
+        {
+          "month": "Jan",
+          "period": "2027-01",
+          "target": 25.58,
+          "achieved": null,
+          "pct": 0.0,
+          "variation": 0.0
+        },
+        {
+          "month": "Feb",
+          "period": "2027-02",
+          "target": 28.42,
+          "achieved": null,
+          "pct": 0.0,
+          "variation": 0.0
+        },
+        {
+          "month": "Mar",
+          "period": "2027-03",
+          "target": 34.1,
+          "achieved": null,
+          "pct": 0.0,
+          "variation": 0.0
+        }
+      ],
+      "monthlyTotals": {
+        "target": 341.0,
+        "achieved": 167.67,
+        "pct": 49.0,
+        "variation": -5.67
+      },
+      "weeklySummary": [
+        {
+          "weekLabel": "Wk 1",
+          "targetTotal": 85.25,
+          "achievedTotal": 33.47,
+          "targets": [
+            6.39,
+            8.53,
+            7.1,
+            6.39,
+            7.1,
+            7.81,
+            7.81,
+            6.39,
+            5.68,
+            6.39,
+            7.1,
+            8.53
+          ],
+          "achieved": [
+            null,
+            13.77,
+            0.84,
+            null,
+            6.15,
+            12.7,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null
+          ]
+        },
+        {
+          "weekLabel": "Wk 2",
+          "targetTotal": 85.25,
+          "achievedTotal": 61.89,
+          "targets": [
+            6.39,
+            8.53,
+            7.1,
+            6.39,
+            7.1,
+            7.81,
+            7.81,
+            6.39,
+            5.68,
+            6.39,
+            7.1,
+            8.53
+          ],
+          "achieved": [
+            19.33,
+            1.78,
+            15.53,
+            7.6,
+            8.76,
+            8.89,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null
+          ]
+        },
+        {
+          "weekLabel": "Wk 3",
+          "targetTotal": 85.25,
+          "achievedTotal": 16.44,
+          "targets": [
+            6.39,
+            8.53,
+            7.1,
+            6.39,
+            7.1,
+            7.81,
+            7.81,
+            6.39,
+            5.68,
+            6.39,
+            7.1,
+            8.53
+          ],
+          "achieved": [
+            2.1,
+            2.77,
+            6.22,
+            null,
+            5.35,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null
+          ]
+        },
+        {
+          "weekLabel": "Wk 4",
+          "targetTotal": 85.25,
+          "achievedTotal": 55.86,
+          "targets": [
+            6.39,
+            8.53,
+            7.1,
+            6.39,
+            7.1,
+            7.81,
+            7.81,
+            6.39,
+            5.68,
+            6.39,
+            7.1,
+            8.53
+          ],
+          "achieved": [
+            6.89,
+            4.31,
+            2.36,
+            19.96,
+            11.49,
+            10.85,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null
+          ]
+        }
+      ],
+      "previousYearPerformance": [
+        {
+          "month": "Apr",
+          "target": 30.75,
+          "actual": 10.68
+        },
+        {
+          "month": "May",
+          "target": 41.0,
+          "actual": 27.55
+        },
+        {
+          "month": "June",
+          "target": 34.17,
+          "actual": 19.5
+        },
+        {
+          "month": "July",
+          "target": 30.75,
+          "actual": 28.79
+        },
+        {
+          "month": "Aug",
+          "target": 34.17,
+          "actual": 11.91
+        },
+        {
+          "month": "Sep",
+          "target": 37.58,
+          "actual": 16.85
+        },
+        {
+          "month": "Oct",
+          "target": 37.58,
+          "actual": 18.18
+        },
+        {
+          "month": "Nov",
+          "target": 30.75,
+          "actual": 29.8
+        },
+        {
+          "month": "Dec",
+          "target": 27.33,
+          "actual": 23.49
+        },
+        {
+          "month": "Jan",
+          "target": 30.75,
+          "actual": 24.07
+        },
+        {
+          "month": "Feb",
+          "target": 34.17,
+          "actual": 18.22
+        },
+        {
+          "month": "Mar",
+          "target": 41.0,
+          "actual": 30.65
+        }
+      ],
+      "previousYearTotals": {
+        "target": 410.0,
+        "actual": 259.69
+      },
+      "territoryExpansion": {
+        "targetExpansionCities": "Deeper \nAgra\nBanarus\nDeeper Moradabad\nDeeper Kanpur, \nMathura",
+        "visitsMade": "",
+        "newDealersText": "1)Rajkumar & Brothers 2)Anees Trading Company"
+      },
+      "teamSourceText": "Pankaj Verma Atul \nSrivastav\nParsun Gupta YP Sharma\nYP Sharma\nYP Sharma\nSanskar \nSaraswat \nVipin \nKumar",
+      "territoriesSourceText": "Aligarh\nKanpur\nAgra\nMeerut\nMoradabad\nMathura, \nKanpur\nAligarh\nAligarh",
+      "teamEntries": [
+        {
+          "name": "Pankaj Verma",
+          "citiesCovered": "Aligarh"
+        },
+        {
+          "name": "Atul Srivastav",
+          "citiesCovered": "Kanpur"
+        },
+        {
+          "name": "Parsun Gupta",
+          "citiesCovered": "Agra"
+        },
+        {
+          "name": "YP Sharma",
+          "citiesCovered": "Meerut"
+        },
+        {
+          "name": "YP Sharma",
+          "citiesCovered": "Moradabad"
+        },
+        {
+          "name": "YP Sharma",
+          "citiesCovered": "Mathura, Kanpur"
+        },
+        {
+          "name": "Sanskar Saraswat",
+          "citiesCovered": "Aligarh"
+        },
+        {
+          "name": "Vipin Kumar",
+          "citiesCovered": "Aligarh"
+        }
+      ],
+      "thrustTotalLakh": 0.0,
+      "technicalService": {
+        "center": "Aligarh",
+        "executive": "Ashish Raghav"
+      },
+      "thrustProductGroups": [
+        {
+          "productsText": "Shimaclad Range (2500/ \n3900/ 5900)\nSilver Brightener\nSilver Antitarnish\nClearclad Lcbg",
+          "achievedText": ""
+        },
+        {
+          "productsText": "",
+          "achievedText": ""
+        }
+      ],
+      "specialAchievementsNotes": "",
+      "sourceWarnings": [],
+      "sourceText": "     PSSPL REGIONAL MANAGER SALES                                         30.09.2026            Regional             YP Sharma                    RM Code                  092703                     Operting              Aligarh\n         TARGET FEED BACK SUPPORT                                                               Manager                                                                                             from: City\nTargetfor Territory                            Banarus                      Deeper Moradabad                       Deeper Kanpur,               Deeper                               Annual         Target till        Actual       % Actual\nExpansion / Penetraion                                                                                                  Mathura                 Agra                                 Target           Month             Total\nVisits made by you to                                                                                                                                                                  341.00         173.34          167.67            97%\nnew Territory (dates)\n\nNew Dealer or Customer                                                                                        Business                          1)0911R526\nappointed in new territory          1)Rajkumar & Brothers 2)Anees Trading Company                             Registrat'n            Yes        2)0911A126                            410.00           208.42          115.28           55%\nthis year                                                                                                     form Yes/No\nTeam Mates  ,                       Pankaj Verma        Atul            Parsun Gupta        YP Sharma         YP Sharma        YP Sharma        Sanskar          Vipin                             Tech Serv                 Aligarh\nSales Executives                                        Srivastav                                                                               Saraswat         Kumar                             Center\n\nExisting Sales Territory            Aligarh             Kanpur          Agra                Meerut            Moradabad        Mathura,         Aligarh          Aligarh                           Tech Serv           Ashish Raghav\n: Cities                                                                                                                       Kanpur                                                              Executive\n\n      0.00                 Thrust         Silver Brightener                    Silver Antitarnish                    Clearclad Lcbg              Shimaclad Range (2500/\n                          Product                                                                                                                        3900/ 5900)\n\n                         YTD Sales\n                     Achieved Rs.L\n\n                           Thrust\n                          Product\n\n                         YTD Sales\n                     Achieved Rs.L\n\n                     Monthly Sales Target Vs Achievement\n\n  70.00\n\n  60.00\n\n  50.00\n\n  40.00            34.10                     31.74 31.26 32.45 31.26                             34.10\n  30.00    25.58 28.32     28.42 24.96 25.58 27.56 28.42          25.58           25.58 28.42\n                     22.63                                                22.73\n  20.00\n\n  10.00\n                                                               -       -       -       -      -       -\n      -\n             Apr    May     June    July    Aug     Sep     Oct     Nov     Dec     Jan    Feb     Mar\n\n                                             Series1      Series7\n\n    Target              341.00                 25.58          34.10                28.42            25.58             28.42            31.26            31.26            25.58            22.73            25.58         28.42          34.10\n\n  Achieved              167.67                 28.32          22.63                24.96            27.56             31.74            32.45                -                -               -                -                -            -\n % Achieve               49%              111%               66%               88%               108%             112%             104%               0%               0%               0%               0%              0%              0%\n     ment\n  Variation             -5.67              2.75            -11.47             -3.46               1.99             3.33             1.19             0.00             0.00             0.00             0.00            0.00            0.00\n\n Purchases          Total Rs.L             Apr              May               June                July             Aug              Sep              Oct              Nov              Dec               Jan             Feb            Mar\n\nWk 1 Target                 85.25                  6.39           8.53                7.10               6.39            7.10             7.81             7.81             6.39             5.68             6.39           7.10           8.53\n\n     Wk 1                   33.47                               13.77                 0.84                               6.15           12.70\n  Achieved\n\nWk 2 Target                 85.25                  6.39           8.53                7.10               6.39            7.10             7.81             7.81             6.39             5.68             6.39           7.10           8.53\n\n     Wk 2                   61.89                19.33            1.78              15.53                7.60            8.76             8.89\n  Achieved\n\nWk 3 Target                 85.25                  6.39           8.53                7.10               6.39            7.10             7.81             7.81             6.39             5.68             6.39           7.10           8.53\n\n     Wk 3                   16.44                  2.10           2.77                6.22                               5.35\n  Achieved\n\nWk 4 Target                 85.25                  6.39           8.53                7.10               6.39            7.10             7.81             7.81             6.39             5.68             6.39           7.10           8.53\n     Wk 4                   55.86                  6.89           4.31                2.36             19.96           11.49            10.85\n  Achieved\n    Special                     -\n    Targets\n\n  Achieved                      -\n\nPrevious year          410.00                    30.75          41.00               34.17              30.75           34.17            37.58            37.58            30.75            27.33            30.75          34.17          41.00\n     Target\nPrevious year          259.69                    10.68          27.55               19.50              28.79           11.91            16.85            18.18            29.80            23.49            24.07          18.22          30.65\n Actual Sales\n\n\n   Special Achievement\n     and Other Notes"
+    }
+  ]
+}

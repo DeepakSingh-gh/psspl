@@ -31,7 +31,7 @@ export function AdminCustomers() {
 
   const { data, loading, error, reload } = useAdminData(
     () => adminApi.customers({ search: term, rm: owner, type, limit: PAGE_SIZE, offset: page * PAGE_SIZE }),
-    [term, owner, type, page]
+    [term, owner, type, page], `admin-customers-${JSON.stringify([term, owner, type, page])}`
   );
 
   const total = data?.total ?? 0;

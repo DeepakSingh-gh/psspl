@@ -1,5 +1,11 @@
+import type { AiAnswerPresentation } from "@/types/ai-answer";
 import type { CompleteVisitPayload, LoginResponse, SalesDay } from "@/types/sales";
+import type { RmFeedbackSummary, RmFeedbackSnapshot } from "@/types/rm-feedback";
+import { feedAdminFeedback, feedRmFeedback } from "./rm-feedback-data";
 import type {
+  ArchivedEmployee,
+  ArchivedHistoryResponse,
+  ArchiveSection,
   ActivityResponse,
   AdminOverview,
   ManagementAttentionResponse,
@@ -49,7 +55,7 @@ export function getSessionUser(): SessionUser | null {
 }
 export function homePathFor(role: string | undefined) {
   if (role === "admin") return "/admin";
-  if (role === "rm") return "/rm";
+  if (role === "rm") return "/sales/my-day";
   return "/sales/my-day";
 }
 
@@ -83,7 +89,13 @@ async function request<T>(path: string, init?: RequestInit, authenticated = true
 }
 
 export const authApi = {
-  login: (email: string, password: string) => request<LoginResponse>("/auth/login", { method: "POST", body: JSON.stringify({ email, password }) }, false),
+  login: (value: string, password: string) => {
+    const identifier = value.trim();
+    // Preserve the email request contract for email entries and older API servers.
+    const identity = identifier.includes("@") ? { email: identifier.toLowerCase() } : { loginId: identifier };
+    return request<LoginResponse>("/auth/login", { method: "POST", body: JSON.stringify({ ...identity, password }) }, false);
+  },
+  changePassword: (currentPassword: string, newPassword: string, confirmPassword: string) => request<{ ok: boolean }>("/auth/password", { method: "POST", body: JSON.stringify({ currentPassword, newPassword, confirmPassword }) }),
   me: () => request<{ user: SessionUser }>("/auth/me"),
   logout: () => request<{ ok: boolean }>("/auth/logout", { method: "POST" }),
   requestPasswordReset: (email: string) => request<{ ok: boolean; message: string }>("/auth/password-reset", { method: "POST", body: JSON.stringify({ email }) }, false),
@@ -92,6 +104,8 @@ export const authApi = {
 };
 
 export const adminApi = {
+  rmFeedbackCatalog: () => request<{ items: RmFeedbackSummary[] }>("/admin/rm-feedback"),
+  rmFeedback: (id: string) => request<RmFeedbackSnapshot>(`/admin/rm-feedback/${encodeURIComponent(id)}`),
   overview: (financialYear?: string) => request<AdminOverview>(`/admin/overview${query({ fy: financialYear })}`),
   team: (financialYear?: string) => request<TeamResponse>(`/admin/team${query({ fy: financialYear })}`),
   managementAttention: (financialYear?: string) => request<ManagementAttentionResponse>(`/admin/management-attention${query({ fy: financialYear })}`),
@@ -102,7 +116,8 @@ export const adminApi = {
   alerts: () => request<AdminAlertsResponse>("/admin/alerts"),
   audit: () => request<AuditLogResponse>("/admin/audit"),
   managementReports: (financialYear?: string) => request<any>(`/admin/management-reports${query({ fy: financialYear })}`),
-  askAi: (question: string, from: string, to: string) => request<{ question: string; answer: string; from: string; to: string; source: string }>("/admin/ask-ai", { method: "POST", body: JSON.stringify({ question, from, to }) }),
+  askAi: (question: string, from: string, to: string) => request<{ question: string; answer: string; from: string; to: string; source: string; presentation?: AiAnswerPresentation }>("/admin/ask-ai", { method: "POST", body: JSON.stringify({ question, from, to }) }),
+  rmAiAnalysis: (id: string, from: string, to: string, period: string) => request<{ provider: string; items: any[] }>(`/admin/team/${encodeURIComponent(id)}/ai-analysis`, { method: "POST", body: JSON.stringify({ from, to, period }) }),
   customers: (params: { search?: string; rm?: string; type?: string; limit?: number; offset?: number } = {}) =>
     request<CustomerListResponse>(`/admin/customers${query(params)}`),
   customer: (id: string) => request<CustomerDetail>(`/admin/customers/${encodeURIComponent(id)}`),
@@ -121,18 +136,43 @@ export const adminApi = {
   cancelTallyPairingCode: () => request<{ ok: boolean }>("/admin/tally/pairing-code", { method: "DELETE" }),
   revokeTallyConnector: () => request<{ ok: boolean }>("/admin/tally/connector/revoke", { method: "POST" }),
   users: () => request<UserListResponse>("/admin/users"),
-  createUser: (payload: CreateUserPayload) => request<{ user: UserListResponse["items"][number]; invitation: { sent: boolean; reason?: string; deliveryStatus?: string } }>("/admin/users", { method: "POST", body: JSON.stringify(payload) }),
+  archivedUsers: () => request<{ items: ArchivedEmployee[] }>("/admin/archived-users"),
+  restoreArchivedUser: (id: string, payload: { email: string; loginId: string; initialPassword: string; managerUserId?: string | null }) => request<{ ok: boolean }>(`/admin/archived-users/${encodeURIComponent(id)}/restore`, { method: "POST", body: JSON.stringify(payload) }),
+  archivedUserHistory: (id: string, section: ArchiveSection, page = 1) => request<ArchivedHistoryResponse>(`/admin/archived-users/${encodeURIComponent(id)}/history${query({ section, page })}`),
+  createUser: (payload: CreateUserPayload) => request<{ user: UserListResponse["items"][number] }>("/admin/users", { method: "POST", body: JSON.stringify(payload) }),
+  emailStatus: () => request<{ configured: boolean; provider: string; queueConfigured: boolean; appUrl: string; localOnly: boolean; localTestRecipient: string; connectionStatus: string }>("/admin/email/status"),
+  sendTestEmail: (recipient: string) => request<{ email: { accepted: boolean; deliveryStatus: string; reason?: string } }>("/admin/email/test", { method: "POST", body: JSON.stringify({ recipient, confirmSend: true }) }),
+  sendAccountEmail: (id: string, initialPassword?: string) => request<{ email: { sent: boolean; deliveryStatus?: string; reason?: string; setupLinkIncluded?: boolean; passwordIncluded?: boolean; previousDeliveryStatus?: string } }>(`/admin/users/${encodeURIComponent(id)}/account-email`, { method: "POST", body: JSON.stringify({ confirmSend: true, ...(initialPassword ? { initialPassword } : {}) }) }),
   sendInvitation: (id: string) => request<{ invitation: { sent: boolean; reason?: string; deliveryStatus?: string } }>(`/admin/users/${encodeURIComponent(id)}/invitation`, { method: "POST" }),
   updateUser: (id: string, payload: UpdateUserPayload) =>
     request<{ user: UserListResponse["items"][number] }>(`/admin/users/${encodeURIComponent(id)}`, { method: "PATCH", body: JSON.stringify(payload) }),
+  deleteUser: (id: string, confirmEmail: string) => request<{ ok: boolean }>(`/admin/users/${encodeURIComponent(id)}`, { method: "DELETE", body: JSON.stringify({ confirmEmail }) }),
   resetPassword: (id: string, password: string) =>
     request<{ ok: boolean }>(`/admin/users/${encodeURIComponent(id)}/password`, { method: "POST", body: JSON.stringify({ password }) }),
   sendWhatsApp: (reportId: string) => request<any>("/admin/reports/send-whatsapp", { method: "POST", body: JSON.stringify({ reportId }) }),
-  rmDetail: (id: string, from?: string, to?: string) => request<any>(`/admin/team/${encodeURIComponent(id)}${query({ from, to })}`),
+  rmDetail: async (id: string, from?: string, to?: string, feedbackPeriod?: string) => {
+    const { feedbackSnapshot, ...data } = await request<any>(`/admin/team/${encodeURIComponent(id)}${query({ from, to, includeFeedback: feedbackPeriod ? "1" : undefined })}`);
+    if (!feedbackPeriod || !data.feedbackSnapshotId) return data;
+    const snapshot = feedbackSnapshot ?? await request<RmFeedbackSnapshot>(`/admin/rm-feedback/${encodeURIComponent(data.feedbackSnapshotId)}`);
+    return feedAdminFeedback(data, snapshot, feedbackPeriod);
+  },
+  rmReportOptions: () => request<{ managers: Array<{ id: string; name: string }>; financialYears: string[] }>("/admin/rm-report-options"),
+  rmPerformanceReport: (id: string, selection: import("../../shared/rm-report-period.mjs").RmReportSelection, salespersonId?: string) => request<import("../../shared/rm-performance.mjs").RmPerformanceReport>(`/admin/team/${encodeURIComponent(id)}${query({ ...selection, salespersonId:salespersonId||undefined, weekScheme: 'four', reportVersion: '2' })}`),
+  rmPeriodReport: (id: string, selection: import("../../shared/rm-report-period.mjs").RmReportSelection) => request<any>(`/admin/team/${encodeURIComponent(id)}${query(selection)}`),
 };
 
+const pendingMyDay = new Map<string, Promise<SalesDay>>();
+
 export const salesApi = {
-  getMyDay: () => request<SalesDay>("/salespeople/me/my-day"),
+  getMyDay: () => {
+    const session = typeof window !== "undefined" ? localStorage.getItem(TOKEN_KEY) ?? "cookie" : "server";
+    const pending = pendingMyDay.get(session);
+    if (pending) return pending;
+    const task = request<SalesDay>("/salespeople/me/my-day?view=workspace")
+      .finally(() => { if (pendingMyDay.get(session) === task) pendingMyDay.delete(session); });
+    pendingMyDay.set(session, task);
+    return task;
+  },
   checkIn: (position?: { latitude: number; longitude: number; accuracy?: number }) => request<SalesDay>("/salespeople/me/check-in", { method: "POST", body: JSON.stringify(position ?? {}) }),
   startVisit: (visitId: string, position?: { latitude: number; longitude: number; accuracy?: number }) => request<SalesDay>(`/visits/${visitId}/start`, { method: "POST", body: JSON.stringify(position ?? {}) }),
   deleteVisit: (visitId: string) => request<SalesDay>(`/visits/${visitId}`, { method: "DELETE" }),
@@ -150,9 +190,15 @@ export const salesApi = {
 };
 
 export const rmApi = {
+  performanceReport: (selection: import("../../shared/rm-report-period.mjs").RmReportSelection, salespersonId?: string) => request<import("../../shared/rm-performance.mjs").RmPerformanceReport>(`/rm/period-report${query({ ...selection, salespersonId:salespersonId||undefined, weekScheme: 'four', reportVersion: '2' })}`),
+  periodReport: (selection: import("../../shared/rm-report-period.mjs").RmReportSelection) => request<any>(`/rm/period-report${query(selection)}`),
   dashboard: (from?: string, to?: string) => request<any>(`/rm/dashboard${query({ from, to })}`),
-  reportCard: () => request<any>("/rm/report-card"),
-  printReport: () => request<any>("/rm/print-report"),
+  reportCard: async () => {
+    const data = await request<any>("/rm/report-card");
+    try { return feedRmFeedback(data, await request<RmFeedbackSnapshot>("/rm/print-report")); }
+    catch (error) { if (error instanceof ApiError && error.status === 404) return data; throw error; }
+  },
+  printReport: () => request<RmFeedbackSnapshot>("/rm/print-report"),
   customers: (q = "", page = 0) => request<{ total: number; items: any[] }>(`/rm/customers${query({ q, page })}`),
   customerDetail: (id: string) => request<any>(`/rm/customers/${encodeURIComponent(id)}`),
   saveDormantReason: (id: string, reason: string) => request<any>(`/rm/customers/${encodeURIComponent(id)}/dormant-reason`, { method: "POST", body: JSON.stringify({ reason }) }),

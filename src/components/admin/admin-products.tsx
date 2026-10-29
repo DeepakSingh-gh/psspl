@@ -22,7 +22,7 @@ export function AdminProducts() {
 
   const { data, loading, error, reload } = useAdminData(
     () => adminApi.products({ search: term, limit: PAGE_SIZE, offset: page * PAGE_SIZE }),
-    [term, page]
+    [term, page], `admin-products-${JSON.stringify([term, page])}`
   );
 
   const total = data?.total ?? 0;

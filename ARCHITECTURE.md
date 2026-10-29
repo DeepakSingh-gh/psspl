@@ -1,8 +1,52 @@
 # PSSPL CRM System Architecture & Technical Specifications
 
+<!-- current-admin-ui:start -->
+> Latest local UI notes (27-10-2026): explicit Rais Khan top-five sample previews and the RM-only Monthly target card removal are documented in [the latest preview and dashboard notes](docs/operations/2026-10-27-ui-adjustments.md#local-top-five-samples-and-rm-dashboard-cleanup). Overview cleanup, period filters and shared PDF rendering remain. Earlier dated verification retains its scope; this Markdown update does not rerun tests or establish deployment/client acceptance.
+<!-- current-admin-ui:end -->
+
+<!-- current-source-status:start -->
+> Current source status (27-10-2026): backend RM rankings remain source-backed. Local Admin preview can fill empty products or append clearly marked sample customers without changing real rows, totals or database records. See [the latest preview and dashboard notes](docs/operations/2026-10-27-ui-adjustments.md#local-top-five-samples-and-rm-dashboard-cleanup). Overview cleanup, period filters and shared PDF rendering remain. Earlier dated verification retains its scope; this Markdown update does not rerun tests or establish deployment/client acceptance.
+<!-- current-source-status:end -->
+
+<!-- oct27-ui-details:start -->
+## Read-only RM top-sales projection
+
+`server/rm-performance-report.mjs` adds optional `topSales` via `server/rm-top-sales.mjs`. Customer aggregates reuse the existing voucher query; product aggregates use signed authoritative lines grouped by master ID (exact recorded name when missing). Existing RM/subordinate scope, period/cutoff and net-sales rules are preserved. Both shares use total report RM sales; zero/negative denominators and aggregate-only snapshots remain unavailable. No schema, persistence, inferred parent grouping or demo source is added. `RmTopSales` is reused by Performance Details and one measured PDF pagination block; line/header variance is disclosed.
+
+
+Latest follow-up: [Local preview and RM dashboard scope](docs/operations/2026-10-27-ui-adjustments.md#local-top-five-samples-and-rm-dashboard-cleanup): **Start Preview / Exit Preview** controls optional Rais Khan sample rows. Empty products receive five examples; a short customer list keeps real rows and appends marked samples to five. Sample customer shares are unavailable and totals remain recorded values. Dashboard/PDF labels match; no persistence occurs. The bottom Monthly target card is hidden for RM accounts only, with the salesperson card retained.
+<!-- oct27-ui-details:end -->
+
+## Admin chart and navigation presentation — 26 October 2026
+
+`SalesTrend` uses the existing Tally-backed Product Trends response and chart helpers. Its light theme is scoped to `sales-performance-trend.module.css`; the component delegates grid/crosshair strokes to CSS. Theme changes preserve the 290px chart height, all calculations, response handling and interactions. `AdminShell` removes only the Reporting navigation group, retaining route implementations and authorization. No schema, source-data, dependency or other workspace change is involved. See [Admin UI operation and verification](docs/operations/admin-product-trends-and-sidebar.md).
+
+## Product Trends source and alternative comparisons — 26 October 2026
+
+`server/product-trend-data.mjs` enriches only the existing Admin Product Trends response. Authoritative item lines take priority; historical product/RM snapshots can fill an otherwise empty matching complete FY without being added to overlapping invoice totals. Rates, dated monthly quantities, month counts and RM details retain provenance. Packing variants retain their names/IDs; family association is metadata, not a totals rollup.
+
+`server/product-trend-comparison.mjs` adds an independent `recentComparison` object while preserving original FY/YoY fields. It selects consecutive recorded months bounded by the available history, classifies movement only for paired exact variants, computes FY contribution and observation-window lifecycle, and reports item-line versus voucher-header reconciliation. The frontend uses explicit MoM labels only when YoY is unavailable, preserving the five cards, existing grids and chart controls. Genuine prior-year vouchers are still required for monthly YoY; generated equal-month `excel-import` records are excluded. See [source investigation, formulas, figures and limits](docs/operations/admin-product-trends-and-sidebar.md#product-trend-data-and-comparison-recovery).
+
+## Current local RM report presentation - 24 October 2026
+
+`src/lib/rm-client-demo.mjs` adapts a copy of the report only in an explicitly selected, authenticated Admin session on localhost. RM/FY/version hashes keep attendance/product examples stable; no demo API parameters or database writes are introduced. The workspace passes one prepared report to the dashboard and PDF, while verified raw evidence continues to drive insights/actions. The UI and PDF place the existing Manager Action Plan before KPIs and retain AI Insights after saved entries. PDF reuses the calendar and four-column product renderers, exports every saved entry in eight columns and measures blocks with the final A4 page styles. `src/components/reports/rm-pdf-pagination.ts` keeps cards/rows intact and reserves continuation-heading/footer space. Preview and download consume the same paginated representation; the former supporting-detail appendix is removed. Shared chart legends contain smaller `(<100%)` / `(≥100%)` second lines. See [implementation, exact files and QA evidence](docs/operations/rm-report-finalization.md).
+
+## Current local account/email architecture - 21 October 2026
+
+- Current AI generation selects Claude through backend-only environment credentials. Shared Ask AI retains authorized evidence selection. The active V2 RM workspace uses `enrichPerformanceReview` to prioritize server-verified finding IDs; insight/action prose remains in vetted templates. Its payload contains scoped facts and period dates, but no explicit RM name/ID. The legacy admin analysis endpoint separately generates validated recommendations. Both flows retain honest failure handling and server-owned metrics. [Current verification and limits](docs/operations/rm-report-finalization.md#ai-verification-and-limits). Uploaded Whisper transcription remains disabled in Claude mode.
+- Supplied RM feedback uses checked-in `server/data/rm-feedback-snapshots.json`, loaded once and indexed by `server/rm-feedback.mjs`. Admin can browse all 12 historical snapshots; the RM print endpoint resolves only the authenticated identity. No request-time PDF parsing or AI call is required. This is separate from live sales aggregates; see [snapshot architecture and import notes](docs/operations/rm-feedback-snapshots.md).
+- Admin-controlled **Create user & Send Email** and **Send Account Email** send a professional full-profile template from saved user/profile/RM records. Supplied current/initial passwords are verified against salted scrypt hashes before inclusion; existing hashes are not reversible. Confirm-password is validation-only.
+- `server/account-email-template.mjs` renders branded HTML and plain text. `server/email-provider.mjs` selects preserved Resend or Nodemailer SMTP. Gmail uses the authenticated sender's backend-only App Password over TLS; the current temporary sender is `deepaksingh873785@gmail.com`.
+- The AES-256-GCM queue stores password-bearing templates encrypted, never in API responses or audit details. Credential-version checks cancel unsent email after password changes. Provider pinning and token-free account notices are migrations 013 and 014 respectively. Password recovery remains random, single-use, 15-minute tokens; new links use browser-only fragments.
+- SMTP provider acceptance is not inbox delivery. Safe pre-submit/explicit temporary failures can retry; ambiguous submissions and expired SMTP leases are held as unknown. Resend retains stable idempotency and signed delivery webhooks. Cooldown responses show previous delivery status.
+- A local-only account email can include employee details and a supplied password without a broken localhost link. Remote login/setup still requires a reachable CRM URL and matching remote database; local creation does not provision a separate deployed instance.
+- **Restore employee** reuses the archived identity and CRM history with new credentials. **View check-in on map** links stored attendance coordinates to a map; it does not create missing GPS data or guarantee exact accuracy.
+
+See [current source summary](docs/operations/2026-10-21-current-state.md) and [email operations](docs/operations/gmail-smtp-authentication.md). The deployment snapshots below retain their original dates; these local changes were not deployed by the documentation refresh.
+
 This document outlines the complete technical architecture of the PSSPL CRM, spanning frontend client applications, Express API services, SQLite database schema, accounting synchronisation, and external automations.
 
-### Current source and deployment — 16 October 2026
+### Historical deployment snapshot — 16 October 2026
 
 Local `main` tracks `DeepakSingh-gh/psspl` through `origin`. The last verified frontend release is commit `87eae1e` on Vercel (`dpl_8Lqo3dUH9DPXpMFLT4QJGFmtTbgD`). RM landing/redirect changes and report tab prioritization are live. Backend AI-provider and query/compression changes are in source control, but Render still runs the prior backend build; deploying those changes requires preserving its live SQLite data. Render automatic deployment settings were restored after each protected frontend release. Automatic Vercel Git linking remains permission-blocked; explicit API releases succeeded. This documentation update is local only.
 
@@ -16,7 +60,7 @@ Five focused tests cover revision correctness, shared polling, unchanged revisio
 
 ### My Day performance implementation
 
-**Local-only UI addition:** `RefreshDataButton` is mounted once in `src/app/layout.tsx`, so app data routes have the same fixed refresh control. A `usePathname` guard excludes `/login` and the root redirect route. It uses `window.location.reload()` to rerun effect-based loaders and discard the module-level admin cache; `router.refresh()` alone would not rerun those client loaders. The current URL is retained, but unsaved form state and component-only tabs/filters may reset. Its styles sit below modal overlays, support mobile safe areas and keyboard focus, and hide the control for printing. No API, database or authentication change accompanies this button; it has not been deployed.
+**Local refresh control:** `RefreshDataButton` is mounted in the root layout, excluding `/login` and `/`. It dispatches `psspl:refresh-data`, waits for registered loader promises and calls `router.refresh()`. Local tab/filter state is preserved. Admin content reserves bottom space for pagination, mobile safe areas are supported and the button is hidden in print. No production deployment is established by this source update.
 
 `buildSalesDay` creates an RM directory once per request and passes it to customer, sales-summary and overview queries. Other connector callers retain their default behavior. No cache persists between requests, so check-in, visits, follow-ups and connector updates continue to read current records.
 
@@ -36,7 +80,7 @@ graph TD
     RenderBackend -->|Native WAL| DB[(SQLite: data/crm.sqlite + Auto-restore gzip)]
     
     subgraph Data Flow & Integrations
-        RenderBackend -->|Context Injection| Gemini[Google Gemini API gemini-2.5-flash / gemini-2.0-flash]
+        RenderBackend -->|Authorized evidence| Claude[Claude Messages API - configured backend model]
         RenderBackend -->|Meta Graph API| WhatsApp[WhatsApp Cloud API]
         RenderBackend -->|Minute check, Asia/Kolkata| ReportJobs[Approved Report Schedules]
         TallyAgent[Tally Windows Agent] -->|Chunked HMAC Sync| RenderBackend
@@ -67,7 +111,7 @@ graph TD
 * **Integrated Search Controls & Voice STT:** `<VoiceMicButton>` component integrated on all search inputs with dual-engine Speech-to-Text (browser Web Speech API for free instant transcription + backend OpenAI Whisper API `POST /api/stt` endpoint in `server/stt.mjs`).
 * **Backend Runtime:** Node.js native ES Modules (`server/app.mjs`), Express 5.1 with SQLite WAL mode.
 * **Authentication Security:** Asynchronous non-blocking `crypto.scrypt` password verification (`promisify`), malformed hash guards, strict `Bearer` token validation, and background session cleanup.
-* **AI Engine (current source):** `server/ai-context.mjs` constructs SQL context/system prompts and re-exports the provider functions from `server/ai-provider.mjs`. Gemini uses `GEMINI_API_KEY` in the `x-goog-api-key` header, optional `GEMINI_MODEL`, and default/fallback `gemini-2.5-flash`; optional OpenAI fallback uses `gpt-4o-mini`. Each provider request has a 20-second timeout. Missing keys, placeholder keys and provider exhaustion are handled without returning configuration errors as successful AI answers. No fixed live latency is guaranteed, and this backend revision is not yet deployed to Render.
+* **AI Engine (current source):** `server/ai-context.mjs` constructs authorized context and re-exports `server/ai-provider.mjs`. Claude mode uses backend-only credentials, the configured Anthropic model and a 30-second timeout; it never silently falls back to Gemini/OpenAI. Legacy providers remain available through explicit configuration. Admin RM Action Plan/Insights use validated evidence-bound recommendations via `server/rm-ai-analysis.mjs`. Provider failures are labeled unavailable. See [Claude operations](docs/operations/claude-ai.md).
 * **Scheduler & Automation:** `node-cron` checks approved daily/monthly report schedules every minute in Asia/Kolkata. Delivery defaults to disabled; durable claims and signed callbacks track each occurrence.
 * **Media & Voice Recording:** HTML5 `MediaRecorder` API + Web Speech API + `multer` backend audio storage and OpenAI Whisper `whisper-1` transcription.
 
@@ -77,7 +121,7 @@ graph TD
 All application state resides in `data/crm.sqlite` across four primary domains:
 
 ### A. Authentication & User Management
-* `users`: `id`, `email`, `password_hash` (`scrypt`), `role` (`admin` | `rm` | `salesperson`), `active`, `created_at`.
+* `users`: `id`, `email`, nullable `login_id` (case-insensitive unique, migration 011), `password_hash` (`scrypt`), `role` (`admin` | `rm` | `salesperson`), `active`, nullable `deleted_at` (migration 012), `created_at`. New admin-created accounts are active immediately; existing email logins and pending invitations remain supported. Password changes through `/profile` and recovery/admin resets atomically revoke account sessions, tokens and queued recovery emails. See the [authentication workflow report](docs/superpowers/reports/2026-10-20-authentication-workflow.md). Account deletion disables access and preserves CRM attribution; archived history remains read-only, while admin restoration sets new credentials on the retained identity.
 * `salesperson_profiles`: `user_id`, `employee_code`, `full_name`, `region`, `territory`, `operating_city`, `reg_code_1`, `reg_code_2`, `manager_user_id`, `monthly_target`.
 * `sessions`: Sliding window session tokens with idle timeout and maximum lifetime ceiling.
 * `audit_logs`: Entity-level audit logging of admin actions, resets, and report exports.
@@ -127,11 +171,13 @@ All application state resides in `data/crm.sqlite` across four primary domains:
 ```
 
 ### Route Structure
-* `/admin/*`: Admin dashboard, quotation approvals, user directory, management reports, Tally sync.
+* `/admin/*`: Admin dashboards, approvals, user directory, reports and Tally sync. `/admin/team-structure` groups RMs and assigned salespeople; `/admin/archived-employees` exposes preserved employee history through admin-only read APIs.
 * `/admin/team`: Executive Team Performance Dashboard with traffic-light achievement pill badges, RM sorting, dedicated **Strategic Thrust Products — RM Leaderboard**, and **Sticky Table Column Headers on Scroll** (headers remain pinned at `top: 0` with `z-index: 10` inside a scrollable container). Features corrected target scaling (Lakhs-to-Rupees) with exact achievement percentages.
-* `/admin/team/[id]`: Comprehensive Executive RM Report Card (8 tabs in order: *Manager Action Plan* ? default, *AI Insights*, *Report Card*, *Customer Visits*, *Pipeline*, *Actual Sales*, *Products*, *Follow-ups*). Features canonical RM ID resolution (`aniljenafield` ↔ `aniljena`), active ledger cycle synchronization (anchors to latest active reporting month like September 2026 to ensure zero metric discrepancies across badges, milestones, and graphs), period-aware target proration, RM Code (`075709`), Operating headquarters (`Gurugram`), Team Executive Cities tags, clock-in/out timestamps, Special Achievements & Milestones (Vacant Box Architecture, 4 slots), Monthly Sales Target vs Actual Bar Chart, Thrust Product Sales Breakdown, and dedicated **Download Report** header action button.
+* `/admin/team/[id]`: V4 RM performance report with assigned-salesperson scope, saved My Day entries, FY/month/four-week charts, scoped attendance/details, YTD thrust-product company contribution and PDF export. The verbose availability/scope panel is removed. Rais Khan code `033705` additionally receives labeled frontend missing-field fallback; populated values and zeros remain authoritative. See [V4](docs/operations/rm-performance-v4.md) and the [client snapshot adapter/audit](docs/operations/rais-khan-client-snapshot.md).
+  * `src/components/reports/rm-my-day-inputs.tsx` renders the eight-column saved-entry table. `server/rm-my-day-entries.mjs` projects one completed visit with its linked order, follow-up and generated lead stage as one row; planned/in-progress visits stay in the My Day route. Independent saved records remain separate.
+  * `ThrustSummary` in `src/components/reports/rm-performance-view.tsx` renders Customer & business performance → Thrust Products. `server/rm-performance-report.mjs` receives scoped product results from `calculateThrustProductsForNames` in `server/admin.mjs`, using configured `thrust_products`.
 * `/admin/team/[id]/print`: High-definition, A4 printable Executive RM Report Card view featuring full header identity, 8-KPI executive performance cards, Target vs Actual bar breakdown, side-by-side Top Customers and Top Products tables, recent visit transcripts, open follow-up actions, and a fixed top controls bar (`Download PDF` triggering `window.print()` and `Close`).
-* `/rm`: Server-side HTTP 307 redirect to `/sales/my-day`. Both RM and salesperson login roles use the shared My Day / Customer DB navigation. Existing `/rm/*` report and detail routes remain implemented; they are not the default RM landing.
+* `/rm`: RM landing dashboard with assigned-team navigation. `/rm/*` team, report-card and alert routes remain available; My Day is available for field work.
 * `/rm/print-report`: High-definition 1:1 reproduction of the official **PSSPL Regional Manager Sales Target Feedback Support Report** with A4 print and PDF download capabilities.
 * `/sales/*` & `/sales/my-day`: Salesperson Day-Planner with RM Executive identity header pills (RM Code, Operating from, Region, Coverage cities), live rupee formatted monthly quota metrics (`Actual from Tally`, `Target`, `Gap` / `Surplus` in Lakhs/Rupees), active ledger period badges (`2026-09 active ledger`), `✓ Target Achieved` milestone pill, GPS check-in/out tracking, visit execution, voice note recording, Kanban pipeline with instant lead deletion, and modern `AnimatedSelect` dropdowns with smooth cubic-bezier transitions for customer visit scheduling.
 
@@ -162,10 +208,10 @@ All application state resides in `data/crm.sqlite` across four primary domains:
 `server/report-snapshot.mjs` builds complete role-scoped JSON using unchanged authoritative Tally metrics and Phase 3/4 review functions. The period, current-state CRM data, sync age and unavailable-data limits are explicit.
 
 * All admin/RM/sales AI routes use `server/ai-answer.mjs` with backend authorization, validated dates/questions and per-account throttling.
-* Gemini/OpenAI selects supported evidence section IDs; the server renders calculated facts and existing review actions. Provider prose, financial values and unsupported causal explanations are not displayed.
+* The selected Claude provider selects supported evidence section IDs for Ask AI; the server renders calculated facts and existing review actions. Provider prose, financial values and unsupported causal explanations are not displayed.
 * Admin date controls affect backend context. Legacy RM/sales screens default to the Indian financial year. Exact unique RM names and complete monthly targets are required for automation target achievement; unresolved aliases remain unavailable.
-* `server/ai-provider.mjs` tries a configured Gemini model, the default `gemini-2.5-flash`, and configured OpenAI fallback. Missing configuration, timeouts and invalid answers return unavailable errors.
-* Source/freshness limits, a top-five product subset and bounded BI support remain visible. Provider calls were mocked during verification; no live AI or speech acceptance is claimed.
+* `server/ai-provider.mjs` uses Claude when `CRM_AI_PROVIDER=claude`; Gemini/OpenAI are legacy configuration choices, not silent Claude fallbacks. Missing configuration, timeouts and invalid answers return unavailable errors.
+* Source/freshness limits, a top-five product subset and bounded BI support remain visible. Earlier evidence-selection verification mocked provider calls. The later local Claude integration also verified live provider authentication and structured RM analysis; this does not establish production rollout or uploaded speech support in Claude mode.
 
 ### 3. Supabase Cloud Sync Engine (GI Connector)
 Located in `server/supabase-sync.mjs` and `server/connector-api.mjs`:
@@ -196,4 +242,15 @@ Located in `server/admin.mjs` and `src/components/admin/`:
 
 Remaining caching and local follow-up notes: [Architecture continued](./docs/project-records/ARCHITECTURE_CONTINUED.md).
 
-> Current project status (19 October 2026): See the [production readiness report](PSSPL_FINAL_PRODUCTION_READINESS_REPORT.md) for the latest verified work and blockers; earlier findings in this document retain their original date.
+<!-- rm-report-current:start -->
+## Historical RM report card - 22-10-2026
+
+- Select an RM (Admin only), Weekly / Monthly / Yearly, financial year, month and week as applicable. Press **View Report** to apply and open the Report Card tab. RM accounts remain restricted to their authorized data.
+- Desktop filters are compact; KPIs and chart come first, with insights/actions side by side and stacked mobile sections. PDF retains two A4 pages.
+- **Download PDF** also applies pending filters, opens the matching preview and saves from its download button. Export errors provide a retry message; filenames use selected-period dates.
+- Executive Territory Coverage groups each executive with their cities beneath the profile and on PDF page 2. The supplied-report date is visible; dealer locations are not substituted as executive assignments.
+- Rais Khan reuses existing supplied monthly/weekly/yearly financial data when live invoices are absent; separately labeled sample details remain a documented presentation exception. Missing source achievements stay unavailable. Other RMs receive no sample fallback.
+- Latest local checks: all 5 dynamic-period tests, TypeScript and changed-file whitespace checks passed, including dashboard/PDF mapping parity and PDF footer fit.
+
+See [period rules, source limitations and verification](docs/operations/rm-period-reports.md) and [other UI/loading changes](docs/operations/2026-10-22-ui-and-performance.md). The proposed Claude Call Sheet image is a preview, not an implemented feature set. No production deployment or production-data modification was performed for these updates.
+<!-- rm-report-current:end -->

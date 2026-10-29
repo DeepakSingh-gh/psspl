@@ -14,6 +14,12 @@ const call = (path, role, method='GET', body) => fetch(`${base}/api${path}`, { m
 const fixtureMessage = async (message) => { const pending = once(child, 'message'); child.send(message); return (await pending)[0]; };
 const testEmails = async () => (await fixtureMessage({ type: 'get-test-emails' })).messages;
 const expireLatestAuthToken = async (email, purpose) => fixtureMessage({ type: 'expire-latest-auth-token', email, purpose });
+const createLegacyAccount = async (account) => {
+  const { id } = await fixtureMessage({ type: 'create-legacy-account', account });
+  const invitation = await (await call(`/admin/users/${encodeURIComponent(id)}/invitation`, 'admin', 'POST', {})).json();
+  const { items } = await (await call('/admin/users', 'admin')).json();
+  return { user: items.find(user => user.id === id), ...invitation };
+};
 before(async () => {
   child = fork('scripts/phase8-fixture-server.mjs', [], { silent: true });
   child.stderr.on('data', chunk => process.stderr.write(chunk));
@@ -36,14 +42,12 @@ test('real login validates credentials for all roles; protected routes deny unau
 });
 
 test('admin invitation, verified delivery events, activation, expiry, reset and session revocation work securely', async () => {
-  const created = await call('/admin/users', 'admin', 'POST', { email: 'new.rep@example.test', role: 'salesperson', fullName: 'New Test Rep', initialPassword: 'Admin-Temporary-Password-2026!', mobileNumber: '+91 98765 43210', managerUserId: 'rm', region: 'North', territory: 'Synthetic' });
-  assert.equal(created.status, 201);
-  const createdData = await created.json();
+  const createdData = await createLegacyAccount({ email: 'new.rep@example.test', role: 'salesperson', fullName: 'New Test Rep', initialPassword: 'Admin-Temporary-Password-2026!', mobileNumber: '+91 98765 43210', managerUserId: 'rm', region: 'North', territory: 'Synthetic' });
   assert.equal(createdData.user.active, false);
   assert.equal(createdData.user.managerUserId, 'rm');
   assert.equal(createdData.user.mobileNumber, '+91 98765 43210');
   assert.equal(createdData.invitation.sent, true);
-  assert.equal((await call('/admin/users', 'admin', 'POST', { email: 'NEW.REP@example.test', role: 'salesperson', fullName: 'Duplicate Test Rep', managerUserId: 'rm' })).status, 409);
+  assert.equal((await call('/admin/users', 'admin', 'POST', { email: 'NEW.REP@example.test', loginId: 'duplicate-rep', initialPassword: 'Synthetic-Initial-2026!', role: 'salesperson', fullName: 'Duplicate Test Rep', managerUserId: 'rm' })).status, 409);
   const invite = (await testEmails()).at(-1);
   assert.equal(invite.to, 'new.rep@example.test');
   assert.match(invite.html, /PSSPL CRM/);
@@ -73,8 +77,7 @@ test('admin invitation, verified delivery events, activation, expiry, reset and 
   const activation = await call('/auth/activate', null, 'POST', { token: activationToken, password: 'New-Account-Password-2026!' });
   assert.equal(activation.status, 200);
   assert.equal((await call('/auth/activate', null, 'POST', { token: activationToken, password: 'Another-Password-2026!' })).status, 400);
-  const expiredInvitationResponse = await call('/admin/users', 'admin', 'POST', { email: 'expired.rm@example.test', role: 'rm', fullName: 'Expired Test RM' });
-  assert.equal(expiredInvitationResponse.status, 201);
+  await createLegacyAccount({ email: 'expired.rm@example.test', role: 'rm', fullName: 'Expired Test RM' });
   const expiredInvitation = (await testEmails()).at(-1);
   assert.equal((await expireLatestAuthToken('expired.rm@example.test', 'activate')).updated, 1);
   const expiredActivationToken = decodeURIComponent(expiredInvitation.text.match(/token=([^\s]+)/)[1]);
@@ -116,9 +119,7 @@ test('admin invitation, verified delivery events, activation, expiry, reset and 
 test('admin can invite an inactive account created before email was configured', async () => {
   await fixtureMessage({ type: 'set-email-provider', enabled: false });
   try {
-    const created = await call('/admin/users', 'admin', 'POST', { email: 'later.invite@example.test', role: 'salesperson', fullName: 'Later Invite', managerUserId: 'rm' });
-    assert.equal(created.status, 201);
-    const data = await created.json();
+    const data = await createLegacyAccount({ email: 'later.invite@example.test', role: 'salesperson', fullName: 'Later Invite', managerUserId: 'rm' });
     assert.equal(data.user.active, false);
     assert.equal(data.user.invitationPending, false);
     assert.equal(data.invitation.deliveryStatus, 'not_configured');
@@ -133,10 +134,8 @@ test('admin can invite an inactive account created before email was configured',
   }
 });
 
-test('new RM activates with their own password and old links cannot override admin account changes', async () => {
-  const created = await call('/admin/users', 'admin', 'POST', { email: 'new.manager@example.test', role: 'rm', fullName: 'New Test Manager' });
-  assert.equal(created.status, 201);
-  const { user, invitation } = await created.json();
+test('legacy invited RM activates with their own password and old links cannot override admin account changes', async () => {
+  const { user, invitation } = await createLegacyAccount({ email: 'new.manager@example.test', role: 'rm', fullName: 'New Test Manager' });
   assert.equal(user.active, false);
   assert.equal(user.role, 'rm');
   assert.equal(invitation.sent, true);
@@ -156,9 +155,7 @@ test('new RM activates with their own password and old links cannot override adm
   assert.equal((await call('/auth/password-reset/complete', null, 'POST', { token: resetToken, password: 'Stale-Reset-Password-2026!' })).status, 400);
   assert.equal((await call('/auth/login', null, 'POST', { email: user.email, password: 'Admin-New-Manager-Password-2026!' })).status, 200);
 
-  const pending = await call('/admin/users', 'admin', 'POST', { email: 'manual.manager@example.test', role: 'rm', fullName: 'Manual Test Manager', initialPassword: 'Temporary-Manager-Password-2026!' });
-  assert.equal(pending.status, 201);
-  const pendingUser = (await pending.json()).user;
+  const { user: pendingUser } = await createLegacyAccount({ email: 'manual.manager@example.test', role: 'rm', fullName: 'Manual Test Manager' });
   const pendingInvite = (await testEmails()).at(-1);
   const pendingToken = decodeURIComponent(pendingInvite.text.match(/token=([^\s]+)/)[1]);
   assert.equal((await call(`/admin/users/${pendingUser.id}`, 'admin', 'PATCH', { active: true })).status, 200);

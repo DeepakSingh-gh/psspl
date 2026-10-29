@@ -1,0 +1,69 @@
+.org-structure { color: var(--a-navy); }
+.org-root { display: flex; align-items: center; flex-wrap: wrap; gap: 20px; padding: 24px; border: 1px solid #bddbef; border-radius: 16px; background: linear-gradient(115deg, #eaf7ff, #fff); }
+.org-root-symbol { display: grid; place-items: center; width: 56px; height: 56px; border-radius: 16px; color: #fff; background: #006e9f; flex: 0 0 auto; }
+.org-root-symbol svg { width: 30px; height: 30px; }
+.org-root-copy { flex: 1 1 260px; }
+.org-eyebrow { display: block; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .11em; color: #42728f; }
+.org-root h2 { margin: 6px 0; font-size: 22px; }
+.org-root p { margin: 0; color: #42657a; font-size: 13px; }
+.org-admins { display: flex; flex-wrap: wrap; gap: 12px; padding: 0; margin: 0; list-style: none; }
+.org-admins li { display: grid; gap: 4px; font-size: 13px; padding: 12px; border-radius: 10px; background: #fff; border: 1px solid #d7e7f1; }
+.org-email { font-size: 12px; color: #587387; overflow-wrap: anywhere; }
+.org-status { display: inline-flex; align-items: center; width: fit-content; padding: 3px 8px; border-radius: 20px; font-size: 10px; font-weight: 600; white-space: nowrap; }
+.org-status-active { background: #e9f8ee; color: #236c40; }
+.org-status-inactive { background: #f1f3f6; color: #637181; }
+.org-stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; margin: 20px 0; }
+.org-stats > div { display: grid; gap: 6px; padding: 18px 20px; border: 1px solid #dce7ef; background: #fff; border-radius: 12px; }
+.org-stats span { color: #45677e; font-size: 12px; font-weight: 600; }
+.org-stats strong { font-size: 30px; line-height: 1.2; }
+.org-stats small { color: #587387; font-size: 11px; line-height: 1.6; }
+.org-stats .org-stat-warning { background: #fffbf0; border-color: #f0d999; }
+.org-stat-warning strong { color: #926013; }
+.org-toolbar { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 16px; margin: 24px 0 12px; }
+.org-toolbar .admin-search { width: min(100%, 420px); }
+.org-toolbar-actions { display: flex; gap: 8px; }
+.org-explainer, .org-search-result { color: #587387; font-size: 12px; line-height: 1.7; }
+.org-teams { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 340px), 1fr)); align-items: start; gap: 20px; padding-top: 20px; }
+.org-team { min-width: 0; border: 1px solid #d5e5ef; border-top: 3px solid #1689bd; border-radius: 12px; background: #fff; box-shadow: 0 3px 12px #0e4f7010; overflow: hidden; }
+.org-team-header { padding: 18px; background: #f5fbff; }
+.org-manager-line { display: flex; gap: 10px; align-items: start; }
+.org-manager-mark, .org-person-mark { display: grid; place-items: center; flex: 0 0 auto; width: 38px; height: 38px; border-radius: 10px; background: #deeffa; color: #006390; font-size: 12px; font-weight: 700; }
+.org-manager-info { flex: 1; min-width: 0; }
+.org-manager-info h2 { margin: 3px 0; font-size: 16px; }
+.org-manager-info button { display: flex; align-items: center; gap: 8px; justify-content: space-between; width: 100%; padding: 0; background: none; border: 0; font: inherit; font-weight: 700; color: #004d73; text-align: left; cursor: pointer; }
+.org-manager-info button svg { flex-shrink: 0; transition: transform .15s; }
+.org-manager-info button[aria-expanded="false"] svg { transform: rotate(-90deg); }
+.org-manager-territory { margin: 12px 0; color: #587387; font-size: 11px; line-height: 1.6; overflow-wrap: anywhere; }
+.org-team-count { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; justify-content: space-between; font-size: 11px; }
+.org-team-count strong { color: #006390; background: #deeffa; padding: 5px 9px; border-radius: 6px; }
+.org-team-count > span { color: #587387; }
+.org-people { padding: 8px 18px; margin: 0; list-style: none; }
+.org-people > li { display: flex; align-items: start; gap: 10px; padding: 14px 0 14px 12px; border-left: 2px solid #dbe9f1; position: relative; }
+.org-people > li::before { content: ""; position: absolute; left: 0; top: 31px; width: 10px; height: 2px; background: #dbe9f1; }
+.org-people > li + li { border-top: 1px solid #edf2f6; }
+.org-person-mark { width: 30px; height: 30px; font-size: 10px; background: #f0f5f8; color: #56718a; border-radius: 50%; }
+.org-person-info { display: grid; flex: 1; gap: 4px; min-width: 0; }
+.org-person-info strong { font-size: 13px; overflow-wrap: anywhere; }
+.org-person-info > span:not(.org-email) { font-size: 10px; color: #708596; }
+.org-empty { padding: 16px 18px; margin: 0; font-size: 12px; line-height: 1.6; color: #6d8190; }
+.org-unassigned { margin-top: 24px; padding: 20px; border: 1px solid #edcf8d; border-radius: 12px; background: #fffcf4; }
+.org-unassigned h2 { margin: 0; font-size: 17px; }
+.org-unassigned h2 button { display: flex; align-items: center; gap: 10px; padding: 0; border: 0; background: none; font: inherit; font-weight: 700; color: #885b1b; cursor: pointer; }
+.org-unassigned h2 span { background: #f6e8c9; border-radius: 20px; padding: 3px 10px; font-size: 12px; }
+.org-unassigned > p { font-size: 12px; color: #786444; line-height: 1.7; }
+.org-unassigned .org-people { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr)); gap: 0 24px; padding: 0; }
+.org-structure button:focus-visible { outline: 3px solid #47ace0; outline-offset: 4px; border-radius: 4px; }
+@media (max-width: 600px) {
+  .org-root { padding: 18px; gap: 14px; }
+  .org-root-copy { flex-basis: 190px; }
+  .org-root h2 { font-size: 19px; }
+  .org-admins { width: 100%; }
+  .org-admins li { width: 100%; }
+  .org-stats { grid-template-columns: 1fr; gap: 10px; }
+  .org-stats > div { padding: 14px 18px; }
+  .org-stats strong { font-size: 26px; }
+  .org-team-header { padding: 14px; }
+  .org-people { padding-inline: 12px; }
+  .org-manager-line { flex-wrap: wrap; }
+  .org-unassigned { padding: 16px; }
+}

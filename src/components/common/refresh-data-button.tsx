@@ -6,12 +6,14 @@ import { usePathname, useRouter } from "next/navigation";
 type RefreshRequest = CustomEvent<{ tasks: Promise<unknown>[] }>;
 
 /** Refreshes the active route's data loaders without remounting the page. */
-export function RefreshDataButton() {
+export function RefreshDataButton({ inline = false }: { inline?: boolean }) {
   const pathname = usePathname();
   const router = useRouter();
   const [refreshing, setRefreshing] = useState(false);
 
   if (pathname === "/login" || pathname === "/") return null;
+  // RM report owns an inline toolbar control; other routes retain their existing button.
+  if (!inline && (/^\/admin\/team\/[^/]+\/?$/.test(pathname) || pathname === '/rm/report-card')) return null;
 
   async function refresh() {
     setRefreshing(true);
@@ -29,7 +31,7 @@ export function RefreshDataButton() {
   return (
     <button
       type="button"
-      className="page-refresh-button"
+      className={inline ? "rm-v3-refresh-button" : "page-refresh-button"}
       onClick={refresh}
       disabled={refreshing}
       aria-label="Refresh data on this page"

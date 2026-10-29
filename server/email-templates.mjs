@@ -1,6 +1,9 @@
+import { accountDetailsTemplate } from "./account-email-template.mjs";
 const escapeHtml = (value) => String(value).replace(/[&<>"']/g, (character) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[character]);
 
-export function authEmailTemplate({ purpose, actionUrl, expiresIn, displayName }) {
+export function authEmailTemplate(options) {
+  const { purpose, actionUrl, expiresIn, displayName, accountEmail = false } = options;
+  if (accountEmail) return accountDetailsTemplate(options);
   const activation = purpose === "activate";
   const safeName = displayName ? escapeHtml(displayName) : "there";
   const safeUrl = escapeHtml(actionUrl);

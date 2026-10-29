@@ -5,7 +5,7 @@ import { randomBytes, randomUUID } from "node:crypto";
 import { Resend } from "resend";
 import { z } from "zod";
 import { adminRouter } from "./admin.mjs";
-import { authenticate, createSession, passwordHash, seedAdmin, sessionCookieName, verifyPassword } from "./auth.mjs";
+import { authenticate, createSession, passwordHash, revokeAccountAccess, seedAdmin, sessionCookieName, verifyPassword } from "./auth.mjs";
 import { db, transaction } from "./db.mjs";
 import { tally } from "./tally/connector.mjs";
 import { salesRouter } from "./sales-routes.mjs";
@@ -19,6 +19,7 @@ import { consumeAccountToken, queueAccountToken } from "./auth-tokens.mjs";
 import { kickAuthEmailQueue } from "./auth-email-queue.mjs";
 import { recordResendEmailEvent } from "./resend-webhook.mjs";
 import { dailyFieldActivity, indiaBusinessDate, isDateOnly, recordDailyCheckIn, validateLocation } from "./field-activity.mjs";
+import { completeVisitWithLead } from "./visit-lead.mjs";
 
 seedAdmin();
 const app = express();
@@ -53,21 +54,23 @@ app.use("/api/sales", salesRouter);
 app.use("/api/rm", rmRouter);
 const today = () => indiaBusinessDate();
 
-const loginSchema = z.object({ email: z.string().email(), password: z.string().min(1) });
+// Keep the email field for older clients while accepting the new Login ID field.
+const loginSchema = z.object({ email: z.string().trim().min(1).max(254).optional(), loginId: z.string().trim().min(1).max(254).optional(), password: z.string().min(1).max(200) }).refine((value) => value.loginId || value.email);
 const loginLimiter = createRateLimiter({ windowMs: 15 * 60 * 1000, max: 10 });
 const resetRequestLimiter = createRateLimiter({ windowMs: 15 * 60 * 1000, max: 5 });
 const resetCompletionLimiter = createRateLimiter({ windowMs: 15 * 60 * 1000, max: 5 });
 const activationLimiter = createRateLimiter({ windowMs: 15 * 60 * 1000, max: 5 });
+const passwordChangeLimiter = createRateLimiter({ windowMs: 15 * 60 * 1000, max: 5, key: (req) => req.user.id });
 const visitSchema = z.object({ productId: z.string().min(1), outcome: z.string().trim().min(1).max(500), expectedOrderValue: z.number().finite().min(0), expectedOrderDate: z.string().optional(), nextFollowUp: z.string().min(1), nextFollowUpType: z.enum(["call", "visit"]).optional(), nextFollowUpNotes: z.string().max(4000).optional(), visitTags: z.array(z.enum(["sample_required", "quotation_required", "technical_support", "complaint"])).max(4).optional(), notes: z.string().max(4000).optional() });
 
-async function buildSalesDay(userId) {
+async function buildSalesDay(userId, { workspace = false } = {}) {
   // Reuse this request's directory across all queries, with no stale cross-request cache.
-  const directory = buildRmDirectory();
+  const directory = workspace ? [] : buildRmDirectory();
   const scope = { salespersonId: userId, directory };
-  const [customers, products, sales, connector, insights] = await Promise.all([tally.customers(scope), tally.products(), tally.salesSummary(scope), tally.status(), tally.overview(scope)]);
+  const [customers, products, sales, connector, insights] = await Promise.all([tally.customers(scope), workspace ? db.prepare("SELECT id,name FROM tally_products ORDER BY total_value DESC").all() : tally.products(), tally.salesSummary({ ...scope, includeRepeat: !workspace }), tally.status(), workspace ? undefined : tally.overview(scope)]);
   const customerMap = new Map(customers.map((item) => [item.id, item]));
   const productMap = new Map(products.map((item) => [item.id, item]));
-  const profile = db.prepare("SELECT u.id,u.email,p.full_name,p.employee_code,p.region,p.territory,manager.full_name manager_name FROM users u JOIN salesperson_profiles p ON p.user_id=u.id LEFT JOIN salesperson_profiles manager ON manager.user_id=p.manager_user_id WHERE u.id=? AND u.role='salesperson'").get(userId);
+  const profile = db.prepare("SELECT u.id,u.email,u.role,p.full_name,p.employee_code,p.region,p.territory,manager.full_name manager_name FROM users u JOIN salesperson_profiles p ON p.user_id=u.id LEFT JOIN salesperson_profiles manager ON manager.user_id=p.manager_user_id WHERE u.id=? AND u.role IN ('salesperson','rm')").get(userId);
   const attendance = db.prepare("SELECT check_in_at,check_out_at,latitude,longitude FROM attendance WHERE user_id=? AND business_date=?").get(userId, today());
   const visitRows = db.prepare("SELECT v.*,vp.tally_product_id, f.due_date as next_follow_up_date FROM visits v LEFT JOIN visit_products vp ON vp.visit_id=v.id LEFT JOIN follow_ups f ON f.visit_id=v.id WHERE v.user_id=? AND v.business_date=? ORDER BY v.scheduled_at").all(userId, today());
   const followRows = db.prepare("SELECT * FROM follow_ups WHERE user_id=? ORDER BY completed,due_date").all(userId);
@@ -75,7 +78,7 @@ async function buildSalesDay(userId) {
   const attendanceHistory = db.prepare(`SELECT a.business_date businessDate,a.check_in_at checkInAt,a.check_out_at checkOutAt,a.latitude,a.longitude,(SELECT lp.accuracy FROM location_pings lp WHERE lp.user_id=a.user_id AND date(lp.captured_at,'+5 hours','+30 minutes')=a.business_date ORDER BY lp.captured_at LIMIT 1) gpsAccuracyMeters FROM attendance a WHERE a.user_id=? ORDER BY a.business_date DESC`).all(userId);
   const expected = db.prepare("SELECT COALESCE(SUM(expected_value),0) total,COUNT(*) count FROM expected_orders WHERE user_id=? AND status='open'").get(userId);
   return {
-    salesperson: { id: profile.id, email: profile.email, name: profile.full_name, employeeCode: profile.employee_code, managerName: profile.manager_name, region: profile.region, territory: profile.territory, checkedInAt: attendance ? new Date(attendance.check_in_at).toLocaleTimeString("en-IN", { hour: "numeric", minute: "2-digit", timeZone: "Asia/Kolkata" }) : null, checkedOutAt: attendance?.check_out_at ? new Date(attendance.check_out_at).toLocaleTimeString("en-IN", { hour: "numeric", minute: "2-digit", timeZone: "Asia/Kolkata" }) : null, trackingActive: Boolean(attendance?.check_in_at && !attendance?.check_out_at) },
+    salesperson: { id: profile.id, email: profile.email, role: profile.role, name: profile.full_name, employeeCode: profile.employee_code, managerName: profile.manager_name, region: profile.region, territory: profile.territory, checkedInAt: attendance ? new Date(attendance.check_in_at).toLocaleTimeString("en-IN", { hour: "numeric", minute: "2-digit", timeZone: "Asia/Kolkata" }) : null, checkedOutAt: attendance?.check_out_at ? new Date(attendance.check_out_at).toLocaleTimeString("en-IN", { hour: "numeric", minute: "2-digit", timeZone: "Asia/Kolkata" }) : null, trackingActive: Boolean(attendance?.check_in_at && !attendance?.check_out_at) },
     visits: visitRows.map((row) => ({ id: row.id, customerId: row.tally_customer_id, customer: customerMap.get(row.tally_customer_id)?.name ?? row.tally_customer_id, location: customerMap.get(row.tally_customer_id)?.city ?? "", scheduledAt: row.scheduled_at, dateLabel: new Date(row.scheduled_at).toLocaleDateString("en-IN", { day: "numeric", month: "short", timeZone: "Asia/Kolkata" }), time: new Date(row.scheduled_at).toLocaleTimeString("en-IN", { hour: "numeric", minute: "2-digit", timeZone: "Asia/Kolkata" }), productId: row.tally_product_id, product: productMap.get(row.tally_product_id)?.name ?? "Product", purpose: row.purpose, notes: row.notes || "", priority: row.priority || "medium", status: row.status, nextFollowUpDate: row.next_follow_up_date, voiceNoteAvailable: Boolean(row.voice_note_path) })),
     followUps: followRows.map((row) => ({ id: row.id, title: row.title, customer: customerMap.get(row.tally_customer_id)?.name ?? row.tally_customer_id, dueLabel: row.priority === "overdue" ? "Overdue" : "Due", dueDate: row.due_date, priority: row.priority, completed: Boolean(row.completed), followUpType: row.follow_up_type || "call", notes: row.notes || "" })),
     performance: {
@@ -99,9 +102,51 @@ app.use("/api/follow-ups", createFollowUpRouter({ buildSalesDay }));
 
 app.use("/api/admin", adminRouter);
 app.get("/api/health", async (_req, res) => res.json({ status: "ok", database: "sqlite", tally: await tally.status() }));
-app.post("/api/auth/login", loginLimiter, async (req, res) => { const parsed = loginSchema.safeParse(req.body); if (!parsed.success) return res.status(400).json({ error: "Enter a valid email and password" }); const user = db.prepare("SELECT * FROM users WHERE email=? AND active=1").get(parsed.data.email.toLowerCase()); if (!user || !(await verifyPassword(parsed.data.password, user.password_hash))) return res.status(401).json({ error: "Incorrect email or password" }); const session = createSession(user.id); res.setHeader("Cache-Control", "no-store"); if (process.env.CRM_SESSION_COOKIE_ENABLED === "true") { const secure = process.env.NODE_ENV === "production" ? "; Secure" : ""; const csrf = randomBytes(24).toString("base64url"); res.setHeader("Set-Cookie", [`${sessionCookieName}=${session.token}; Path=/; HttpOnly; SameSite=Lax; Max-Age=2592000${secure}`, `psspl_csrf=${csrf}; Path=/; SameSite=Strict; Max-Age=2592000${secure}`]); return res.json({ expiresAt: session.expiresAt, user: { id: user.id, email: user.email, role: user.role } }); } return res.json({ ...session, user: { id: user.id, email: user.email, role: user.role } }); });
+app.post("/api/auth/login", loginLimiter, async (req, res) => {
+  const parsed = loginSchema.safeParse(req.body);
+  if (!parsed.success) return res.status(400).json({ error: "Enter a Login ID or email and password" });
+  const identifier = (parsed.data.loginId || parsed.data.email).toLowerCase();
+  const user = db.prepare("SELECT id,email,login_id,role,password_hash FROM users WHERE active=1 AND (email=? COLLATE NOCASE OR login_id=? COLLATE NOCASE)").get(identifier, identifier);
+  if (!user || !(await verifyPassword(parsed.data.password, user.password_hash))) return res.status(401).json({ error: "Incorrect Login ID, email or password" });
+  // Verification yields to other requests. Reject a password/account changed meanwhile.
+  const session = transaction(() => {
+    const current = db.prepare("SELECT role FROM users WHERE id=? AND active=1 AND password_hash=?").get(user.id, user.password_hash);
+    if (!current) return null;
+    user.role = current.role;
+    return createSession(user.id);
+  });
+  if (!session) return res.status(401).json({ error: "Incorrect Login ID, email or password" });
+  const publicUser = { id: user.id, email: user.email, loginId: user.login_id, role: user.role };
+  res.setHeader("Cache-Control", "no-store");
+  if (process.env.CRM_SESSION_COOKIE_ENABLED === "true") {
+    const secure = process.env.NODE_ENV === "production" ? "; Secure" : "";
+    const csrf = randomBytes(24).toString("base64url");
+    res.setHeader("Set-Cookie", [`${sessionCookieName}=${session.token}; Path=/; HttpOnly; SameSite=Lax; Max-Age=2592000${secure}`, `psspl_csrf=${csrf}; Path=/; SameSite=Strict; Max-Age=2592000${secure}`]);
+    return res.json({ expiresAt: session.expiresAt, user: publicUser });
+  }
+  return res.json({ ...session, user: publicUser });
+});
 app.get("/api/auth/me", authenticate, (req, res) => { res.setHeader("Cache-Control", "no-store"); res.json({ user: req.user }); });
 app.post("/api/auth/logout", authenticate, (req, res) => { db.prepare("DELETE FROM sessions WHERE token_hash=?").run(req.sessionTokenHash); const secure = process.env.NODE_ENV === "production" ? "; Secure" : ""; res.setHeader("Set-Cookie", [`${sessionCookieName}=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0${secure}`, `psspl_csrf=; Path=/; SameSite=Strict; Max-Age=0${secure}`]); res.setHeader("Cache-Control", "no-store"); res.json({ ok: true }); });
+app.post("/api/auth/password", authenticate, passwordChangeLimiter, async (req, res) => {
+  const parsed = z.object({ currentPassword: z.string().min(1).max(200), newPassword: z.string().min(12).max(200), confirmPassword: z.string().min(12).max(200) })
+    .refine((value) => value.newPassword === value.confirmPassword).safeParse(req.body);
+  if (!parsed.success) return res.status(400).json({ error: "Enter your current password and matching new passwords of 12 to 200 characters" });
+  const user = db.prepare("SELECT password_hash FROM users WHERE id=? AND active=1").get(req.user.id);
+  if (!user || !(await verifyPassword(parsed.data.currentPassword, user.password_hash))) return res.status(400).json({ error: "Current password is incorrect" });
+  const newHash = passwordHash(parsed.data.newPassword);
+  const changed = transaction(() => {
+    const updated = db.prepare("UPDATE users SET password_hash=? WHERE id=? AND active=1 AND password_hash=? AND EXISTS(SELECT 1 FROM sessions WHERE token_hash=? AND user_id=users.id AND expires_at>?)")
+      .run(newHash, req.user.id, user.password_hash, req.sessionTokenHash, new Date().toISOString());
+    if (!updated.changes) return false;
+    revokeAccountAccess(req.user.id);
+    return true;
+  });
+  if (!changed) return res.status(401).json({ error: "Your account changed. Please sign in again" });
+  const secure = process.env.NODE_ENV === "production" ? "; Secure" : "";
+  res.setHeader("Set-Cookie", [`${sessionCookieName}=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0${secure}`, `psspl_csrf=; Path=/; SameSite=Strict; Max-Age=0${secure}`]);
+  res.json({ ok: true });
+});
 app.post("/api/auth/password-reset", resetRequestLimiter, async (req, res) => {
   const email = typeof req.body?.email === "string" ? req.body.email.trim().toLowerCase() : "";
   if (email.length <= 254) {
@@ -126,8 +171,7 @@ app.post("/api/auth/password-reset/complete", resetCompletionLimiter, (req, res)
     if (!record) return false;
     const updated = db.prepare("UPDATE users SET password_hash=? WHERE id=? AND active=1").run(newHash, record.userId);
     if (!updated.changes) return false;
-    db.prepare("DELETE FROM sessions WHERE user_id=?").run(record.userId);
-    db.prepare("DELETE FROM auth_tokens WHERE user_id=?").run(record.userId);
+    revokeAccountAccess(record.userId);
     return true;
   });
   if (!completed) return res.status(400).json({ error: "This reset link is invalid or expired" });
@@ -142,7 +186,7 @@ app.post("/api/auth/activate", activationLimiter, (req, res) => {
     if (!record) return false;
     const updated = db.prepare("UPDATE users SET password_hash=?,active=1 WHERE id=? AND active=0").run(newHash, record.userId);
     if (!updated.changes) return false;
-    db.prepare("DELETE FROM auth_tokens WHERE user_id=?").run(record.userId);
+    revokeAccountAccess(record.userId);
     return true;
   });
   if (!completed) return res.status(400).json({ error: "This invitation is invalid or expired" });
@@ -152,11 +196,40 @@ app.get("/api/tally/status", authenticate, async (_req, res) => res.json(await t
 app.get("/api/tally/customers", authenticate, async (req, res) => res.json(await tally.customers(req.user.role === "admin" ? {} : { salespersonId: req.user.id })));
 app.get("/api/tally/products", authenticate, async (_req, res) => res.json(await tally.products()));
 app.get("/api/reports/overview", authenticate, async (req, res) => res.json(await tally.overview({ salespersonId: req.user.id })));
-app.get("/api/salespeople/me/my-day", authenticate, async (req, res, next) => { try { res.json(await buildSalesDay(req.user.id)); } catch (error) { next(error); } });
+app.get("/api/salespeople/me/my-day", authenticate, async (req, res, next) => { try { res.json(await buildSalesDay(req.user.id, { workspace: req.query.view === "workspace" })); } catch (error) { next(error); } });
 app.post("/api/salespeople/me/check-in", authenticate, async (req, res, next) => { try { const checkIn = recordDailyCheckIn(db, transaction, req.user.id, today(), req.body); if (!checkIn.ok) return res.status(checkIn.status).json({ error: checkIn.error }); res.json(await buildSalesDay(req.user.id)); } catch (error) { next(error); } });
 app.post("/api/visits/:id/start", authenticate, async (req, res, next) => { try { const location = req.body?.latitude === undefined && req.body?.longitude === undefined ? null : validateLocation(req.body); if (location && !location.ok) return res.status(400).json({ error: location.error }); const result = db.prepare("UPDATE visits SET status='in_progress',started_at=?,latitude=COALESCE(?,latitude),longitude=COALESCE(?,longitude) WHERE id=? AND user_id=? AND status='planned'").run(new Date().toISOString(), location?.latitude ?? null, location?.longitude ?? null, req.params.id, req.user.id); if (!result.changes) return res.status(409).json({ error: "Visit is unavailable or has already started" }); if (location) db.prepare("INSERT INTO location_pings (id,user_id,latitude,longitude,accuracy) VALUES (?,?,?,?,?)").run(randomUUID(), req.user.id, location.latitude, location.longitude, location.accuracy); res.json(await buildSalesDay(req.user.id)); } catch (error) { next(error); } });
-app.post("/api/visits/:id/complete", authenticate, async (req, res, next) => { try { const parsed = visitSchema.safeParse(req.body); if (!parsed.success) return res.status(400).json({ error: "Complete the required visit fields" }); const visit = db.prepare("SELECT * FROM visits WHERE id=? AND user_id=? AND status='in_progress'").get(req.params.id, req.user.id); if (!visit) return res.status(409).json({ error: "Start this visit before completing it" }); if (!isDateOnly(parsed.data.nextFollowUp) || (parsed.data.expectedOrderDate && !isDateOnly(parsed.data.expectedOrderDate))) return res.status(400).json({ error: "Visit dates must use valid YYYY-MM-DD dates" }); if (!db.prepare("SELECT 1 FROM tally_products WHERE id=?").get(parsed.data.productId)) return res.status(400).json({ error: "Select a product from the current product list" }); transaction(() => { const updated = db.prepare("UPDATE visits SET status='completed',completed_at=?,outcome=?,notes=?,visit_tags=? WHERE id=? AND user_id=? AND status='in_progress'").run(new Date().toISOString(), parsed.data.outcome, parsed.data.notes ?? null, JSON.stringify(parsed.data.visitTags ?? []), visit.id, req.user.id); if (!updated.changes) throw Object.assign(new Error("Visit has already been completed"), { status: 409 }); db.prepare("DELETE FROM visit_products WHERE visit_id=?").run(visit.id); db.prepare("INSERT INTO visit_products (visit_id,tally_product_id) VALUES (?,?)").run(visit.id, parsed.data.productId); if (parsed.data.expectedOrderValue > 0) db.prepare("INSERT INTO expected_orders (id,visit_id,user_id,tally_customer_id,tally_product_id,expected_value,expected_date) VALUES (?,?,?,?,?,?,?)").run(randomUUID(), visit.id, req.user.id, visit.tally_customer_id, parsed.data.productId, parsed.data.expectedOrderValue, parsed.data.expectedOrderDate || null); db.prepare("INSERT INTO follow_ups (id,user_id,visit_id,tally_customer_id,title,due_date,priority,follow_up_type,notes) VALUES (?,?,?,?,?,?,?,?,?)").run(randomUUID(), req.user.id, visit.id, visit.tally_customer_id, `Follow up: ${parsed.data.outcome}`, parsed.data.nextFollowUp, "today", parsed.data.nextFollowUpType || "call", parsed.data.nextFollowUpNotes || parsed.data.notes || null); }); res.json(await buildSalesDay(req.user.id)); } catch (error) { next(error); } });
-app.delete("/api/visits/:id", authenticate, async (req, res, next) => { try { const result = db.prepare("DELETE FROM visits WHERE id=? AND user_id=? AND status='planned'").run(req.params.id, req.user.id); if (!result.changes) return res.status(409).json({ error: "Only a planned visit can be deleted" }); res.json(await buildSalesDay(req.user.id)); } catch (error) { next(error); } });
+app.post("/api/visits/:id/complete", authenticate, async (req, res, next) => {
+  try {
+    const parsed = visitSchema.safeParse(req.body);
+    if (!parsed.success) return res.status(400).json({ error: "Complete the required visit fields" });
+    const visit = db.prepare("SELECT * FROM visits WHERE id=? AND user_id=? AND status='in_progress'").get(req.params.id, req.user.id);
+    if (!visit) return res.status(409).json({ error: "Start this visit before completing it" });
+    if (!isDateOnly(parsed.data.nextFollowUp) || (parsed.data.expectedOrderDate && !isDateOnly(parsed.data.expectedOrderDate)))
+      return res.status(400).json({ error: "Visit dates must use valid YYYY-MM-DD dates" });
+    if (!db.prepare("SELECT 1 FROM tally_products WHERE id=?").get(parsed.data.productId))
+      return res.status(400).json({ error: "Select a product from the current product list" });
+    completeVisitWithLead(db, transaction, visit, parsed.data);
+    res.json(await buildSalesDay(req.user.id));
+  } catch (error) { next(error); }
+});
+app.delete("/api/visits/:id", authenticate, async (req, res, next) => {
+  try {
+    const visit = db.prepare("SELECT id,status FROM visits WHERE id=? AND user_id=?").get(req.params.id, req.user.id);
+    if (!visit) return res.status(404).json({ error: "Visit not found" });
+    transaction(() => {
+      // Orders and product links cascade from visits. Visit-generated follow-ups
+      // are removed explicitly so deleting a completed visit clears its action.
+      const followUps = db.prepare("DELETE FROM follow_ups WHERE visit_id=? AND user_id=?").run(visit.id, req.user.id).changes;
+      db.prepare("DELETE FROM visits WHERE id=? AND user_id=?").run(visit.id, req.user.id);
+      db.prepare("INSERT INTO audit_logs (id,user_id,user_email,action,path,entity_id,status_code,details_json,ip_address,user_agent) VALUES (?,?,?,?,?,?,?,?,?,?)")
+        .run(randomUUID(), req.user.id, req.user.email, "DELETE visit", req.originalUrl, visit.id, 200,
+          JSON.stringify({ status: visit.status, linkedFollowUpsDeleted: followUps }), req.ip ?? null,
+          String(req.headers["user-agent"] ?? "").slice(0, 500));
+    });
+    res.json(await buildSalesDay(req.user.id));
+  } catch (error) { next(error); }
+});
 app.patch("/api/visits/:id", authenticate, async (req, res, next) => { try { const { purpose, priority, scheduledAt } = req.body ?? {}; if (purpose !== undefined && (typeof purpose !== "string" || !purpose.trim() || purpose.length > 200)) return res.status(400).json({ error: "Visit purpose is required and must be 200 characters or fewer" }); if (priority !== undefined && !["high", "medium", "low"].includes(priority)) return res.status(400).json({ error: "Invalid visit priority" }); if (scheduledAt !== undefined && (typeof scheduledAt !== "string" || !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(?::\d{2})?$/.test(scheduledAt) || !isDateOnly(scheduledAt.slice(0, 10)) || !Number.isFinite(Date.parse(scheduledAt)))) return res.status(400).json({ error: "Visit schedule is invalid" }); const result = db.prepare("UPDATE visits SET purpose=COALESCE(?,purpose), priority=COALESCE(?,priority), scheduled_at=COALESCE(?,scheduled_at),business_date=COALESCE(?,business_date) WHERE id=? AND user_id=? AND status='planned'").run(purpose?.trim() ?? null, priority ?? null, scheduledAt ?? null, scheduledAt?.slice(0, 10) ?? null, req.params.id, req.user.id); if (!result.changes) return res.status(409).json({ error: "Only a planned visit can be updated" }); res.json(await buildSalesDay(req.user.id)); } catch (error) { next(error); } });
 import cron from "node-cron";
 import { runReportSchedules, createWhatsAppWebhook } from "./report-automation.mjs";

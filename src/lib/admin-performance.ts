@@ -1,11 +1,22 @@
 import type { TeamMember } from "@/types/admin";
 
-/** Sort only comparable target-achievement scores; keep unavailable scores grouped last. */
-export function rankRmPerformance(members: TeamMember[], order: "asc" | "desc" = "asc"): TeamMember[] {
+type PerformanceMember = Pick<TeamMember, "id" | "name" | "achievementPercent" | "salesValue">;
+
+/** Rank known target achievement first; missing targets must not change everyone's metric. */
+export function teamPerformanceMetric(members: Pick<TeamMember, "achievementPercent">[]): "achievement" | "sales" {
+  return members.some((member) => typeof member.achievementPercent === "number" && Number.isFinite(member.achievementPercent))
+    ? "achievement" : "sales";
+}
+
+export function rankRmPerformance<T extends PerformanceMember>(members: T[], order: "asc" | "desc" = "asc"): T[] {
+  const metric = teamPerformanceMetric(members);
+  const score = (member: T) => metric === "achievement" ? member.achievementPercent as number : member.salesValue;
   return [...members].sort((a, b) => {
-    if (a.achievementPercent === null && b.achievementPercent !== null) return 1;
-    if (a.achievementPercent !== null && b.achievementPercent === null) return -1;
-    if (a.achievementPercent === null || b.achievementPercent === null) return a.name.localeCompare(b.name);
-    return order === "asc" ? a.achievementPercent - b.achievementPercent : b.achievementPercent - a.achievementPercent;
+    const left = score(a);
+    const right = score(b);
+    if (!Number.isFinite(left) && Number.isFinite(right)) return 1;
+    if (Number.isFinite(left) && !Number.isFinite(right)) return -1;
+    const difference = Number.isFinite(left) && Number.isFinite(right) ? left - right : 0;
+    return (order === "asc" ? difference : -difference) || a.name.localeCompare(b.name) || a.id.localeCompare(b.id);
   });
 }

@@ -3,6 +3,7 @@ export type UserRole = "salesperson" | "rm" | "admin";
 export interface SessionUser {
   id: string;
   email: string;
+  loginId?: string | null;
   role: UserRole;
 }
 
@@ -28,6 +29,11 @@ export interface AdminOverview {
     followUpsTotal: number;
     followUpsOpen: number;
     checkedInToday: number;
+  };
+  leadPipeline: {
+    total: number;
+    stages: Array<{ stage: string; count: number; expectedValue: number }>;
+    recent: Array<{ id: string; name: string; company: string | null; stage: string; expectedValue: number; createdAt: string; ownerName: string }>;
   };
   charts: {
     periodStart: string;
@@ -65,8 +71,12 @@ export interface TeamMember {
   crmUser: { id: string; email: string; role: UserRole; active: boolean } | null;
   thrustSalesValue?: number;
   thrustSalesLakh?: number;
-  thrustActiveCount?: number;
+  thrustActiveCount?: number | null;
   thrustTopProduct?: string | null;
+  feedbackSnapshotId?: string | null;
+  reportSource?: { kind: string; asOf: string; financialYear: string } | null;
+  financialDataStatus?: "available" | "unavailable";
+  historicalSales?: Array<{ financialYear: string; salesValue: number; source: string }>;
 }
 
 export interface ThrustLeaderboardItem {
@@ -75,7 +85,7 @@ export interface ThrustLeaderboardItem {
   region: string | null;
   thrustSalesLakh: number;
   thrustSalesValue: number;
-  thrustActiveCount: number;
+  thrustActiveCount: number | null;
   thrustTopProduct: string | null;
 }
 
@@ -135,9 +145,26 @@ export interface AuditLogResponse {
   items: Array<{ id: string; userEmail: string; action: string; path: string; entityId: string | null; statusCode: number; details: Record<string, unknown>; ipAddress: string | null; userAgent: string | null; createdAt: string }>;
 }
 
+export interface ProductRecentMetric {
+  name:string;paired:boolean;currentSales:number|null;previousSales:number|null;currentQuantity:number|null;previousQuantity:number|null;
+  difference:number|null;growthPercent:number|null;fyContributionPercent:number|null;reason:string|null;
+}
+export interface ProductTrendReconciliation {
+  reportedProductSales:number;invoiceLineSales:number;invoiceHeaderSales:number|null;headerLineDifference:number|null;invoicesWithoutLines:number|null;reason:string|null;
+}
+export interface RecentSalesComparison {
+  available:true;reason:null;observedFrom:string;observedThrough:string;
+  current:{from:string;to:string;label:string;sales:number};previous:{from:string;to:string;label:string;sales:number};
+  label:string;difference:number;growthPercent:number|null;growthReason:string|null;decliningCount:number;
+  gainers:ProductTrendRow[];losers:ProductTrendRow[];metrics:ProductRecentMetric[];
+  lifecycle:{from:string;to:string;newlyObserved:{count:number;value:number;items:ProductTrendRow[]};noRecentSales:{count:number;value:number;items:ProductTrendRow[]};consistent:{count:number|null;months:number;reason:string|null};note:string};
+  reconciliation:ProductTrendReconciliation;
+}
 export interface ProductTrendsResponse {
+  recentComparison?:RecentSalesComparison|{available:false;reason:string;observedFrom:string|null;observedThrough:string|null;reconciliation:ProductTrendReconciliation};
+  availability?: {source:string|null;previousSource:string|null;currentSales:boolean;previousSales:boolean;reason:string|null;previousReason:string|null;monthlyReason:string;territoryReason:string|null};
   territories: TerritoryRow[];
-  monthlyTrend: Array<{ period: string; salesValue: number; previousSalesValue: number; quantity: number; invoiceCount: number; productCount: number; changePercent: number | null }>;
+  monthlyTrend: Array<{ period: string; salesValue: number|null; previousSalesValue: number; previousInvoiceCount?: number; quantity: number|null; invoiceCount: number; productCount: number; changePercent: number | null }>;
   gainers: ProductTrendRow[];
   losers: ProductTrendRow[];
   concentration: { top5: number | null; top10: number | null; top20: number | null; sellingProducts: number };
@@ -152,12 +179,17 @@ export interface ProductTrendsResponse {
 }
 
 export interface ProductTrendRow {
+  observedWindowSales?:number;
+  parentName?:string;parentKey?:string;packingSize?:string|null;masterIds?:string[];monthsSold?:number|null;currentAvailable?:boolean;previousAvailable?:boolean;source?:string|null;rateSource?:string|null;
+  monthly?:Array<{period:string;quantity:number|null;salesValue:number|null;invoiceCount:number|null;source:string}>;
+  byRm?:Array<{name:string;rmName:string;quantity:number;salesValue:number}>;
+  unavailable?:Record<string,string|null>;
   regions?: Array<{ region: string; salesValue: number }>;
-  changeValue?: number;
-  customerCount?: number;
+  changeValue?: number|null;
+  customerCount?: number|null;
   averageRate?: number | null;
   previousAverageRate?: number | null;
-  name: string; salesValue: number; previousSalesValue: number; quantity: number; previousQuantity: number; invoiceCount: number; growthPercent: number | null;
+  name: string; salesValue: number; previousSalesValue: number; quantity: number; previousQuantity: number; invoiceCount: number|null; growthPercent: number | null;
 }
 
 export interface AdminAlertsResponse {
@@ -304,10 +336,12 @@ export interface TallyAdminResponse {
 
 export interface AdminUser {
   id: string;
+  loginId: string | null;
   email: string;
   role: UserRole;
   active: boolean;
   invitationPending: boolean;
+  accountEmailStatus?: AdminUser["invitationEmailStatus"];
   invitationEmailStatus: "not_configured" | "queued" | "processing" | "canceled" | "expired" | "accepted" | "sent" | "delivered" | "delivery_delayed" | "bounced" | "complained" | "failed" | "unknown" | "suppressed" | null;
   createdAt: string;
   employeeCode: string | null;
@@ -323,18 +357,42 @@ export interface AdminUser {
 }
 
 export interface UserListResponse {
+  currentUserId: string;
   items: AdminUser[];
   roles: UserRole[];
   managers: Array<{ id: string; fullName: string; email: string }>;
 }
 
+export type ArchiveSection = "visits" | "leads" | "followUps" | "attendance" | "activities" | "requests" | "customers" | "orders" | "reports";
+export interface ArchivedEmployee {
+  id: string;
+  role: UserRole;
+  deletedAt: string;
+  fullName: string | null;
+  employeeCode: string | null;
+  region: string | null;
+  territory: string | null;
+  managerUserId: string | null;
+  managerName: string | null;
+  counts: Record<ArchiveSection, number>;
+}
+export interface ArchivedHistoryResponse {
+  employee: ArchivedEmployee;
+  section: ArchiveSection;
+  items: Array<Record<string, string | number | null>>;
+  total: number;
+  page: number;
+  pageSize: number;
+  pages: number;
+}
+
 export interface CreateUserPayload {
+  loginId: string;
   email: string;
   role: UserRole;
   fullName: string;
   mobileNumber?: string;
-  /** Optional for API compatibility; RM and salesperson creation uses a temporary password. */
-  initialPassword?: string;
+  initialPassword: string;
   employeeCode?: string;
   region?: string;
   territory?: string;
@@ -342,7 +400,7 @@ export interface CreateUserPayload {
   managerUserId?: string | null;
 }
 
-export type UpdateUserPayload = Partial<Omit<CreateUserPayload, "email">> & { active?: boolean };
+export type UpdateUserPayload = Partial<Omit<CreateUserPayload, "email" | "loginId" | "initialPassword">> & { active?: boolean };
 
 export interface TerritoryRow {
   region: string;

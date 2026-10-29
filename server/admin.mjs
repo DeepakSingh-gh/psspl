@@ -1,18 +1,30 @@
+import { completeProductTrends } from "./product-trend-data.mjs";
 import { reminderSummary } from "./reminder-summary.mjs";
+import { createArchivedUsersRouter } from "./archived-users.mjs";
 import { createReportAutomationRouter } from "./report-automation.mjs";
 import { aiLimiter, askAiHandler } from "./ai-answer.mjs";
 import { Router } from "express";
 import { createHash, randomBytes, randomUUID } from "node:crypto";
 import { z } from "zod";
-import { authenticate, passwordHash, requireRole } from "./auth.mjs";
+import { authenticate, passwordHash, requireRole, revokeAccountAccess, verifyPassword } from "./auth.mjs";
 import { db, transaction } from "./db.mjs";
 import { tally } from "./tally/connector.mjs";
 import { attendanceRevision } from "./attendance-revision.mjs";
 import { indiaBusinessDate } from "./field-activity.mjs";
 import { isBusinessDate } from "../shared/business-date.mjs";
+import { rmReportPeriod, targetForRange } from "../shared/rm-report-period.mjs";
+import { buildRmPerformanceReport } from "./rm-performance-report.mjs";
+import { shiftBusinessDate } from "../shared/business-date.mjs";
 import { buildRmDirectory, isNonPersonRm, normalizeName, resolveRmId } from "./rm-directory.mjs";
 import { authoritativeInvoiceWhere, netInvoiceAmount, netInvoiceLineAmount } from "./tally/metrics.mjs";
 import { issueAccountToken } from "./auth-tokens.mjs";
+import { emailProviderStatus, sendTransactionalEmail } from "./email-provider.mjs";
+import { emailQueueConfigured } from "./auth-email-queue.mjs";
+import { emailAppUrl, isLocalEmailUrl, localTestRecipient } from "./email-link-policy.mjs";
+import { createRateLimiter } from "./rate-limit.mjs";
+import { feedbackCatalog, feedbackById, feedbackForIdentity } from "./rm-feedback.mjs";
+import { generateRmAnalysis, enrichPerformanceReview } from "./rm-ai-analysis.mjs";
+import { achievementPercent as calculateAchievementPercent } from "../shared/achievement.mjs";
 import { buildRmManagementInsights, calculateDealerConcentration, calculatePeriodPerformance, classifyDealerIntelligence, classifyPlannedVisits, dedupeManagementActions, rmReportThresholds, tallySyncNeedsReview } from "./rm-report-intelligence.mjs";
 
 const LAKH = 100000;
@@ -83,8 +95,7 @@ function currentFinancialYear() {
   return financialYearOf(today().slice(0, 7));
 }
 
-function resolveFinancialYear(requested) {
-  const years = availableFinancialYears();
+function resolveFinancialYear(requested, years = availableFinancialYears()) {
   if (requested && years.includes(requested)) return requested;
   return years[0] ?? currentFinancialYear();
 }
@@ -190,49 +201,38 @@ export function calculateAllThrustProductsBatch() {
   };
 }
 
-export function calculateThrustProductsForNames(allNames, from, to) {
+export function calculateThrustProductsForNames(allNames, from, to, ownerIds) {
   const thrustList = db.prepare("SELECT id, name, alias_keywords FROM thrust_products WHERE active = 1 ORDER BY sort_order ASC").all();
   const namePlaceholders = allNames.map(() => "?").join(",");
-
+  // Filter customers before reading their invoice lines; aggregate every thrust
+  // category in one pass while retaining SQLite LIKE and overlapping matches.
+  const patterns = [];
+  const columns = thrustList.flatMap((tp, index) => {
+    const aliases = tp.alias_keywords.split("|").map(p => p.trim());
+    const match = aliases.map(() => "l.product_name LIKE ?").join(" OR ");
+    patterns.push(...aliases, ...aliases);
+    return [
+      `COALESCE(SUM(CASE WHEN (${match}) THEN ${netInvoiceLineAmount("i", "l")} ELSE 0 END),0) amount${index}`,
+      `COALESCE(SUM(CASE WHEN (${match}) THEN l.quantity ELSE 0 END),0) qty${index}`,
+    ];
+  });
+  const totals = thrustList.length && allNames.length ? db.prepare(`
+    SELECT ${columns.join(",")}
+    FROM tally_customers c
+    CROSS JOIN tally_invoices i INDEXED BY idx_tally_invoices_customer_id ON i.customer_id=c.id
+    CROSS JOIN tally_invoice_lines l ON l.invoice_id=i.id
+    WHERE ${ownerIds ? `c.owner_user_id IN (${ownerIds.map(() => "?").join(",") || "''"})` : `c.rm_name IN (${namePlaceholders})`} AND ${authoritativeInvoiceWhere("i")}
+      ${from && to ? "AND i.invoice_date BETWEEN ? AND ?" : ""}
+  `).get(...patterns, ...(ownerIds ?? allNames), ...(from && to ? [from, to] : [])) : {};
   let totalSalesRupees = 0;
-  const products = thrustList.map((tp) => {
-    const patterns = tp.alias_keywords.split("|").map((p) => p.trim());
-    const likeClauses = patterns.map(() => "l.product_name LIKE ?").join(" OR ");
-    
-    let lineRow = null;
-    if (from && to) {
-      lineRow = db.prepare(`
-        SELECT COALESCE(SUM(${netInvoiceLineAmount("i","l")}), 0) amount, COALESCE(SUM(l.quantity), 0) qty
-        FROM tally_invoice_lines l
-        JOIN tally_invoices i ON i.id = l.invoice_id
-        JOIN tally_customers c ON c.id = i.customer_id
-        WHERE ${authoritativeInvoiceWhere("i")}
-          AND c.rm_name IN (${namePlaceholders})
-          AND (${likeClauses})
-          AND (i.invoice_date BETWEEN ? AND ?)
-      `).get(...allNames, ...patterns, from, to);
-    } else {
-      lineRow = db.prepare(`
-        SELECT COALESCE(SUM(${netInvoiceLineAmount("i","l")}), 0) amount, COALESCE(SUM(l.quantity), 0) qty
-        FROM tally_invoice_lines l
-        JOIN tally_invoices i ON i.id = l.invoice_id
-        JOIN tally_customers c ON c.id = i.customer_id
-        WHERE ${authoritativeInvoiceWhere("i")}
-          AND c.rm_name IN (${namePlaceholders})
-          AND (${likeClauses})
-      `).get(...allNames, ...patterns);
-    }
-
-    let salesVal = lineRow?.amount || 0;
-    let qtyVal = lineRow?.qty || 0;
-
-    const ytdSalesLakh = Number((salesVal / 100000).toFixed(2));
+  const products = thrustList.map((tp, index) => {
+    const salesVal = totals[`amount${index}`] || 0;
+    const qtyVal = totals[`qty${index}`] || 0;
     totalSalesRupees += salesVal;
-
     return {
       id: tp.id,
       name: tp.name,
-      ytdSalesLakh,
+      ytdSalesLakh: Number((salesVal / 100000).toFixed(2)),
       salesRupees: salesVal,
       quantitySold: qtyVal,
       isSold: salesVal > 0,
@@ -253,7 +253,7 @@ export function calculateThrustProductsForNames(allNames, from, to) {
 
 function buildTeam(financialYear) {
   const targetMonths = targetMonthsFor(financialYear);
-  const directory = buildRmDirectory();
+  const directory = buildRmDirectory({ includeArchived: false });
   const index = new Map(directory.map((rm) => [rm.id, {
     id: rm.id,
     name: rm.name,
@@ -263,6 +263,7 @@ function buildTeam(financialYear) {
     monthlyTargetValue: 0,
     salesValue: 0,
     previousSalesValue: 0,
+    currentInvoiceCount: 0,
     customerCount: 0,
     outstanding: 0,
     salespeopleCount: 0,
@@ -274,6 +275,14 @@ function buildTeam(financialYear) {
   }]));
 
   const periods = new Set(periodsInFinancialYear(financialYear));
+  const historicalByRm = new Map();
+  for (const row of db.prepare("SELECT rm_name,financial_year financialYear,SUM(sales_value) salesValue FROM tally_rm_product_sales GROUP BY rm_name,financial_year ORDER BY financial_year DESC").all()) {
+    const id = resolveRmId(directory, row.rm_name);
+    if (!id) continue;
+    const years = historicalByRm.get(id) ?? new Map();
+    years.set(row.financialYear, (years.get(row.financialYear) ?? 0) + row.salesValue);
+    historicalByRm.set(id, years);
+  }
   for (const row of db.prepare("SELECT rm_name, period, target_lakh FROM tally_rm_targets").all()) {
     if (!periods.has(row.period)) continue;
     const entry = index.get(resolveRmId(directory, row.rm_name));
@@ -308,7 +317,7 @@ function buildTeam(financialYear) {
       if (rowYear === financialYear) unassignedSalesValue += row.amount ?? 0;
       continue;
     }
-    if (rowYear === financialYear) entry.salesValue += row.amount ?? 0;
+    if (rowYear === financialYear) { entry.salesValue += row.amount ?? 0; entry.currentInvoiceCount += 1; }
     else entry.previousSalesValue += row.amount ?? 0;
   }
 
@@ -345,7 +354,7 @@ function buildTeam(financialYear) {
     if (entry) entry.salespeopleCount += 1;
   }
 
-  const crmUsers = db.prepare("SELECT u.id, u.email, u.role, u.active, p.full_name, p.monthly_target FROM users u LEFT JOIN salesperson_profiles p ON p.user_id=u.id").all();
+  const crmUsers = db.prepare("SELECT u.id, u.email, u.role, u.active, p.full_name, p.monthly_target FROM users u LEFT JOIN salesperson_profiles p ON p.user_id=u.id WHERE u.active=1 AND u.deleted_at IS NULL").all();
   const activityByUser = new Map(db.prepare(`
     SELECT u.id,
       (SELECT COUNT(*) FROM visits v WHERE v.user_id=u.id) visits_total,
@@ -374,22 +383,35 @@ function buildTeam(financialYear) {
     const thrustActiveCount = thrustData.activeCount;
     const thrustTopProduct = thrustData.products.find((p) => p.isSold)?.name || null;
 
+    const snapshot = feedbackForIdentity({ name: entry.name });
+    const supplied = snapshot?.financialYear === financialYear ? snapshot : null;
+    const lastMonth = supplied?.monthlyMetrics.find(month => month.period === supplied.asOf.slice(0, 7));
+    const actual = supplied ? Math.round(supplied.annual.currentYearActual * LAKH) : entry.salesValue;
+    const target = supplied ? Math.round(supplied.annual.currentYearTargetTillMonth * LAKH) : entry.targetValue;
+    const previous = supplied ? Math.round(supplied.annual.lastYearActual * LAKH) : entry.previousSalesValue;
     return {
       ...entry,
-      monthlyTargetValue,
+      salesValue: actual,
+      targetValue: target,
+      previousSalesValue: previous,
+      monthlyTargetValue: supplied ? Math.round((lastMonth?.target ?? 0) * LAKH) : monthlyTargetValue,
+      feedbackSnapshotId: supplied?.id ?? null,
+      reportSource: supplied ? { kind: "supplied_pdf_snapshot", asOf: supplied.asOf, financialYear } : null,
+      financialDataStatus: supplied || entry.currentInvoiceCount > 0 ? "available" : "unavailable",
+      historicalSales: [...(historicalByRm.get(entry.id) ?? [])].map(([year, salesValue]) => ({ financialYear: year, salesValue, source: "imported_workbook" })),
       visitsTotal: activity?.visits_total ?? 0,
       visitsCompleted: activity?.visits_completed ?? 0,
       followUpsOpen: activity?.follow_ups_open ?? 0,
       checkedInToday: Boolean(activity?.checked_in_today),
       checkInAt: activity?.check_in_at ?? null,
       checkOutAt: activity?.check_out_at ?? null,
-      achievementPercent: entry.targetValue > 0 ? Math.round((entry.salesValue / entry.targetValue) * 100) : null,
-      growthPercent: entry.previousSalesValue > 0 ? Math.round(((entry.salesValue - entry.previousSalesValue) / entry.previousSalesValue) * 100) : null,
+      achievementPercent: calculateAchievementPercent(actual, target),
+      growthPercent: previous > 0 ? Math.round(((actual - previous) / previous) * 100) : null,
       crmUser: linked ? { id: linked.id, email: linked.email, role: linked.role, active: Boolean(linked.active) } : null,
-      thrustSalesValue,
-      thrustSalesLakh,
-      thrustActiveCount,
-      thrustTopProduct,
+      thrustSalesValue: supplied ? Math.round((supplied.thrustTotalLakh ?? 0) * LAKH) : thrustSalesValue,
+      thrustSalesLakh: supplied ? supplied.thrustTotalLakh ?? 0 : thrustSalesLakh,
+      thrustActiveCount: supplied ? null : thrustActiveCount,
+      thrustTopProduct: supplied ? null : thrustTopProduct,
     };
   }).sort((a, b) => b.salesValue - a.salesValue);
 
@@ -404,6 +426,7 @@ function buildTeam(financialYear) {
       thrustSalesValue: m.thrustSalesValue,
       thrustActiveCount: m.thrustActiveCount,
       thrustTopProduct: m.thrustTopProduct,
+      reportSource: m.reportSource,
     }));
 
   return { financialYear, targetMonths, members, thrustLeaderboard, unassignedCustomers, unassignedSalesValue, liveInvoiceCount, hasTargets: members.some((member) => member.targetValue > 0) };
@@ -413,6 +436,13 @@ function buildTeam(financialYear) {
 
 export const adminRouter = Router();
 adminRouter.use(authenticate, requireRole("admin"));
+adminRouter.use("/archived-users", createArchivedUsersRouter(db));
+adminRouter.get("/rm-feedback", (_req, res) => res.json({ items: feedbackCatalog }));
+adminRouter.get("/rm-feedback/:id", (req, res) => {
+  const report = feedbackById(req.params.id);
+  if (!report) return res.status(404).json({ error: "No supplied feedback snapshot exists for this RM" });
+  res.json(report);
+});
 adminRouter.get("/attendance/revision", (_req, res) => {
   res.set("Cache-Control", "no-store");
   res.json({ revision: attendanceRevision(db, today()) });
@@ -426,7 +456,9 @@ adminRouter.use((req, res, next) => {
     let safeBody = { ...req.body };
     if (auditPath === "/ask-ai") safeBody = { questionLength: typeof req.body?.question === "string" ? req.body.question.length : 0, from: req.body?.from, to: req.body?.to };
     if (auditPath.startsWith("/report-automation")) safeBody = Object.fromEntries(["recipientUserId", "cadence", "sendTime", "templateName", "language", "optedIn", "templateApproved", "enabled"].filter(key => key in (req.body ?? {})).map(key => [key, req.body[key]]));
-    for (const key of ["password", "token", "pairingCode"]) if (key in safeBody) safeBody[key] = "[redacted]";
+    const redact = (value) => Array.isArray(value) ? value.map(redact) : value && typeof value === "object"
+      ? Object.fromEntries(Object.entries(value).map(([key, item]) => [key, /password|token|secret|credential|pairingCode/i.test(key) ? "[redacted]" : redact(item)])) : value;
+    safeBody = redact(safeBody);
     try {
       db.prepare("INSERT INTO audit_logs (id,user_id,user_email,action,path,entity_id,status_code,details_json,ip_address,user_agent,created_at) VALUES (?,?,?,?,?,?,?,?,?,?,?)").run(randomUUID(), req.user.id, req.user.email, `${req.method} ${req.path}`, req.originalUrl, req.params?.id ?? null, res.statusCode, JSON.stringify(safeBody), req.ip ?? null, String(req.headers["user-agent"] ?? "").slice(0, 500), startedAt);
     } catch (error) { console.error("[audit] Unable to store admin action", error); }
@@ -456,6 +488,10 @@ adminRouter.get("/overview", async (req, res, next) => {
     const users = db.prepare("SELECT COUNT(*) total, COALESCE(SUM(active),0) active, COALESCE(SUM(CASE WHEN role='admin' THEN 1 ELSE 0 END),0) admins, COALESCE(SUM(CASE WHEN role='rm' THEN 1 ELSE 0 END),0) rms, COALESCE(SUM(CASE WHEN role='salesperson' THEN 1 ELSE 0 END),0) salespeople FROM users").get();
     const visits = db.prepare("SELECT COUNT(*) total, COALESCE(SUM(CASE WHEN business_date=? THEN 1 ELSE 0 END),0) todayCount, COALESCE(SUM(CASE WHEN status='completed' THEN 1 ELSE 0 END),0) completed FROM visits").get(today());
     const followUps = db.prepare("SELECT COUNT(*) total, COALESCE(SUM(CASE WHEN completed=0 THEN 1 ELSE 0 END),0) open FROM follow_ups").get();
+    const leadStages = db.prepare("SELECT stage,COUNT(*) count,COALESCE(SUM(expected_value),0) expectedValue FROM leads GROUP BY stage").all();
+    const recentLeads = db.prepare(`SELECT l.id,l.name,l.company,l.stage,l.expected_value expectedValue,l.created_at createdAt,
+      COALESCE(p.full_name,u.email) ownerName FROM leads l JOIN users u ON u.id=l.user_id
+      LEFT JOIN salesperson_profiles p ON p.user_id=u.id ORDER BY l.created_at DESC,l.rowid DESC LIMIT 10`).all();
     const attendance = db.prepare("SELECT COUNT(*) count FROM attendance WHERE business_date=?").get(today());
     // Only 'Receipt' vouchers are money coming in; Bank Payment / Payment are outgoing.
     const receipts = db.prepare("SELECT COUNT(*) count, COALESCE(SUM(amount),0) value FROM tally_payments_live WHERE ingest_session_id IS NULL AND payment_type='Receipt' AND payment_date BETWEEN ? AND ?").get(periodStart, periodEnd);
@@ -478,6 +514,7 @@ adminRouter.get("/overview", async (req, res, next) => {
       products: { count: products.count, lifetimeValue: products.value },
       users,
       fieldActivity: { visitsTotal: visits.total, visitsToday: visits.todayCount, visitsCompleted: visits.completed, followUpsTotal: followUps.total, followUpsOpen: followUps.open, checkedInToday: attendance.count },
+      leadPipeline: { total: leadStages.reduce((sum, row) => sum + row.count, 0), stages: leadStages, recent: recentLeads },
       charts: {
         periodStart,
         periodEnd,
@@ -494,27 +531,31 @@ adminRouter.get("/overview", async (req, res, next) => {
 
 adminRouter.get("/team", (req, res, next) => {
   try {
-    const financialYear = resolveFinancialYear(req.query.fy);
-    const financialYears = availableFinancialYears();
+    const financialYears = [...new Set([...availableFinancialYears(), ...feedbackCatalog.map(report => report.financialYear)])].sort().reverse();
+    const financialYear = financialYears.includes(req.query.fy) ? req.query.fy : financialYears[0] ?? currentFinancialYear();
     res.json({ ...buildTeam(financialYear), financialYears: financialYears.length ? financialYears : [financialYear] });
   } catch (error) { next(error); }
 });
 
 /* ----------------------- RM sales activity detail ------------------------- */
+adminRouter.get("/rm-report-options", (req, res) => {
+  res.json({ managers: buildRmDirectory({ includeArchived: false }).map(({ id, name }) => ({ id, name })), financialYears: availableFinancialYears() });
+});
 
-adminRouter.get("/team/:id", (req, res, next) => {
+export async function rmPeriodReportHandler(req, res, next) {
   try {
     const rmId = decodeURIComponent(req.params.id);
     const todayStr = today();
 
     // Default period: first day of current month → today
     const defaultFrom = `${todayStr.slice(0, 7)}-01`;
-    const from = req.query.from || defaultFrom;
-    const to = req.query.to || todayStr;
+    const selectedPeriod = req.query.reportType ? rmReportPeriod(req.query) : null;
+    const from = selectedPeriod?.from || req.query.from || defaultFrom;
+    const to = selectedPeriod?.to || req.query.to || todayStr;
     const requestedFy = req.query.fy;
 
     // Resolve RM from directory
-    const directory = buildRmDirectory();
+    const directory = buildRmDirectory({ includeArchived: false });
     const rm = directory.find((entry) => entry.id === rmId || (entry.keys && entry.keys.includes(rmId)));
     if (!rm) return res.status(404).json({ error: "RM not found" });
 
@@ -533,17 +574,41 @@ adminRouter.get("/team/:id", (req, res, next) => {
     const matchedUsers = crmUsers.filter((user) => user.full_name && (resolveRmId(directory, user.full_name) === canonicalRmId || resolveRmId(directory, user.full_name) === rmId));
     const matchingRmUsers = matchedUsers.filter((user) => user.role === "rm");
     const crmUser = matchingRmUsers.length === 1 ? matchingRmUsers[0] : null;
+    // A manager must never be able to choose a different directory identity.
+    if (req.user.role === "rm" && crmUser?.id !== req.user.id) return res.status(403).json({ error: "This RM report is not authorized for your account" });
     const linkedUserIds = crmUser
       ? [crmUser.id, ...crmUsers.filter((user) => user.role === "salesperson" && user.manager_user_id === crmUser.id).map((user) => user.id)]
       : [];
     const userPlaceholders = linkedUserIds.length ? linkedUserIds.map(() => "?").join(",") : "''";
     const ownershipMapping = matchingRmUsers.length === 1 ? "verified" : matchingRmUsers.length === 0 ? "unmapped" : "ambiguous";
 
+    if (req.query.reportVersion === '2') {
+      if (!selectedPeriod) return res.status(400).json({ error: 'Choose a financial year and report context' });
+      if (selectedPeriod.reportType === 'weekly' && req.query.weekScheme !== 'four') return res.status(400).json({ error: 'V2 requires the four-bucket reporting convention' });
+      const salespeople=crmUser?crmUsers.filter(user=>user.role==='salesperson'&&user.manager_user_id===crmUser.id):[];
+      const salespersonId=req.query.salespersonId;
+      if(salespersonId!==undefined&&typeof salespersonId!=='string')return res.status(400).json({error:'Choose a valid salesperson'});
+      const salesperson=salespersonId?salespeople.find(user=>user.id===salespersonId):null;
+      if(salespersonId&&!salesperson)return res.status(403).json({error:'This salesperson is not assigned to this RM'});
+      const reportOwnerIds=salesperson?[salesperson.id]:linkedUserIds;
+      const performanceReport = buildRmPerformanceReport(db, {
+        rm:salesperson?{...rm,name:salesperson.full_name,aliases:[]}:rm, crmUser:salesperson??crmUser, linkedUserIds:reportOwnerIds, crmUsers, ownershipMapping,
+        targetScope:salesperson?'salesperson':'rm', discloseCompanyTotal:req.user.role==='admin',
+        selection: { reportType: selectedPeriod.reportType, financialYear: selectedPeriod.financialYear, month: req.query.month ? Number(req.query.month) : undefined, week: req.query.week ? Number(req.query.week) : undefined, weekScheme: 'four' },
+        today: todayStr, snapshot: salesperson?null:feedbackForIdentity({ name: rm.name, rmCode: crmUser?.employee_code }), financialYears: availableFinancialYears(),
+        thrust: (start, end) => calculateThrustProductsForNames(allNames, start, end, reportOwnerIds),
+      });
+      performanceReport.salespeople=salespeople.map(user=>({id:user.id,name:user.full_name,territory:user.territory}));
+      performanceReport.selectedSalespersonId=salesperson?.id??null;
+      performanceReport.manager={id:rm.id,name:rm.name};
+      return res.json(await enrichPerformanceReview(performanceReport));
+    }
+
     // Detect latest active invoice date in database for this RM
     const maxDateRow = db.prepare(`
       SELECT MAX(i.invoice_date) maxDate
-      FROM tally_invoices i
-      JOIN tally_customers c ON c.id = i.customer_id
+      FROM tally_customers c
+      CROSS JOIN tally_invoices i INDEXED BY idx_tally_invoices_customer_id ON i.customer_id = c.id
       WHERE i.ingest_session_id IS NULL AND (i.source_sync_id IS NULL OR i.source_sync_id <> 'excel-import') AND c.rm_name IN (${nameList})
     `).get(...allNames);
     const latestActiveDate = maxDateRow?.maxDate || todayStr;
@@ -552,7 +617,7 @@ adminRouter.get("/team/:id", (req, res, next) => {
     let effectiveFrom = from;
     let effectiveTo = to;
     let isAnchoredToLatestCycle = false;
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(effectiveFrom) || !/^\d{4}-\d{2}-\d{2}$/.test(effectiveTo) || effectiveFrom > effectiveTo) return res.status(400).json({ error: "Choose a valid report date range" });
+    if (!isBusinessDate(effectiveFrom) || !isBusinessDate(effectiveTo) || effectiveFrom > effectiveTo) return res.status(400).json({ error: "Choose a valid report date range" });
     const diffDays = Math.max(1, Math.floor((Date.parse(`${effectiveTo}T00:00:00Z`) - Date.parse(`${effectiveFrom}T00:00:00Z`)) / 86400000) + 1);
 
     // KPI: visits (match by RM customers or any linked RM/salesperson user)
@@ -575,7 +640,8 @@ adminRouter.get("/team/:id", (req, res, next) => {
       FROM expected_orders
       WHERE user_id IN (${userPlaceholders})
         AND status = 'open'
-    `).get(todayStr, ...linkedUserIds);
+        ${selectedPeriod ? "AND COALESCE(expected_date, date(created_at,'+5 hours','+30 minutes')) BETWEEN ? AND ?" : ""}
+    `).get(todayStr, ...linkedUserIds, ...(selectedPeriod ? [from, to] : []));
 
     // KPI: follow-ups
     const followUpKpi = db.prepare(`
@@ -584,13 +650,14 @@ adminRouter.get("/team/:id", (req, res, next) => {
         SUM(CASE WHEN completed=0 AND due_date IS NOT NULL AND due_date < ? THEN 1 ELSE 0 END) overdue
       FROM follow_ups
       WHERE user_id IN (${userPlaceholders})
-    `).get(todayStr, ...linkedUserIds);
+        ${selectedPeriod ? "AND COALESCE(due_date, date(created_at,'+5 hours','+30 minutes')) BETWEEN ? AND ?" : ""}
+    `).get(todayStr, ...linkedUserIds, ...(selectedPeriod ? [from, to] : []));
 
     // KPI: actual Tally sales
     let actualSalesVal = linkedUserIds.length ? db.prepare(`
       SELECT COALESCE(SUM(${netInvoiceAmount("i")}),0) salesValue
-      FROM tally_invoices i
-      JOIN tally_customers c ON c.id = i.customer_id
+      FROM tally_customers c
+      CROSS JOIN tally_invoices i INDEXED BY idx_tally_invoices_customer_id ON i.customer_id = c.id
       WHERE ${authoritativeInvoiceWhere("i")}
         AND i.invoice_date BETWEEN ? AND ?
         AND c.owner_user_id IN (${userPlaceholders})
@@ -613,8 +680,9 @@ adminRouter.get("/team/:id", (req, res, next) => {
     const ytdPerformance = calculatePeriodPerformance(ytdSalesValue, ytdTargetRow?.value, reportFyStart, effectiveTo, "FYTD");
     const isMonthToDate = effectiveFrom === reportMonthStart && effectiveTo === todayStr;
     const isFyToDate = effectiveFrom === reportFyStart && effectiveTo === todayStr;
-    const targetValue = isMonthToDate ? monthlyPerformance.target : isFyToDate ? ytdPerformance.target : null;
-    const achievementPercent = isMonthToDate ? monthlyPerformance.achievementPercent : isFyToDate ? ytdPerformance.achievementPercent : null;
+    const selectedTargets = new Map(db.prepare(`SELECT period, SUM(target_lakh * 100000) value FROM tally_rm_targets WHERE rm_name IN (${nameList}) AND period BETWEEN ? AND ? GROUP BY period`).all(...allNames, fromMonth, toMonth).map(row => [row.period, row.value]));
+    const targetValue = selectedPeriod ? targetForRange(selectedTargets, from, to) : isMonthToDate ? monthlyPerformance.target : isFyToDate ? ytdPerformance.target : null;
+    const achievementPercent = selectedPeriod ? calculateAchievementPercent(actualSalesVal, targetValue) : isMonthToDate ? monthlyPerformance.achievementPercent : isFyToDate ? ytdPerformance.achievementPercent : null;
     const monthlyTarget = monthlyPerformance.target;
 
     // Daily activity breakdown
@@ -629,8 +697,8 @@ adminRouter.get("/team/:id", (req, res, next) => {
         JOIN tally_customers c ON c.id=i.customer_id
         WHERE ${authoritativeInvoiceWhere("i")} AND i.invoice_date=? AND c.owner_user_id IN (${userPlaceholders})
       `).get(row.date, ...linkedUserIds);
-      const followUpsCount = db.prepare(`SELECT COUNT(*) count FROM follow_ups WHERE user_id IN (${userPlaceholders}) AND date(created_at)=?`).get(...linkedUserIds, row.date).count;
-      const expectedValue = db.prepare(`SELECT COALESCE(SUM(expected_value),0) value FROM expected_orders WHERE user_id IN (${userPlaceholders}) AND date(created_at)=?`).get(...linkedUserIds, row.date).value;
+      const followUpsCount = db.prepare(`SELECT COUNT(*) count FROM follow_ups WHERE user_id IN (${userPlaceholders}) AND ${selectedPeriod ? "completed=0 AND COALESCE(due_date,date(created_at,'+5 hours','+30 minutes'))" : "date(created_at)"}=?`).get(...linkedUserIds, row.date).count;
+      const expectedValue = db.prepare(`SELECT COALESCE(SUM(expected_value),0) value FROM expected_orders WHERE user_id IN (${userPlaceholders}) AND ${selectedPeriod ? "status='open' AND COALESCE(expected_date,date(created_at,'+5 hours','+30 minutes'))" : "date(created_at)"}=?`).get(...linkedUserIds, row.date).value;
       return { ...row, actualValue: daySales.val, followUpsCount, expectedValue };
     });
 
@@ -638,15 +706,14 @@ adminRouter.get("/team/:id", (req, res, next) => {
     const customerVisits = db.prepare(`
       SELECT v.id, v.business_date date, COALESCE(c.name, 'Unknown') customerName,
              v.status, v.purpose, v.outcome, v.notes,
-             e.expected_value expectedOrderValue,
-             (SELECT f.due_date FROM follow_ups f WHERE f.user_id=v.user_id AND f.tally_customer_id=v.tally_customer_id AND f.completed=0 ORDER BY f.due_date LIMIT 1) nextFollowUpDate
+             (SELECT SUM(e.expected_value) FROM expected_orders e WHERE e.visit_id=v.id AND e.status='open' ${selectedPeriod ? "AND COALESCE(e.expected_date,date(e.created_at,'+5 hours','+30 minutes')) BETWEEN ? AND ?" : ""}) expectedOrderValue,
+             (SELECT f.due_date FROM follow_ups f WHERE f.user_id=v.user_id AND f.tally_customer_id=v.tally_customer_id AND f.completed=0 ${selectedPeriod ? "AND f.due_date BETWEEN ? AND ?" : ""} ORDER BY f.due_date LIMIT 1) nextFollowUpDate
       FROM visits v
       LEFT JOIN tally_customers c ON c.id = v.tally_customer_id
-      LEFT JOIN expected_orders e ON e.user_id=v.user_id AND e.tally_customer_id=v.tally_customer_id AND date(e.created_at)=v.business_date AND e.status='open'
       WHERE v.user_id IN (${userPlaceholders})
         AND v.business_date BETWEEN ? AND ?
       ORDER BY v.business_date DESC, v.id DESC LIMIT 50
-    `).all(...linkedUserIds, from, to);
+    `).all(...(selectedPeriod ? [from, to, from, to] : []), ...linkedUserIds, from, to);
 
     // Pipeline (expected orders)
     const pipeline = db.prepare(`
@@ -661,8 +728,9 @@ adminRouter.get("/team/:id", (req, res, next) => {
       LEFT JOIN tally_products tp ON tp.id = e.tally_product_id
       WHERE e.user_id IN (${userPlaceholders})
         AND e.status = 'open'
+        ${selectedPeriod ? "AND COALESCE(e.expected_date, date(e.created_at,'+5 hours','+30 minutes')) BETWEEN ? AND ?" : ""}
       ORDER BY isOverdue DESC, e.expected_date ASC LIMIT 50
-    `).all(todayStr, ...linkedUserIds).map((row) => ({ ...row, isOverdue: Boolean(row.isOverdue) }));
+    `).all(todayStr, ...linkedUserIds, ...(selectedPeriod ? [from, to] : [])).map((row) => ({ ...row, isOverdue: Boolean(row.isOverdue) }));
 
     // The table is a recent detail window. All KPIs below use complete SQL aggregates.
     let actualSales = db.prepare(`
@@ -686,8 +754,9 @@ adminRouter.get("/team/:id", (req, res, next) => {
         COUNT(DISTINCT CASE WHEN i.invoice_date BETWEEN ? AND ? THEN i.id END) previousInvoiceCount,
         COUNT(DISTINCT i.id) historyInvoiceCount,MIN(i.invoice_date) firstInvoiceDate,MAX(i.invoice_date) lastInvoiceDate
       FROM tally_customers c LEFT JOIN tally_invoices i ON i.customer_id=c.id AND ${authoritativeInvoiceWhere("i")}
+        ${selectedPeriod ? "AND i.invoice_date <= ?" : ""}
       WHERE c.owner_user_id IN (${userPlaceholders})
-      GROUP BY c.id,c.name,c.city`).all(effectiveFrom, effectiveTo, effectiveFrom, effectiveTo, previousFrom, previousTo, previousFrom, previousTo, ...linkedUserIds);
+      GROUP BY c.id,c.name,c.city`).all(effectiveFrom, effectiveTo, effectiveFrom, effectiveTo, previousFrom, previousTo, previousFrom, previousTo, ...(selectedPeriod ? [to] : []), ...linkedUserIds);
     const dealerIntelligence = classifyDealerIntelligence(rmDealerRows, { periodFrom: effectiveFrom, periodTo: effectiveTo, dormantDays: thresholds.dormantDays });
     const concentration = calculateDealerConcentration(dealerIntelligence, actualSalesVal);
     const topDealers = concentration.topDealers;
@@ -705,9 +774,9 @@ adminRouter.get("/team/:id", (req, res, next) => {
     let productRows = db.prepare(`
         SELECT l.product_name name, COALESCE(SUM(${netInvoiceLineAmount("i","l")}),0) salesValue,
              COUNT(DISTINCT l.invoice_id) invoiceCount
-      FROM tally_invoice_lines l
-      JOIN tally_invoices i ON i.id = l.invoice_id
-      JOIN tally_customers c ON c.id = i.customer_id
+      FROM tally_customers c
+      CROSS JOIN tally_invoices i INDEXED BY idx_tally_invoices_customer_id ON i.customer_id = c.id
+      CROSS JOIN tally_invoice_lines l ON l.invoice_id = i.id
       WHERE ${authoritativeInvoiceWhere("i")} AND i.invoice_date BETWEEN ? AND ?
         AND c.owner_user_id IN (${userPlaceholders})
       GROUP BY l.product_name ORDER BY salesValue DESC LIMIT 20
@@ -715,16 +784,16 @@ adminRouter.get("/team/:id", (req, res, next) => {
 
     const prevProductRows = db.prepare(`
       SELECT l.product_name name, COALESCE(SUM(${netInvoiceLineAmount("i","l")}),0) salesValue
-      FROM tally_invoice_lines l
-      JOIN tally_invoices i ON i.id = l.invoice_id
-      JOIN tally_customers c ON c.id = i.customer_id
+      FROM tally_customers c
+      CROSS JOIN tally_invoices i INDEXED BY idx_tally_invoices_customer_id ON i.customer_id = c.id
+      CROSS JOIN tally_invoice_lines l ON l.invoice_id = i.id
       WHERE ${authoritativeInvoiceWhere("i")} AND i.invoice_date BETWEEN ? AND ?
         AND c.owner_user_id IN (${userPlaceholders})
       GROUP BY l.product_name
     `).all(prevFrom, prevTo, ...linkedUserIds);
     const prevProductMap = new Map(prevProductRows.map((r) => [r.name, r.salesValue]));
     const currentProductMap = new Map(productRows.map((row) => [row.name, row]));
-    const topProducts = [...new Set([...productRows.map((row) => row.name), ...prevProductRows.map((row) => row.name)])].map((productName) => {
+    const topProducts = [...new Set(selectedPeriod ? productRows.map((row) => row.name) : [...productRows.map((row) => row.name), ...prevProductRows.map((row) => row.name)])].map((productName) => {
       const current = currentProductMap.get(productName) ?? { name: productName, salesValue: 0, invoiceCount: 0 };
       const previousSalesValue = prevProductMap.get(productName) ?? 0;
       return { ...current, previousSalesValue, growthPercent: previousSalesValue > 0 ? Math.round(((current.salesValue - previousSalesValue) / previousSalesValue) * 100) : null };
@@ -741,11 +810,13 @@ adminRouter.get("/team/:id", (req, res, next) => {
       LEFT JOIN tally_customers c ON c.id = f.tally_customer_id
       WHERE f.user_id IN (${userPlaceholders})
         AND f.completed = 0
+        ${selectedPeriod ? "AND COALESCE(f.due_date, date(f.created_at,'+5 hours','+30 minutes')) BETWEEN ? AND ?" : ""}
       ORDER BY isOverdue DESC, f.due_date ASC LIMIT 50
-    `).all(todayStr, ...linkedUserIds).map((row) => ({ ...row, isOverdue: Boolean(row.isOverdue) }));
+    `).all(todayStr, ...linkedUserIds, ...(selectedPeriod ? [from, to] : [])).map((row) => ({ ...row, isOverdue: Boolean(row.isOverdue) }));
     const visitCompletionPercent = visitsKpi.visitsTotal > 0 ? Math.round((visitsKpi.visitsCompleted / visitsKpi.visitsTotal) * 100) : null;
+    const selectedPerformance = { from, to, actual: actualSalesVal, target: targetValue, achievementPercent, label: selectedPeriod?.label ?? "selected period" };
     const managementInsights = buildRmManagementInsights({
-      name: rm.name, period: { from: effectiveFrom, to: effectiveTo }, monthlyPerformance, ytdPerformance,
+      name: rm.name, period: { from: effectiveFrom, to: effectiveTo }, monthlyPerformance: selectedPeriod ? selectedPerformance : monthlyPerformance, ytdPerformance: selectedPeriod ? null : ytdPerformance,
       topFiveDealerConcentrationPercent, activeDealerCount, dormantCount: dormantDealers.length,
       decliningCount: decliningDealers.length, decliningProductCount: topProducts.filter((product) => product.growthPercent != null && product.growthPercent < 0).length,
       overdueFollowUps: followUpKpi.overdue ?? 0,
@@ -792,8 +863,8 @@ adminRouter.get("/team/:id", (req, res, next) => {
       SELECT a.check_in_at checkInAt, a.check_out_at checkOutAt, a.business_date businessDate
       FROM attendance a
       WHERE a.user_id = ? AND a.business_date = ?
-    `).get(userId, todayStr) : null;
-    const fallbackAttendance = !attendanceRow && allNames.length ? db.prepare(`
+    `).get(userId, selectedPeriod ? to : todayStr) : null;
+    const fallbackAttendance = !selectedPeriod && !attendanceRow && allNames.length ? db.prepare(`
       SELECT a.check_in_at checkInAt, a.check_out_at checkOutAt, a.business_date businessDate
       FROM attendance a
       JOIN users u ON u.id = a.user_id
@@ -802,14 +873,14 @@ adminRouter.get("/team/:id", (req, res, next) => {
         AND a.business_date = ?
       ORDER BY a.check_in_at DESC LIMIT 1
     `).get(...allNames, ...allNames, todayStr) : null;
-    const rmAttendance = attendanceRow || fallbackAttendance || null;
+    const rmAttendance = selectedPeriod ? attendanceRow : attendanceRow || fallbackAttendance || null;
 
     // Monthly target vs actual includes zero-sales months in the trailing year.
-    const chartStartDate = new Date(Date.UTC(Number(effectiveTo.slice(0, 4)), Number(effectiveTo.slice(5, 7)) - 12, 1)).toISOString().slice(0, 10);
+    const chartStartDate = selectedPeriod ? from : new Date(Date.UTC(Number(effectiveTo.slice(0, 4)), Number(effectiveTo.slice(5, 7)) - 12, 1)).toISOString().slice(0, 10);
     const monthlySalesRows = linkedUserIds.length ? db.prepare(`
       SELECT substr(i.invoice_date, 1, 7) month, COALESCE(SUM(${netInvoiceAmount("i")}), 0) actualSales
-      FROM tally_invoices i
-      JOIN tally_customers c ON c.id = i.customer_id
+      FROM tally_customers c
+      CROSS JOIN tally_invoices i INDEXED BY idx_tally_invoices_customer_id ON i.customer_id = c.id
       WHERE ${authoritativeInvoiceWhere("i")} AND i.invoice_date BETWEEN ? AND ? AND c.owner_user_id IN (${userPlaceholders})
       GROUP BY month
       ORDER BY month
@@ -837,8 +908,8 @@ adminRouter.get("/team/:id", (req, res, next) => {
       const label = `${monthNames[parseInt(mo, 10) - 1]} '${yr.slice(2)}`;
       const rawTarget = targetMap.get(month);
       const targetVal = rawTarget === undefined || rawTarget === null || rawTarget === 0 ? null : rawTarget;
-      const actualVal = monthlySalesMap.get(month) ?? 0;
-      const pct = targetVal > 0 ? Math.round((actualVal / targetVal) * 100) : null;
+      const actualVal = selectedPeriod && !linkedUserIds.length ? null : monthlySalesMap.get(month) ?? 0;
+      const pct = calculateAchievementPercent(actualVal, targetVal);
       return {
         month,
         label,
@@ -852,11 +923,35 @@ adminRouter.get("/team/:id", (req, res, next) => {
     const specialAchievements = [];
 
     // Thrust products analysis
-    const thrustProducts = calculateThrustProductsForNames(allNames, from, to);
-
+    const thrustProducts = calculateThrustProductsForNames(allNames, from, to, selectedPeriod ? linkedUserIds : undefined);
+    if (selectedPeriod) {
+      thrustProducts.financialYear = selectedPeriod.financialYear;
+      thrustProducts.source = "selected_period";
+      thrustProducts.products = thrustProducts.products.map(product => ({ ...product, ytdSalesRupees: product.salesRupees, quantity: product.quantitySold }));
+    }
+    const dailySales = selectedPeriod && selectedPeriod.reportType !== "yearly" ? db.prepare(`SELECT i.invoice_date day, SUM(${netInvoiceAmount("i")}) amount FROM tally_invoices i JOIN tally_customers c ON c.id=i.customer_id WHERE ${authoritativeInvoiceWhere("i")} AND c.owner_user_id IN (${userPlaceholders}) AND i.invoice_date BETWEEN ? AND ? GROUP BY i.invoice_date`).all(...linkedUserIds, from, to) : [];
+    const dailySalesMap = new Map(dailySales.map(row => [row.day, row.amount]));
+    const periodChartRows = [];
+    if (selectedPeriod?.reportType === "yearly") {
+      periodChartRows.push(...monthlyTargetVsActual);
+    } else if (selectedPeriod) {
+      for (let day = from; day <= to; day = shiftBusinessDate(day, 1)) {
+        const dayTarget = targetForRange(selectedTargets, day, day);
+        const dayActual = linkedUserIds.length ? dailySalesMap.get(day) ?? 0 : null;
+        periodChartRows.push({ month: day, label: `${day.slice(8, 10)}-${day.slice(5, 7)}`, target: dayTarget, actual: dayActual, achievementPercent: calculateAchievementPercent(dayActual, dayTarget) });
+      }
+    }
+    const hasRecords = actualSales.length > 0 || visitsKpi.visitsTotal > 0 || callsLogged > 0 || pipeline.length > 0 || followUps.length > 0 || selectedTargets.size > 0;
+    const productsSold = db.prepare(`SELECT COUNT(DISTINCT l.product_name) count FROM tally_invoice_lines l JOIN tally_invoices i ON i.id=l.invoice_id JOIN tally_customers c ON c.id=i.customer_id WHERE ${authoritativeInvoiceWhere("i")} AND c.owner_user_id IN (${userPlaceholders}) AND i.invoice_date BETWEEN ? AND ?`).get(...linkedUserIds, from, to).count;
+    const reportIdentity = feedbackForIdentity({ name: rm.name, rmCode });
     res.json({
+      ...(selectedPeriod && reportIdentity?.id === "raiskhan" ? { suppliedFinancialReport: { financialYear: reportIdentity.financialYear, asOf: reportIdentity.asOf, monthlyMetrics: reportIdentity.monthlyMetrics, weeklySummary: reportIdentity.weeklySummary, previousYearPerformance: reportIdentity.previousYearPerformance, previousYearTotals: reportIdentity.previousYearTotals, annual: reportIdentity.annual } } : {}),
+      ...(selectedPeriod ? { actualOnly: true, selectedPeriod, periodChartRows, hasRecords, reportLabel: `${selectedPeriod.label} · ${from.split('-').reverse().join('-')} to ${to.split('-').reverse().join('-')}`, technicalService: reportIdentity?.technicalService, financialYears: availableFinancialYears() } : {}),
       id: rmId,
+      executiveTerritoryCoverage: reportIdentity?.teamEntries?.length ? { asOf: reportIdentity.asOf, entries: reportIdentity.teamEntries } : null,
       name: rm.name,
+      feedbackSnapshotId: feedbackForIdentity({ name: rm.name, rmCode })?.id ?? null,
+      ...(req.query.includeFeedback === "1" ? { feedbackSnapshot: feedbackForIdentity({ name: rm.name, rmCode }) } : {}),
       region: crmUser?.region ?? null,
       territory: crmUser?.territory ?? null,
       rmCode,
@@ -875,8 +970,8 @@ adminRouter.get("/team/:id", (req, res, next) => {
       ownershipMapping,
       dataAvailability: ownershipMapping === "verified" ? { sales: "available", activity: "available" } : { sales: "unavailable", activity: "unavailable", reason: "No unique active RM profile maps this Tally RM to a CRM user and team." },
       reportingThresholds: { ...thresholds, dormantThresholdStatus: thresholds.provisional ? "provisional" : "configured" },
-      monthlyPerformance,
-      ytdPerformance,
+      monthlyPerformance: selectedPeriod ? selectedPerformance : monthlyPerformance,
+      ytdPerformance: selectedPeriod ? selectedPerformance : ytdPerformance,
       dealerIntelligence: {
         all: dealerIntelligence,
         noSalesInSelectedPeriod: dealersWithNoPeriodSales,
@@ -886,6 +981,7 @@ adminRouter.get("/team/:id", (req, res, next) => {
       managementInsights,
       kpi: {
         visitsPlanned: visitsKpi.visitsTotal ?? 0,
+        productsSold,
         visitsCompleted: visitsKpi.visitsCompleted ?? 0,
         visitCompletionPercent,
         callsLogged,
@@ -914,7 +1010,7 @@ adminRouter.get("/team/:id", (req, res, next) => {
       newCustomersUnavailableReason: "Customer creation dates are not stored; first invoice date is not proof of when the customer was added.",
       topProducts,
       followUps,
-      todayActivity,
+      todayActivity: selectedPeriod ? [] : todayActivity,
       attendance: rmAttendance ? {
         checkInAt: rmAttendance.checkInAt,
         checkOutAt: rmAttendance.checkOutAt,
@@ -922,19 +1018,21 @@ adminRouter.get("/team/:id", (req, res, next) => {
         status: rmAttendance.checkOutAt ? "checked_out" : rmAttendance.checkInAt ? "in_field" : "not_checked_in"
       } : null,
     });
-  } catch (error) { next(error); }
-});
+  } catch (error) { if (error instanceof RangeError) return res.status(400).json({ error: error.message }); next(error); }
+}
+adminRouter.get("/team/:id", rmPeriodReportHandler);
 
 adminRouter.get("/product-trends", (req, res, next) => {
   try {
-    const financialYear = resolveFinancialYear(req.query.fy);
+    const financialYears = availableFinancialYears();
+    const financialYear = resolveFinancialYear(req.query.fy, financialYears);
     const startYear = Number(financialYear.split("-")[0]);
     const currentFy = currentFinancialYear();
     const periodStart = `${startYear}-04-01`;
     const periodEnd = financialYear === currentFy ? today() : `${startYear + 1}-03-31`;
     const previousStart = `${startYear - 1}-04-01`;
     const previousEnd = `${Number(periodEnd.slice(0, 4)) - 1}${periodEnd.slice(4)}`;
-    const productRows = db.prepare(`SELECT l.product_name name,SUM(l.quantity) quantity,SUM(${netInvoiceLineAmount("i","l")}) salesValue,COUNT(DISTINCT l.invoice_id) invoiceCount FROM tally_invoice_lines l JOIN tally_invoices i ON i.id=l.invoice_id WHERE ${authoritativeInvoiceWhere("i")} AND i.invoice_date BETWEEN ? AND ? GROUP BY l.product_name`).all(periodStart, periodEnd);
+    const productRows = db.prepare(`SELECT l.product_name name,SUM(l.quantity) quantity,SUM(${netInvoiceLineAmount("i","l")}) salesValue,COUNT(DISTINCT l.invoice_id) invoiceCount,COUNT(DISTINCT i.customer_id) customerCount FROM tally_invoice_lines l JOIN tally_invoices i ON i.id=l.invoice_id WHERE ${authoritativeInvoiceWhere("i")} AND i.invoice_date BETWEEN ? AND ? GROUP BY l.product_name`).all(periodStart, periodEnd);
     const previousRows = db.prepare(`SELECT l.product_name name,SUM(l.quantity) quantity,SUM(${netInvoiceLineAmount("i","l")}) salesValue,COUNT(DISTINCT l.invoice_id) invoiceCount FROM tally_invoice_lines l JOIN tally_invoices i ON i.id=l.invoice_id WHERE ${authoritativeInvoiceWhere("i")} AND i.invoice_date BETWEEN ? AND ? GROUP BY l.product_name`).all(previousStart, previousEnd);
     // ---- territory totals (not just the leading product) -----------------
     const regionTotalsFor = (from, to) => db.prepare(`SELECT COALESCE(p.region,'Unassigned') region,
@@ -946,11 +1044,10 @@ adminRouter.get("/product-trends", (req, res, next) => {
     const currentRegionTotals = regionTotalsFor(periodStart, periodEnd);
     const priorRegionTotals = new Map(regionTotalsFor(previousStart, previousEnd).map((row) => [row.region, row]));
 
-    const regionProducts = db.prepare(`SELECT region, name, salesValue, quantity FROM (
-        SELECT COALESCE(p.region,'Unassigned') region, l.product_name name, SUM(${netInvoiceLineAmount("i","l")}) salesValue, SUM(l.quantity) quantity,
-               ROW_NUMBER() OVER (PARTITION BY COALESCE(p.region,'Unassigned') ORDER BY SUM(${netInvoiceLineAmount("i","l")}) DESC) rn
-        FROM tally_invoice_lines l JOIN tally_invoices i ON i.id=l.invoice_id LEFT JOIN tally_customers c ON c.id=i.customer_id LEFT JOIN salesperson_profiles p ON p.user_id=c.owner_user_id WHERE i.ingest_session_id IS NULL AND (i.source_sync_id IS NULL OR i.source_sync_id <> 'excel-import') AND i.invoice_date BETWEEN ? AND ? GROUP BY region, l.product_name
-      ) WHERE rn <= 5`).all(periodStart, periodEnd);
+    // One grouped scan supplies territory leaders and each product's regions.
+    const regionProductRows = db.prepare(`SELECT COALESCE(p.region,'Unassigned') region,l.product_name name,SUM(${netInvoiceLineAmount("i","l")}) salesValue,SUM(l.quantity) quantity
+      FROM tally_invoice_lines l JOIN tally_invoices i ON i.id=l.invoice_id LEFT JOIN tally_customers c ON c.id=i.customer_id LEFT JOIN salesperson_profiles p ON p.user_id=c.owner_user_id
+      WHERE ${authoritativeInvoiceWhere("i")} AND i.invoice_date BETWEEN ? AND ? GROUP BY region,l.product_name ORDER BY region,salesValue DESC`).all(periodStart, periodEnd);
 
     const regionCustomers = db.prepare(`SELECT region, name, salesValue FROM (
         SELECT COALESCE(p.region,'Unassigned') region, COALESCE(c.name,i.customer_name) name, SUM(${netInvoiceLineAmount("i","l")}) salesValue,
@@ -958,21 +1055,17 @@ adminRouter.get("/product-trends", (req, res, next) => {
         FROM tally_invoice_lines l JOIN tally_invoices i ON i.id=l.invoice_id LEFT JOIN tally_customers c ON c.id=i.customer_id LEFT JOIN salesperson_profiles p ON p.user_id=c.owner_user_id WHERE i.ingest_session_id IS NULL AND (i.source_sync_id IS NULL OR i.source_sync_id <> 'excel-import') AND i.invoice_date BETWEEN ? AND ? GROUP BY region, COALESCE(c.name,i.customer_name)
       ) WHERE rn <= 5`).all(periodStart, periodEnd);
 
-    const productRegions = db.prepare(`SELECT name, region, salesValue FROM (
-        SELECT l.product_name name, COALESCE(p.region,'Unassigned') region, SUM(${netInvoiceLineAmount("i","l")}) salesValue,
-               ROW_NUMBER() OVER (PARTITION BY l.product_name ORDER BY SUM(${netInvoiceLineAmount("i","l")}) DESC) rn
-        FROM tally_invoice_lines l JOIN tally_invoices i ON i.id=l.invoice_id LEFT JOIN tally_customers c ON c.id=i.customer_id LEFT JOIN salesperson_profiles p ON p.user_id=c.owner_user_id WHERE i.ingest_session_id IS NULL AND (i.source_sync_id IS NULL OR i.source_sync_id <> 'excel-import') AND i.invoice_date BETWEEN ? AND ? GROUP BY l.product_name, region
-      ) WHERE rn <= 4`).all(periodStart, periodEnd);
-
     const groupBy = (rows, key) => rows.reduce((map, row) => {
       const list = map.get(row[key]) ?? [];
       list.push(row);
       map.set(row[key], list);
       return map;
     }, new Map());
-    const productsByRegion = groupBy(regionProducts, "region");
+    const productsByRegion = new Map([...groupBy(regionProductRows, "region")].map(([region, rows]) => [region, rows.slice(0, 5)]));
     const customersByRegion = groupBy(regionCustomers, "region");
-    const regionsByProduct = groupBy(productRegions, "name");
+    const regionsByProduct = new Map([...groupBy(regionProductRows, "name")].map(([name, rows]) => [name, rows
+      .map(({ name, region, salesValue }) => ({ name, region, salesValue }))
+      .sort((a, b) => b.salesValue - a.salesValue).slice(0, 4)]));
 
     const territoryTotal = currentRegionTotals.reduce((sum, row) => sum + row.salesValue, 0);
     const territories = currentRegionTotals.map((row) => {
@@ -988,13 +1081,12 @@ adminRouter.get("/product-trends", (req, res, next) => {
       };
     }).sort((a, b) => b.salesValue - a.salesValue);
 
-    const customerBreadth = db.prepare(`SELECT l.product_name name, COUNT(DISTINCT i.customer_id) customerCount
-      FROM tally_invoice_lines l JOIN tally_invoices i ON i.id=l.invoice_id WHERE i.ingest_session_id IS NULL AND (i.source_sync_id IS NULL OR i.source_sync_id <> 'excel-import') AND i.invoice_date BETWEEN ? AND ? GROUP BY l.product_name`).all(periodStart, periodEnd);
-    const breadthByName = new Map(customerBreadth.map((row) => [row.name, row.customerCount]));
+    const breadthByName = new Map(productRows.map((row) => [row.name, row.customerCount]));
+    const currentByName = new Map(productRows.map((row) => [row.name, row]));
     const previousByName = new Map(previousRows.map((row) => [row.name, row]));
     const names = new Set([...productRows.map((row) => row.name), ...previousRows.map((row) => row.name)]);
     const products = [...names].map((name) => {
-      const current = productRows.find((row) => row.name === name) ?? { salesValue: 0, quantity: 0, invoiceCount: 0 };
+      const current = currentByName.get(name) ?? { salesValue: 0, quantity: 0, invoiceCount: 0 };
       const previous = previousByName.get(name) ?? { salesValue: 0, quantity: 0, invoiceCount: 0 };
       const growthPercent = previous.salesValue > 0 ? Math.round(((current.salesValue - previous.salesValue) / previous.salesValue) * 100) : null;
       return { name, salesValue: current.salesValue, previousSalesValue: previous.salesValue, quantity: current.quantity, previousQuantity: previous.quantity, invoiceCount: current.invoiceCount, growthPercent,
@@ -1023,14 +1115,13 @@ adminRouter.get("/product-trends", (req, res, next) => {
       return {
         ...row,
         previousSalesValue,
+        previousInvoiceCount: prior?.invoiceCount ?? 0,
         changePercent: previousSalesValue > 0 ? Math.round(((row.salesValue - previousSalesValue) / previousSalesValue) * 100) : null,
       };
     });
 
 
-    const regionRows = db.prepare(`SELECT COALESCE(p.region,'Unassigned') region,l.product_name productName,SUM(${netInvoiceLineAmount("i","l")}) salesValue,SUM(l.quantity) quantity FROM tally_invoice_lines l JOIN tally_invoices i ON i.id=l.invoice_id LEFT JOIN tally_customers c ON c.id=i.customer_id LEFT JOIN salesperson_profiles p ON p.user_id=c.owner_user_id WHERE ${authoritativeInvoiceWhere("i")} AND i.invoice_date BETWEEN ? AND ? GROUP BY region,l.product_name ORDER BY region,salesValue DESC`).all(periodStart, periodEnd);
-    const regions = [];
-    for (const row of regionRows) if (!regions.some((item) => item.region === row.region)) regions.push(row);
+    const regions = [...groupBy(regionProductRows, "region")].map(([region, rows]) => ({ region, productName: rows[0].name, salesValue: rows[0].salesValue, quantity: rows[0].quantity }));
     const gainers = [...products].filter((row) => row.changeValue > 0).sort((a, b) => b.changeValue - a.changeValue).slice(0, 8);
     const losers = [...products].filter((row) => row.changeValue < 0).sort((a, b) => a.changeValue - b.changeValue).slice(0, 8);
     const newProducts = [...products].filter((row) => row.salesValue > 0 && row.previousSalesValue === 0).sort((a, b) => b.salesValue - a.salesValue);
@@ -1045,10 +1136,10 @@ adminRouter.get("/product-trends", (req, res, next) => {
 
     const totalSales = productRows.reduce((sum, row) => sum + row.salesValue, 0);
     const previousTotalSales = previousRows.reduce((sum, row) => sum + row.salesValue, 0);
-    res.json({ monthlyTrend, gainers, losers, concentration, territories,
+    res.json(completeProductTrends(db, { monthlyTrend, gainers, losers, concentration, territories,
       newProducts: { count: newProducts.length, value: newProducts.reduce((sum, row) => sum + row.salesValue, 0), items: newProducts.slice(0, 6) },
       stoppedProducts: { count: stoppedProducts.length, value: stoppedProducts.reduce((sum, row) => sum + row.previousSalesValue, 0), items: stoppedProducts.slice(0, 6) },
-      financialYear, financialYears: availableFinancialYears(), periodStart, periodEnd, previousStart, previousEnd, summary: { totalSales, previousTotalSales, growthPercent: previousTotalSales > 0 ? Math.round(((totalSales - previousTotalSales) / previousTotalSales) * 100) : null, activeProducts: productRows.length, decliningProducts: decliningAll.length }, top, slow, declining, regions });
+      financialYear, financialYears, periodStart, periodEnd, previousStart, previousEnd, summary: { totalSales, previousTotalSales, growthPercent: previousTotalSales > 0 ? Math.round(((totalSales - previousTotalSales) / previousTotalSales) * 100) : null, activeProducts: productRows.length, decliningProducts: decliningAll.length }, top, slow, declining, regions }));
   } catch (error) { next(error); }
 });
 
@@ -1429,6 +1520,13 @@ adminRouter.post("/reports/send-whatsapp", (_req, res) => {
 });
 
 adminRouter.post("/ask-ai", aiLimiter, askAiHandler);
+adminRouter.post("/team/:id/ai-analysis", aiLimiter, async (req, res, next) => {
+  try {
+    const input = z.object({ from: z.string(), to: z.string(), period: z.enum(["today", "week", "month", "fytd"]) }).strict().safeParse(req.body);
+    if (!input.success) return res.status(400).json({ error: "Choose a valid RM analysis period" });
+    res.json(await generateRmAnalysis(db, req.user, req.params.id, input.data));
+  } catch (error) { next(error); }
+});
 
 adminRouter.get("/customers", (req, res, next) => {
   try {
@@ -1691,9 +1789,10 @@ const profileSchema = z.object({
   managerUserId: z.string().trim().optional().nullable(),
 });
 const createUserSchema = profileSchema.extend({
+  loginId: z.string().trim().min(3).max(64).regex(/^[a-zA-Z0-9][a-zA-Z0-9._-]*$/, "Use letters, numbers, dots, underscores or hyphens for Login ID"),
   email: z.string().trim().email("Enter a valid work email"),
   role: z.enum(roles),
-  initialPassword: z.string().min(12, "Temporary password must be at least 12 characters").max(200, "Temporary password is too long").optional(),
+  initialPassword: z.string().min(12, "Initial password must be at least 12 characters").max(200, "Initial password is too long"),
 });
 const updateUserSchema = profileSchema.partial().extend({
   role: z.enum(roles).optional(),
@@ -1710,7 +1809,7 @@ function validateSalespersonManager(role, managerUserId) {
 
 function listUsers() {
   return db.prepare(`
-    SELECT u.id, u.email, u.role, u.active, u.created_at createdAt,
+    SELECT u.id, u.email, u.login_id loginId, u.role, u.active, u.created_at createdAt,
            p.employee_code employeeCode, p.full_name fullName, p.mobile_number mobileNumber, p.region, p.territory,
            p.monthly_target monthlyTarget, p.manager_user_id managerUserId, manager.full_name managerName,
            COALESCE((SELECT COALESCE(d.status,q.status) FROM auth_email_queue q
@@ -1718,19 +1817,51 @@ function listUsers() {
              WHERE q.user_id=u.id AND q.purpose='activate' ORDER BY q.created_at DESC,q.id DESC LIMIT 1),
              (SELECT d.status FROM auth_email_delivery d WHERE d.user_id=u.id AND d.purpose='activate' ORDER BY d.created_at DESC LIMIT 1)) invitationEmailStatus,
            EXISTS(SELECT 1 FROM auth_tokens t WHERE t.user_id=u.id AND t.purpose='activate' AND t.expires_at>?) invitationPending,
+           (SELECT COALESCE(d.status,q.status) FROM auth_email_queue q LEFT JOIN auth_email_delivery d ON d.id=q.id WHERE q.user_id=u.id AND q.purpose IN ('reset','account') ORDER BY q.created_at DESC,q.id DESC LIMIT 1) accountEmailStatus,
            (SELECT COUNT(*) FROM sessions s WHERE s.user_id=u.id AND s.expires_at>datetime('now')) activeSessions,
            (SELECT COUNT(*) FROM visits v WHERE v.user_id=u.id) visitCount
     FROM users u LEFT JOIN salesperson_profiles p ON p.user_id=u.id
     LEFT JOIN salesperson_profiles manager ON manager.user_id=p.manager_user_id
+    WHERE u.deleted_at IS NULL
     ORDER BY u.role, p.full_name, u.email
   `).all(new Date().toISOString()).map((row) => ({ ...row, active: Boolean(row.active), invitationPending: Boolean(row.invitationPending) }));
 }
 
 const activeAdminCount = () => db.prepare("SELECT COUNT(*) count FROM users WHERE role='admin' AND active=1").get().count;
+const adminEmailLimiter = createRateLimiter({ windowMs: 15 * 60 * 1000, max: 10, key: req => req.user.id });
+
+adminRouter.get("/email/status", (_req, res) => {
+  res.json({ ...emailProviderStatus(), queueConfigured: emailQueueConfigured(), appUrl: emailAppUrl(), localOnly: isLocalEmailUrl(emailAppUrl()), localTestRecipient: localTestRecipient(), connectionStatus: "not_checked" });
+});
+
+adminRouter.post("/email/test", adminEmailLimiter, async (req, res, next) => {
+  try {
+    const parsed = z.object({ recipient: z.string().trim().email().max(254), confirmSend: z.literal(true) }).safeParse(req.body);
+    if (!parsed.success) return res.status(400).json({ error: "Supply a test recipient and explicitly confirm sending" });
+    // Fixed content: no account, credential, token or localhost link is sent.
+    const result = await sendTransactionalEmail({ to: parsed.data.recipient.toLowerCase(), subject: "PSSPL CRM test email", text: "This test email was explicitly requested by a PSSPL CRM administrator. No account credentials or password links are included.", html: "<p>This test email was explicitly requested by a PSSPL CRM administrator. No account credentials or password links are included.</p>", purpose: "test", idempotencyKey: randomUUID() });
+    res.json({ email: { accepted: result.accepted, deliveryStatus: result.status, reason: result.reason } });
+  } catch (error) { next(error); }
+});
+
+adminRouter.post("/users/:id/account-email", adminEmailLimiter, async (req, res, next) => {
+  try {
+    if (req.body?.confirmSend !== true) return res.status(400).json({ error: "Explicitly confirm sending this employee an account email" });
+    const parsed = z.object({ initialPassword: z.string().min(12).max(200).optional() }).safeParse(req.body);
+    if (!parsed.success) return res.status(400).json({ error: "Enter the current account password (12 to 200 characters) to include it in the email" });
+    const target = db.prepare("SELECT id,email,password_hash FROM users WHERE id=? AND active=1 AND deleted_at IS NULL AND role IN ('rm','salesperson')").get(req.params.id);
+    if (!target) return res.status(404).json({ error: "Active RM or salesperson account not found" });
+    const initialPassword = parsed.data.initialPassword;
+    if (initialPassword && !(await verifyPassword(initialPassword, target.password_hash))) return res.status(400).json({ error: "The supplied password does not match this account. Enter the current password or reset it before emailing credentials." });
+    if (initialPassword && db.prepare("SELECT password_hash FROM users WHERE id=?").get(target.id)?.password_hash !== target.password_hash) return res.status(409).json({ error: "The password changed. Enter the current password and try again." });
+    const email = await issueAccountToken(target, "reset", { accountEmail: true, initialPassword, credentialVersion: initialPassword ? createHash("sha256").update(target.password_hash).digest("hex") : undefined });
+    res.json({ email });
+  } catch (error) { next(error); }
+});
 
 adminRouter.get("/users", (req, res, next) => {
   try {
-    res.json({ items: listUsers(), roles, managers: db.prepare("SELECT u.id, p.full_name fullName, u.email FROM users u JOIN salesperson_profiles p ON p.user_id=u.id WHERE u.role='rm' AND u.active=1 ORDER BY p.full_name").all() });
+    res.json({ currentUserId: req.user.id, items: listUsers(), roles, managers: db.prepare("SELECT u.id, p.full_name fullName, u.email FROM users u JOIN salesperson_profiles p ON p.user_id=u.id WHERE u.role='rm' AND u.active=1 AND u.deleted_at IS NULL ORDER BY p.full_name").all() });
   } catch (error) { next(error); }
 });
 
@@ -1743,6 +1874,8 @@ adminRouter.post("/users", async (req, res, next) => {
     const managerError = validateSalespersonManager(input.role, input.managerUserId);
     if (managerError) return res.status(400).json({ error: managerError });
     const email = input.email.toLowerCase();
+    const loginId = input.loginId.toLowerCase();
+    if (db.prepare("SELECT id FROM users WHERE login_id=? COLLATE NOCASE").get(loginId)) return res.status(409).json({ error: "That Login ID is already in use" });
     if (db.prepare("SELECT id FROM users WHERE email=?").get(email)) return res.status(409).json({ error: "A user with that email already exists" });
 
     const id = randomUUID();
@@ -1750,21 +1883,73 @@ adminRouter.post("/users", async (req, res, next) => {
     if (db.prepare("SELECT user_id FROM salesperson_profiles WHERE employee_code=?").get(employeeCode)) return res.status(409).json({ error: "That employee code is already in use" });
 
     transaction(() => {
-      // Store only the hash. The account remains inactive until the work-email activation link is used.
-      db.prepare("INSERT INTO users (id,email,password_hash,role,active) VALUES (?,?,?,?,0)").run(id, email, passwordHash(input.initialPassword ?? randomBytes(48).toString("base64url")), input.role);
+      // Admin supplies the initial password; no email or first-login activation is required.
+      db.prepare("INSERT INTO users (id,email,login_id,password_hash,role,active) VALUES (?,?,?,?,?,1)").run(id, email, loginId, passwordHash(input.initialPassword), input.role);
       db.prepare("INSERT INTO salesperson_profiles (user_id,employee_code,full_name,mobile_number,region,territory,manager_user_id,monthly_target) VALUES (?,?,?,?,?,?,?,?)")
         .run(id, employeeCode, input.fullName, input.mobileNumber || null, input.region || "Not set", input.territory || "Not set", input.managerUserId || null, input.monthlyTarget ?? 0);
     });
-    let invitation;
-    try { invitation = await issueAccountToken({ id, email }, "activate"); }
-    catch { invitation = { sent: false, reason: "email_delivery_failed" }; }
-    res.status(201).json({ user: listUsers().find((user) => user.id === id), invitation });
+    res.status(201).json({ user: listUsers().find((user) => user.id === id) });
+  } catch (error) { next(error); }
+});
+
+adminRouter.post("/archived-users/:id/restore", (req, res, next) => {
+  try {
+    const parsed = createUserSchema.pick({ email: true, loginId: true, initialPassword: true, managerUserId: true }).safeParse(req.body);
+    if (!parsed.success) return res.status(400).json({ error: parsed.error.issues[0]?.message ?? "Check the form" });
+    const input = parsed.data;
+    const result = transaction(() => {
+      const target = db.prepare("SELECT id,role FROM users WHERE id=? AND deleted_at IS NOT NULL").get(req.params.id);
+      if (!target) return { status: 404, error: "Archived employee not found" };
+      if (target.role === "salesperson" && !input.managerUserId) return { status: 400, error: "Assign the salesperson to an active RM before restoring the account" };
+      const managerError = validateSalespersonManager(target.role, input.managerUserId);
+      if (managerError) return { status: 400, error: managerError };
+      const email = input.email.toLowerCase();
+      const loginId = input.loginId.toLowerCase();
+      if (db.prepare("SELECT id FROM users WHERE email=? COLLATE NOCASE AND id<>?").get(email, target.id)) return { status: 409, error: "A user with that email already exists" };
+      if (db.prepare("SELECT id FROM users WHERE login_id=? COLLATE NOCASE AND id<>?").get(loginId, target.id)) return { status: 409, error: "That Login ID is already in use" };
+      revokeAccountAccess(target.id);
+      db.prepare("UPDATE users SET email=?,login_id=?,password_hash=?,active=1,deleted_at=NULL WHERE id=?")
+        .run(email, loginId, passwordHash(input.initialPassword), target.id);
+      db.prepare("UPDATE salesperson_profiles SET manager_user_id=? WHERE user_id=?").run(target.role === "salesperson" ? input.managerUserId : null, target.id);
+      return { status: 200 };
+    });
+    if (result.error) return res.status(result.status).json({ error: result.error });
+    res.json({ ok: true });
+  } catch (error) { next(error); }
+});
+
+adminRouter.delete("/users/:id", (req, res, next) => {
+  try {
+    const parsed = z.object({ confirmEmail: z.string().trim().email() }).safeParse(req.body);
+    if (!parsed.success) return res.status(400).json({ error: "Type the person's email to confirm deletion" });
+    const result = transaction(() => {
+      const target = db.prepare("SELECT id,email,role,active FROM users WHERE id=? AND deleted_at IS NULL").get(req.params.id);
+      if (!target) return { status: 404, error: "User not found" };
+      if (target.id === req.user.id) return { status: 400, error: "You cannot delete your own signed-in account" };
+      if (target.role === "admin" && target.active && activeAdminCount() <= 1) return { status: 400, error: "At least one active admin must remain" };
+      if (parsed.data.confirmEmail.toLowerCase() !== target.email.toLowerCase()) return { status: 400, error: "The confirmation email does not match this person" };
+      const reports = db.prepare("SELECT COUNT(*) count FROM salesperson_profiles p JOIN users u ON u.id=p.user_id WHERE p.manager_user_id=? AND u.deleted_at IS NULL").get(target.id).count;
+      if (reports) return { status: 409, error: `Reassign this person's ${reports} reporting employee(s) to another RM before deleting the account` };
+      revokeAccountAccess(target.id);
+      const tombstone = `deleted-${randomUUID()}`;
+      // Keep the referenced user/profile identity for historical attribution. Erase
+      // sign-in credentials and free the email/Login ID for a replacement account.
+      db.prepare("UPDATE users SET active=0,deleted_at=?,login_id=NULL,email=?,password_hash='!deleted' WHERE id=?")
+        .run(new Date().toISOString(), `${tombstone}@deleted.invalid`, target.id);
+      db.prepare("UPDATE salesperson_profiles SET mobile_number=NULL WHERE user_id=?").run(target.id);
+      db.prepare("DELETE FROM notifications WHERE user_id=?").run(target.id);
+      db.prepare("UPDATE report_schedules SET enabled=0 WHERE recipient_user_id=?").run(target.id);
+      db.prepare("UPDATE tally_connector_pairing_codes SET revoked_at=? WHERE created_by=? AND used_at IS NULL AND revoked_at IS NULL").run(new Date().toISOString(), target.id);
+      return { status: 200 };
+    });
+    if (result.error) return res.status(result.status).json({ error: result.error });
+    res.json({ ok: true });
   } catch (error) { next(error); }
 });
 
 adminRouter.post("/users/:id/invitation", async (req, res, next) => {
   try {
-    const target = db.prepare("SELECT id,email,active FROM users WHERE id=?").get(req.params.id);
+    const target = db.prepare("SELECT id,email,active FROM users WHERE id=? AND deleted_at IS NULL").get(req.params.id);
     if (!target) return res.status(404).json({ error: "User not found" });
     if (target.active) return res.status(409).json({ error: "This account is already active" });
     const invitation = await issueAccountToken(target, "activate");
@@ -1777,7 +1962,7 @@ adminRouter.patch("/users/:id", (req, res, next) => {
     const parsed = updateUserSchema.safeParse(req.body);
     if (!parsed.success) return res.status(400).json({ error: parsed.error.issues[0]?.message ?? "Check the form" });
     const input = parsed.data;
-    const target = db.prepare("SELECT id, role, active FROM users WHERE id=?").get(req.params.id);
+    const target = db.prepare("SELECT id, role, active FROM users WHERE id=? AND deleted_at IS NULL").get(req.params.id);
     if (!target) return res.status(404).json({ error: "User not found" });
     const managerError = validateSalespersonManager(input.role ?? target.role, input.managerUserId);
     if (managerError) return res.status(400).json({ error: managerError });
@@ -1793,9 +1978,7 @@ adminRouter.patch("/users/:id", (req, res, next) => {
       if (input.role) db.prepare("UPDATE users SET role=? WHERE id=?").run(input.role, target.id);
       if (input.active !== undefined) {
         db.prepare("UPDATE users SET active=? WHERE id=?").run(input.active ? 1 : 0, target.id);
-        if (!input.active) db.prepare("DELETE FROM sessions WHERE user_id=?").run(target.id);
-        // A manual status change must not leave old activation or reset links usable.
-        db.prepare("DELETE FROM auth_tokens WHERE user_id=?").run(target.id);
+        revokeAccountAccess(target.id);
       }
       const profile = db.prepare("SELECT user_id FROM salesperson_profiles WHERE user_id=?").get(target.id);
       const fields = [
@@ -1823,13 +2006,11 @@ adminRouter.post("/users/:id/password", (req, res, next) => {
   try {
     const parsed = z.object({ password: z.string().min(12, "Password must be at least 12 characters").max(200) }).safeParse(req.body);
     if (!parsed.success) return res.status(400).json({ error: parsed.error.issues[0]?.message ?? "Check the form" });
-    const target = db.prepare("SELECT id FROM users WHERE id=?").get(req.params.id);
+    const target = db.prepare("SELECT id FROM users WHERE id=? AND deleted_at IS NULL").get(req.params.id);
     if (!target) return res.status(404).json({ error: "User not found" });
     transaction(() => {
       db.prepare("UPDATE users SET password_hash=? WHERE id=?").run(passwordHash(parsed.data.password), target.id);
-      db.prepare("DELETE FROM auth_tokens WHERE user_id=?").run(target.id);
-      // Signing out other devices is the point of a reset; keep the admin's own session.
-      if (target.id !== req.user.id) db.prepare("DELETE FROM sessions WHERE user_id=?").run(target.id);
+      revokeAccountAccess(target.id);
     });
     res.json({ ok: true });
   } catch (error) { next(error); }

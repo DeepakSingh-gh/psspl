@@ -8,7 +8,7 @@ import { formatDate, formatFinancialYear, formatNumber, formatPercent, formatRup
 type View = "dealer" | "rm" | "projection" | "purchase" | "coverage";
 export function AdminManagementReports() {
   const [financialYear,setFinancialYear]=useState(""); const [view,setView]=useState<View>("dealer");
-  const report=useAdminData(()=>adminApi.managementReports(financialYear||undefined),[financialYear]); const data=report.data;
+  const report=useAdminData(()=>adminApi.managementReports(financialYear||undefined),[financialYear],`admin-management-reports-${financialYear||"default"}`); const data=report.data;
   const dealers = usePagination(data?.dealers as any[] | undefined, 25);
   const purchases = usePagination(data?.purchases as any[] | undefined, 25);
   const purchaseProducts = usePagination(data?.purchaseProducts as any[] | undefined, 25);

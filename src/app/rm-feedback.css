@@ -1,0 +1,37 @@
+.feedback-report { padding:24px; background:#fff; border:1px solid #dce7ef; border-radius:12px; color:#173b52; }
+.feedback-directory { margin-bottom:22px; padding:18px; border:1px solid #dce7ef; border-radius:12px; background:#fff; }
+.feedback-directory>p { font-size:12px; color:#587083; }
+.feedback-rm-list { display:flex; flex-wrap:wrap; gap:10px; }.feedback-rm-list button { display:grid; gap:5px; text-align:left; height:auto; min-height:52px; padding:10px 14px; line-height:1.35; white-space:normal; }.feedback-rm-list small { font-size:10px; font-weight:400; }
+.feedback-controls { display:flex; justify-content:flex-end; margin-bottom:16px; }
+.feedback-heading { display:flex; justify-content:space-between; gap:18px; padding-bottom:20px; border-bottom:3px solid #007cba; }
+.feedback-heading h2 { margin:8px 0; font-size:28px; }
+.feedback-heading p,.feedback-heading span { font-size:12px; margin:0; }
+.feedback-heading>div:last-child { display:grid; align-content:start; gap:8px; text-align:right; }
+.feedback-notice,.feedback-legend,.feedback-source { font-size:12px; line-height:1.7; color:#587083; }
+.feedback-notice { background:#eff7fc; border-radius:8px; padding:12px; }
+.feedback-scroll { overflow-x:auto; margin:20px 0; }
+.feedback-table { width:100%; border-collapse:collapse; font-size:12px; }
+.feedback-table caption { text-align:left; font-size:15px; font-weight:700; margin-bottom:12px; }
+.feedback-table th,.feedback-table td { padding:10px; border:1px solid #dce7ef; text-align:right; white-space:nowrap; }
+.feedback-table th:first-child { text-align:left; }
+.feedback-table thead,.feedback-table tbody th { background:#f2f7fb; }
+.feedback-months { min-width:1000px; }
+.feedback-info { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:16px; margin:20px 0; }
+.feedback-info>div { padding:16px; border:1px solid #dce7ef; border-radius:8px; }
+.feedback-report h3 { font-size:16px; margin:0 0 12px; }
+.feedback-report h4 { font-size:12px; margin:14px 0 6px; }
+.feedback-report p { line-height:1.65; }
+.feedback-info p { white-space:pre-wrap; font-size:13px; margin:4px 0; overflow-wrap:anywhere; }
+.feedback-chart { display:flex; height:210px; min-width:640px; gap:12px; padding:10px 14px; border-bottom:1px solid #dce7ef; }
+.feedback-bar-group { flex:1; display:flex; flex-direction:column; justify-content:flex-end; text-align:center; font-size:11px; }
+.feedback-bar-group>div { height:180px; display:flex; align-items:flex-end; gap:3px; }
+.feedback-bar-group i { display:block; width:50%; min-height:0; }
+.feedback-target { background:#a9b9c6; }.feedback-actual { background:#007cba; }
+.feedback-bar-group>span { padding-top:8px; }
+.feedback-raw { margin-top:18px; font-size:12px; }.feedback-raw pre { overflow:auto; max-height:500px; }
+.feedback-source { border-top:1px solid #dce7ef; margin-top:18px; padding-top:12px; overflow-wrap:anywhere; }
+.feedback-warnings { color:#855900; background:#fff8dd; padding:16px 30px; font-size:12px; }
+.feedback-workspace-heading { margin:0 0 20px; font-size:26px; }
+@media print { body:has(.feedback-report) .admin-tabs,body:has(.feedback-report) .rm-detail-back,body:has(.feedback-report) .feedback-workspace-heading { display:none!important; } }
+@media(max-width:640px) { .feedback-report { padding:14px; }.feedback-info { grid-template-columns:1fr; }.feedback-heading { flex-direction:column; }.feedback-heading>div:last-child { text-align:left; }.feedback-heading h2 { font-size:24px; } }
+@media print { @page { size:A4 landscape; margin:10mm; } .feedback-controls,.feedback-raw,.feedback-legend { display:none!important; } body:has(.feedback-report) .admin-sidebar,body:has(.feedback-report) .topbar,body:has(.feedback-report) .admin-page-header,body:has(.feedback-report) .feedback-directory { display:none!important; } body:has(.feedback-report) .admin-main { margin:0!important; padding:0!important; } .feedback-report { padding:0; border:0; font-size:9pt; }.feedback-scroll { overflow:visible; margin:12px 0; }.feedback-months { min-width:0; }.feedback-table { font-size:8pt; }.feedback-table th,.feedback-table td { padding:5px; }.feedback-info>div,.feedback-heading,.feedback-table tr { break-inside:avoid; }.feedback-chart { height:150px; }.feedback-bar-group>div { height:120px; } }

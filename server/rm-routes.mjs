@@ -6,9 +6,23 @@ import { db } from "./db.mjs";
 import { buildRmDirectory, resolveRmId } from "./rm-directory.mjs";
 import { authoritativeInvoiceWhere, netInvoiceAmount, netInvoiceLineAmount } from "./tally/metrics.mjs";
 import { indiaBusinessDate } from "./field-activity.mjs";
+import { feedbackForIdentity } from "./rm-feedback.mjs";
+import { rmPeriodReportHandler } from "./admin.mjs";
 
 export const rmRouter = Router();
 rmRouter.use(authenticate, requireRole("rm"));
+
+// Resolve identity from the authenticated account, never from a client RM ID.
+rmRouter.get("/period-report", (req, res, next) => {
+  const profile = db.prepare("SELECT full_name FROM salesperson_profiles WHERE user_id=?").get(req.user.id);
+  const directory = buildRmDirectory({ includeArchived: false });
+  const id = resolveRmId(directory, profile?.full_name ?? "");
+  if (!id) return res.status(404).json({ error: "No RM reporting identity is linked to your account" });
+  if (!req.query.reportType) return res.status(400).json({ error: "Choose a reporting period" });
+  if (req.query.rmId && req.query.rmId !== id) return res.status(403).json({ error: "You can only access your own RM report" });
+  req.params.id = id;
+  return rmPeriodReportHandler(req, res, next);
+});
 
 const today = () => indiaBusinessDate();
 const financialYearStart = () => { const now = new Date(); const year = now.getMonth() + 1 >= 4 ? now.getFullYear() : now.getFullYear() - 1; return `${year}-04-01`; };
@@ -33,7 +47,7 @@ rmRouter.get("/dashboard", (req, res, next) => {
     const nameList = allNames.length ? allNames.map(() => "?").join(",") : "";
 
     const spRow = allNames.length ? db.prepare(`SELECT code, city FROM tally_salespeople WHERE name IN (${nameList}) AND code IS NOT NULL AND code <> '' LIMIT 1`).get(...allNames) : null;
-    const rmCode = managerRow?.employeeCode || null;
+    const rmCode = managerRow?.fullName?.trim().toLocaleLowerCase() === "rais khan" ? "033705" : managerRow?.employeeCode || null;
     const operatingFrom = managerRow?.operatingCity?.trim() || managerRow?.territory?.trim() || null;
     const teamTerritories = db.prepare("SELECT DISTINCT p.territory FROM users u JOIN salesperson_profiles p ON p.user_id=u.id WHERE p.manager_user_id=? AND u.role='salesperson' AND u.active=1 AND p.territory IS NOT NULL AND trim(p.territory)<>'' ORDER BY p.territory").all(req.user.id).map((row) => row.territory);
 
@@ -310,7 +324,7 @@ rmRouter.get("/report-card", (req, res, next) => {
 
     // RM Code & Executive Information
     const spRow = allNames.length ? db.prepare(`SELECT code, city FROM tally_salespeople WHERE name IN (${nameList}) AND code IS NOT NULL AND code <> '' LIMIT 1`).get(...allNames) : null;
-    const rmCode = profileRow?.employeeCode || spRow?.code || "075709";
+    const rmCode = profileRow?.fullName?.trim().toLocaleLowerCase() === "rais khan" ? "033705" : profileRow?.employeeCode || spRow?.code || null;
     const operatingFrom = profileRow?.operatingCity?.trim() || spRow?.city?.trim() || profileRow?.territory?.trim() || "Gurugram";
     const teamExecutiveCities = ["Gurgaon", "Delhi", "Ghaziabad", "Faridabad", "Noida", "Sonepat", "Bahadurgarh", "Sahibabad", "Rudrapur"];
     const periodLabel = "This Month";
@@ -491,122 +505,11 @@ rmRouter.get("/alerts", (req, res, next) => {
 
 rmRouter.post("/ask-ai", aiLimiter, askAiHandler);
 
-rmRouter.get("/print-report", async (req, res, next) => {
+rmRouter.get("/print-report", (req, res, next) => {
   try {
-    const profile = db.prepare(`
-      SELECT u.id, u.email, p.full_name fullName, p.employee_code rmCode, p.region, p.territory, 
-             p.operating_city operatingCity, p.reg_code_1 regCode1, p.reg_code_2 regCode2, p.monthly_target monthlyTarget
-      FROM users u JOIN salesperson_profiles p ON p.user_id=u.id WHERE u.id=?
-    `).get(req.user.id);
-
-    const team = db.prepare(`
-      SELECT DISTINCT p.full_name name, p.territory citiesCovered
-      FROM users u JOIN salesperson_profiles p ON p.user_id=u.id
-      WHERE p.manager_user_id=? AND u.role='salesperson'
-      ORDER BY p.full_name
-    `).all(req.user.id);
-
-    const currentYear = new Date().getMonth() >= 3 ? new Date().getFullYear() : new Date().getFullYear() - 1;
-    const fromCurrent = `${currentYear}-04-01`;
-    const toCurrent = `${currentYear + 1}-03-31`;
-
-    // Monthly Target from tally_rm_targets
-    const rmName = profile?.fullName || "Anil Jena";
-    const targetRows = db.prepare(`
-      SELECT period, target_lakh targetLakh
-      FROM tally_rm_targets
-      WHERE rm_name=? AND (period LIKE '${currentYear}-%' OR period LIKE '${currentYear + 1}-%')
-      ORDER BY period ASC
-    `).all(rmName);
-
-    // Monthly actuals from rm_weekly_purchases if available, or invoices
-    const weeklyRows = db.prepare(`
-      SELECT year_month yearMonth, week_num weekNum, achieved_lakh achievedLakh
-      FROM rm_weekly_purchases
-      WHERE rm_name=?
-      ORDER BY year_month ASC, week_num ASC
-    `).all(rmName);
-
-    // Historical previous year performance
-    const prevYearRows = db.prepare(`
-      SELECT month_idx monthIdx, month_name monthName, target_lakh targetLakh, actual_lakh actualLakh
-      FROM rm_historical_monthly_performance
-      WHERE rm_name=? AND financial_year='2025-26'
-      ORDER BY month_idx ASC
-    `).all(rmName);
-
-    // Territory expansion dealers
-    const newDealers = db.prepare(`
-      SELECT id, name, city, round(COALESCE(total_sales, 0) / 100000.0, 2) salesLakh
-      FROM tally_customers
-      WHERE (name LIKE '%Chem X%' OR name LIKE '%Refractory%')
-    `).all();
-
-    // Thrust products from thrust_products table
-    const thrustProductsList = db.prepare(`
-      SELECT tp.name product, COALESCE(SUM(CASE WHEN lower(i.voucher_type) LIKE '%credit note%' OR lower(i.voucher_type) LIKE '%sales return%' THEN -ABS(l.amount) ELSE ABS(l.amount) END), 0) / 100000.0 ytdSalesLakh
-      FROM thrust_products tp
-      LEFT JOIN tally_invoice_lines l ON l.product_name LIKE tp.alias_keywords
-      LEFT JOIN tally_invoices i ON i.id = l.invoice_id AND i.ingest_session_id IS NULL AND (i.source_sync_id IS NULL OR i.source_sync_id <> 'excel-import') AND i.invoice_date BETWEEN ? AND ?
-      WHERE tp.active = 1
-      GROUP BY tp.id
-      ORDER BY tp.sort_order ASC
-    `).all(fromCurrent, toCurrent);
-
-    const data = {
-      reportDate: "30.09.2026",
-      financialYear: `${currentYear}-${(currentYear+1).toString().slice(2)}`,
-      rm: {
-        name: profile?.fullName || "Anil Jena",
-        rmCode: profile?.rmCode || "075709",
-        operatingFrom: profile?.operatingCity || profile?.territory || "Gurugram",
-        region: profile?.region || "North Region",
-        businessRegistrationForm: "Yes",
-        registrationCodes: [profile?.regCode1 || "2111C126", profile?.regCode2 || "2111S126"].filter(Boolean),
-      },
-      annual: {
-        currentYearTarget: 501.00,
-        currentYearTargetTillMonth: 254.68,
-        currentYearActual: 114.24,
-        currentYearPct: 45,
-        lastYearTarget: 606.00,
-        lastYearTargetTillMonth: 308.05,
-        lastYearActual: 136.98,
-        lastYearPct: 44,
-      },
-      targets: targetRows,
-      weeklyPurchases: weeklyRows,
-      previousYearPerformance: prevYearRows,
-      territoryExpansion: {
-        newDealers: ["Chem X Enterprises", "S.B. Refractory"],
-        newDealerRecords: newDealers,
-        visitsMade: 0.09,
-        targetExpansionCities: "Girand Kumar (Existing Sales Territory)",
-      },
-      team: team,
-      thrustProducts: thrustProductsList.length > 0 ? thrustProductsList : [
-        { product: "Zpn Blue 15", ytdSalesLakh: 0.0 },
-        { product: "Zpn 200", ytdSalesLakh: 0.06 },
-        { product: "Zpn Black", ytdSalesLakh: 0.0 },
-        { product: "Shimaclad", ytdSalesLakh: 5.90 },
-        { product: "Peony", ytdSalesLakh: 0.0 },
-        { product: "Clearclad", ytdSalesLakh: 35.63 },
-        { product: "Lcbh", ytdSalesLakh: 6.92 },
-        { product: "Enilex", ytdSalesLakh: 0.0 },
-        { product: "Chorme Catalyst", ytdSalesLakh: 0.0 },
-        { product: "POP", ytdSalesLakh: 0.0 },
-        { product: "Uviclad 612", ytdSalesLakh: 0.0 },
-        { product: "Patinas", ytdSalesLakh: 0.10 },
-      ],
-      specialTargets: "-",
-      specialAchievementsNotes: "",
-    };
-
-    // Ask AI for 3-line summary
-    const { askOpenAI } = await import("./ai-context.mjs");
-    const aiPrompt = `You are a Sales Reporting Engine. Given the following RM report data for Anil Jena, return a concise 3-line performance summary focusing on: 1) YTD Achievement (114.24L against 254.68L target till Sept - 45%), 2) Month-on-month trajectory (strong April at 95%, followed by mid-year slowdown), 3) Thrust products & new territory performance (Chem X Enterprises & S.B. Refractory onboarded). Do NOT use markdown bolding, just plain text with newlines.`;
-    const aiSummary = await askOpenAI("You are a Sales Reporting Engine.", aiPrompt).catch(() => "YTD Achievement stands at 114.24L (45% of 254.68L target till September).\nApril demonstrated peak execution at 95%, followed by stabilization across Q2.\nKey initiatives include Chem X Enterprises and S.B. Refractory appointments and Clearclad momentum.");
-
-    res.json({ ...data, aiSummary });
+    const profile = db.prepare("SELECT p.full_name name,p.employee_code rmCode FROM salesperson_profiles p WHERE p.user_id=?").get(req.user.id);
+    const report = feedbackForIdentity(profile);
+    if (!report) return res.status(404).json({ error: "No supplied sales-feedback PDF is mapped to your RM profile. Live CRM reports remain available." });
+    res.json(report);
   } catch (error) { next(error); }
 });

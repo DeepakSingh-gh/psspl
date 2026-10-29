@@ -2,7 +2,8 @@
 import { ReactNode, useEffect, useState, type FormEvent } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { ApiError, authApi, clearSession } from "@/lib/api";
+import { adminApi, ApiError, authApi, clearSession } from "@/lib/api";
+import { prefetchAdminData } from "@/lib/use-admin-data";
 import { initialsOf } from "@/lib/format";
 import type { SessionUser } from "@/types/admin";
 import { HeaderAiAsk } from "./admin-ask-ai";
@@ -46,16 +47,11 @@ const NAV_GROUPS = [
     ],
   },
   {
-    label: "Reporting",
-    items: [
-      { href: "/admin/reports", label: "Reports", icon: "reports" },
-      { href: "/admin/management-reports", label: "Management reports", icon: "management" },
-    ],
-  },
-  {
     label: "Administration",
     items: [
       { href: "/admin/users", label: "Users & access", icon: "users" },
+      { href: "/admin/team-structure", label: "Team structure", icon: "team" },
+      { href: "/admin/archived-employees", label: "Archived employees", icon: "audit" },
       { href: "/admin/tally", label: "Tally data", icon: "tally" },
       { href: "/admin/audit", label: "Audit log", icon: "audit" },
     ],
@@ -68,6 +64,23 @@ export function AdminShell({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<SessionUser | null>(null);
   const [denied, setDenied] = useState(false);
   const [navOpen, setNavOpen] = useState(false);
+
+  const prepareNavigation = (href: string) => {
+    if (href === pathname) return;
+    router.prefetch(href);
+    switch (href) {
+      case "/admin": prefetchAdminData("admin-overview-default", () => adminApi.overview()); break;
+      case "/admin/trends": prefetchAdminData("admin-product-trends-default", () => adminApi.productTrends()); break;
+      case "/admin/team": prefetchAdminData("admin-team-default", () => adminApi.team()); break;
+      case "/admin/customers": prefetchAdminData('admin-customers-["","","",0]', () => adminApi.customers({ search: "", rm: "", type: "", limit: 50, offset: 0 })); break;
+      case "/admin/products": prefetchAdminData('admin-products-["",0]', () => adminApi.products({ search: "", limit: 50, offset: 0 })); break;
+      case "/admin/activity": prefetchAdminData("admin-activity", () => adminApi.activity()); break;
+      case "/admin/users": prefetchAdminData("admin-users", () => adminApi.users()); break;
+      case "/admin/team-structure": prefetchAdminData("admin-reporting-structure", () => adminApi.users()); break;
+      case "/admin/archived-employees": prefetchAdminData("admin-archived-employees", () => adminApi.archivedUsers()); break;
+      case "/admin/management-reports": prefetchAdminData("admin-management-reports-default", () => adminApi.managementReports()); break;
+    }
+  };
 
   // The API authorises every admin request; this only decides what to render.
   useEffect(() => {
@@ -127,9 +140,9 @@ export function AdminShell({ children }: { children: ReactNode }) {
                 const extra = (item as { alsoMatches?: string[] }).alsoMatches ?? [];
                 const active = item.href === "/admin"
                   ? pathname === "/admin"
-                  : pathname.startsWith(item.href) || extra.some((path) => pathname.startsWith(path));
+                  : pathname === item.href || pathname.startsWith(`${item.href}/`) || extra.some((path) => pathname === path || pathname.startsWith(`${path}/`));
                 return (
-                  <Link key={item.href} href={item.href} className={active ? "active" : undefined} aria-current={active ? "page" : undefined}>
+                  <Link key={item.href} href={item.href} onMouseEnter={() => prepareNavigation(item.href)} onFocus={() => prepareNavigation(item.href)} className={active ? "active" : undefined} aria-current={active ? "page" : undefined}>
                     <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                       {ICONS[item.icon]}
                     </svg>
@@ -196,28 +209,30 @@ function AdminTopBar({ user, onSignOut, onToggleNav, navOpen }: {
             <path d="M6.6 12.4a1.6 1.6 0 0 0 2.8 0" />
           </svg>
         </Link>
-        <Link className="topbar-user" href="/admin/users">
+        <Link className="topbar-user" href="/admin/users" aria-label="Manage employee accounts">
           <span className="topbar-avatar" aria-hidden="true">{initialsOf(user.email.split("@")[0].replace(/[._]/g, " "), "A")}</span>
           <span className="topbar-user-text">
             <strong>Administrator</strong>
             <small>{user.email}</small>
           </span>
         </Link>
+        <Link className="admin-button ghost small" href="/profile">My profile</Link>
         <button type="button" className="topbar-signout" onClick={onSignOut}>Sign out</button>
       </div>
     </header>
   );
 }
 
-export function AdminPage({ eyebrow, title, description, actions, children }: {
+export function AdminPage({ eyebrow, title, description, actions, children, className }: {
   eyebrow: string;
   title: string;
   description?: string;
   actions?: ReactNode;
   children: ReactNode;
+  className?: string;
 }) {
   return (
-    <section className="admin-page">
+    <section className={`admin-page${className ? ` ${className}` : ""}`}>
       <header className="admin-page-header">
         <div className="admin-page-heading">
           <p className="admin-eyebrow">{eyebrow}</p>

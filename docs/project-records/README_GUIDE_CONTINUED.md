@@ -1,5 +1,13 @@
 # PSSPL CRM README — continued
 
+<!-- current-admin-ui:start -->
+> Latest local UI notes (27-10-2026): explicit Rais Khan top-five sample previews and the RM-only Monthly target card removal are documented in [the latest preview and dashboard notes](../operations/2026-10-27-ui-adjustments.md#local-top-five-samples-and-rm-dashboard-cleanup). Overview cleanup, period filters and shared PDF rendering remain. Earlier dated verification retains its scope; this Markdown update does not rerun tests or establish deployment/client acceptance.
+<!-- current-admin-ui:end -->
+
+<!-- current-source-status:start -->
+> Current source status (27-10-2026): backend RM rankings remain source-backed. Local Admin preview can fill empty products or append clearly marked sample customers without changing real rows, totals or database records. See [the latest preview and dashboard notes](../operations/2026-10-27-ui-adjustments.md#local-top-five-samples-and-rm-dashboard-cleanup). Overview cleanup, period filters and shared PDF rendering remain. Earlier dated verification retains its scope; this Markdown update does not rerun tests or establish deployment/client acceptance.
+<!-- current-source-status:end -->
+
 Continuation of [README.md](../../README.md).
 
 ### 3. Shared RM & Field Sales Workspace (`/sales/my-day` and `/sales/hub`)
@@ -13,7 +21,7 @@ Continuation of [README.md](../../README.md).
   - Custom **`AnimatedSelect`** dropdown with silky-smooth cubic-bezier open/close transitions, rotating chevron, and focus rings.
   - Quick visit logging with operational tags, date/time selection, priority level tracking, clearly delineated field input borders on Unplanned Visit dialogs, and built-in **audio voice note recording**.
   - Includes full inline Edit and Delete capabilities for Unplanned Visits on the workspace with form state auto-reset.
-- **Regional Manager Detail & Report Card (`/admin/team/[id]`):** Streamlined executive view with real-time profile hero (RM Code, operating city, clock-in/out timestamps, target status), compact territory coverage pills, responsive milestones strip, 12-month target vs actual comparative bar charts, top dealers, customer health risks, and automated AI managerial action plans.
+- **Regional Manager Detail & Report Card (`/admin/team/[id]`):** V4 uses FY/month/four-week chart navigation, assigned-salesperson scope, scoped attendance with a detail sheet, compact YTD thrust-product contribution and PDF export. Rais Khan's labeled client fallback fills missing fields only. Earlier Today/Week layouts are dated history. See [current behavior and verification](../operations/2026-10-21-current-state.md#rm-report-card-update--24-october-2026).
 - **Service & Support Requests:** Track customer complaints, technical trials, and commercial quotation requests.
 
 ### 4. AI Executive Intelligence & Copilot
@@ -83,7 +91,7 @@ For the deployed app, set `GEMINI_API_KEY` in the **Render backend service → E
 
 ## Latest local follow-up ? 16 October 2026
 
-**Local working changes:** Refresh Data is fixed on app data pages, excluded from `/login` and `/`, and hidden in print. Manual refresh reloads the page and may reset unsaved input; automatic attendance refresh preserves tabs and filters.
+**Current refresh behavior (21 October):** Refresh Data reruns registered client data loaders and requests a route refresh, preserving tabs and filters. It is excluded from `/login` and `/`, hidden in print, and has pagination clearance in admin layouts.
 
 **Attendance freshness:** Overview, Team, RM detail, Field Activity and Alerts subscribe to a shared two-second visible-tab revision check. A persisted clock-in/out change refreshes their data; latency also includes network and API processing. The new frontend/backend code is uncommitted and not deployed.
 
@@ -105,4 +113,5 @@ All work remains local and uncommitted on `feature/psspl-phase3-rm-report-cards`
 - [RM/Manager SOP](../training/PSSPL_RM_Manager_SOP.md)
 - [Admin SOP](../training/PSSPL_Admin_SOP.md)
 
-> Current project status (19 October 2026): See the [production readiness report](../../PSSPL_FINAL_PRODUCTION_READINESS_REPORT.md) for the latest verified work and blockers; earlier findings in this document retain their original date.
+<!-- current-rm-report-card-2026-10-24 -->
+> **24 October 2026 RM report-card update:** [Current implementation and recorded validation](../operations/2026-10-21-current-state.md#rm-report-card-update--24-october-2026). Earlier dated findings in this file retain their original scope.

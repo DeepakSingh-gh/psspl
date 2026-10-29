@@ -35,3 +35,17 @@ test('optional HttpOnly session cookie requires a same-origin CSRF token for uns
   assert.equal(accepted.status, 200);
   assert.equal((await fetch(`${base}/api/auth/me`, { headers: { Cookie: cookies } })).status, 401);
 });
+
+test('cookie-authenticated password change requires CSRF and clears the revoked session cookies', async () => {
+  const login = await fetch(`${base}/api/auth/login`, { method: 'POST', headers: { 'Content-Type': 'application/json', Origin: origin }, body: JSON.stringify({ email: 'rm@example.test', password: 'Uat-only-2026!' }) });
+  assert.equal(login.status, 200);
+  const cookie = login.headers.getSetCookie().map(value => value.split(';')[0]).join('; ');
+  const csrfToken = cookie.match(/psspl_csrf=([^;]+)/)[1];
+  const headers = { Cookie: cookie, Origin: origin, 'Content-Type': 'application/json' };
+  const body = JSON.stringify({ currentPassword: 'Uat-only-2026!', newPassword: 'Cookie-New-Password-2026!', confirmPassword: 'Cookie-New-Password-2026!' });
+  assert.equal((await fetch(`${base}/api/auth/password`, { method: 'POST', headers, body })).status, 403);
+  const changed = await fetch(`${base}/api/auth/password`, { method: 'POST', headers: { ...headers, 'X-CSRF-Token': csrfToken }, body });
+  assert.equal(changed.status, 200);
+  assert.ok(changed.headers.getSetCookie().every(value => value.includes('Max-Age=0')));
+  assert.equal((await fetch(`${base}/api/auth/me`, { headers: { Cookie: cookie } })).status, 401);
+});

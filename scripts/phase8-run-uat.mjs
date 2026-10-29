@@ -9,7 +9,7 @@ const output = resolve('docs/uat/phase8');
 mkdirSync(output, { recursive: true });
 const scratch = mkdtempSync(join(tmpdir(), 'psspl-phase8-run-'));
 const env = { ...process.env };
-for (const key of Object.keys(env)) if (/OPENAI|GEMINI|WHATSAPP|SUPABASE|DIRECT_URL|DATABASE_URL|CRM_ADMIN|CRM_DATABASE_PATH|CRM_TEST_DATABASE_ROOT|NODE_OPTIONS/i.test(key)) delete env[key];
+for (const key of Object.keys(env)) if (/ANTHROPIC|CLAUDE|CRM_AI_PROVIDER|OPENAI|GEMINI|WHATSAPP|SUPABASE|DIRECT_URL|DATABASE_URL|CRM_ADMIN|CRM_DATABASE_PATH|CRM_TEST_DATABASE_ROOT|NODE_OPTIONS/i.test(key)) delete env[key];
 Object.assign(env, { CRM_DATABASE_PATH: join(scratch, 'runner-default.sqlite'), CRM_TEST_DATABASE_ROOT: tmpdir(), CRM_DISABLE_BASELINE_RESTORE: 'true', NODE_ENV: 'test', HOST: '127.0.0.1', WHATSAPP_DELIVERY_ENABLED: 'false', NEXT_TELEMETRY_DISABLED: '1' });
 const guard = pathToFileURL(resolve('scripts/phase8-isolation.mjs')).href;
 env.NODE_OPTIONS = `--import=${guard}`;

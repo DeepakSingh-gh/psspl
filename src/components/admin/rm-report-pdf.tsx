@@ -1,6 +1,13 @@
 ﻿"use client";
 
 import React from "react";
+import { RmPerformancePdfDocument, RmPerformancePdfPreview } from "@/components/reports/rm-performance-pdf";
+import type { RmPerformanceReport } from "../../../shared/rm-performance.mjs";
+import "@/components/reports/rm-performance.css";
+import { TechnicalServiceDetails } from "@/components/reports/technical-service-details";
+import { ExecutiveTerritoryCoverage } from "@/components/reports/executive-territory-coverage";
+import { formatDate, formatDateTime } from "@/lib/format";
+import { rmDetailedInsights, rmManagementBriefs } from "@/lib/rm-management-brief";
 
 /* ─────────────────────────────────────────────────────────────
    Formatters
@@ -13,52 +20,60 @@ function fmt(val: number) {
   return `₹${Math.round(val).toLocaleString("en-IN")}`;
 }
 
-function fmtDate(d: string | null | undefined) {
-  if (!d) return "—";
-  const dt = new Date(d);
-  if (isNaN(dt.getTime())) return "—";
-  return dt.toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" });
-}
+const fmtDate = formatDate;
 
 /* ─────────────────────────────────────────────────────────────
    Report Component for Direct PDF Generation
    Strict 2-Page Executive Layout (A4: 794px × 1123px per page)
 ───────────────────────────────────────────────────────────── */
 export function RmReportDocument({ data, period }: { data: any; period?: string }) {
+  if (data?.version === 2) return <RmPerformancePdfDocument report={data as RmPerformanceReport} />;
   if (!data) return null;
 
   const kpi = data.kpi ?? {};
   const target = kpi.targetValue ?? 0;
   const actual = kpi.actualSalesValue ?? 0;
+  const hasActual = kpi.actualSalesValue != null;
   const hasTarget = kpi.targetValue != null;
   const pct = kpi.achievementPercent ?? 0;
   const hasPct = kpi.achievementPercent != null;
-  const gap = hasTarget ? target - actual : null;
+  const gap = hasTarget && hasActual ? target - actual : null;
   const statusLabel = !hasPct ? "Target data unavailable" : pct >= 100 ? "Target exceeded" : pct >= 80 ? "On track" : pct >= 50 ? "Moderate pace" : "Needs attention";
   const statusColor = !hasPct ? "#0369a1" : pct >= 80 ? "#16a34a" : pct >= 50 ? "#d97706" : "#dc2626";
   const statusBg = !hasPct ? "#e0f2fe" : pct >= 80 ? "#dcfce7" : pct >= 50 ? "#fef3c7" : "#fee2e2";
+  const demoCustomers = Boolean(data.demoSections?.dealers);
+  const demoProducts = Boolean(data.demoSections?.products);
   const topCustomers: Array<[string, number]> = (data.topDealers ?? []).slice(0, 5).map((dealer: any) => [dealer.dealerName, dealer.salesValue]);
   const totalSales = actual || 1;
-  const topProducts = (data.topProducts ?? []).filter((p: any) => p.salesValue > 0).slice(0, 7);
+  const topProducts = (data.topProducts ?? []).slice(0, 5);
   const productTotal = topProducts.reduce((s: number, p: any) => s + p.salesValue, 0) || 1;
   const recentVisits = (data.customerVisits ?? []).slice(0, 4);
+  const thrust = data.thrustProducts;
+  const thrustProducts: Array<{ id: string; name: string; ytdSalesRupees: number | null; isDemo?: boolean }> = thrust?.products ?? [];
   const openFollowUps = (data.followUps ?? []).filter((f: any) => !f.completedAt).slice(0, 4);
-  const periodLabel = period === "today" ? "Today" : period === "week" ? "This Week" : period === "fytd" ? "FYTD" : "This Month";
-  const generatedAt = new Date().toLocaleString("en-IN", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" });
-  const aiLines: string[] = (data.managementInsights ?? []).map((item: any) => `${item.title}: ${item.metric}. Suggested action: ${item.action}`);
-  if (aiLines.length === 0) aiLines.push("No configured management alerts were triggered. This does not certify that performance is problem-free.");
+  const periodLabel = data.reportLabel ?? ((data.reportSource
+    ? `${period === "fytd" ? "FYTD" : "Reported month"} · PDF as of ${formatDate(data.reportSource.asOf)}`
+    : `${period === "today" ? "Today" : period === "week" ? "This Week" : period === "fytd" ? "FYTD" : "This Month"} · ${data.from ? formatDate(data.from) : ""}${data.from && data.to && data.from !== data.to ? ` to ${formatDate(data.to)}` : ""}`) + (data.livePreviewDemo ? " · Demo preview" : ""));
+  const generatedAt = formatDateTime(new Date().toISOString());
+  const source = data.insightSource ?? data;
+  const briefs = rmManagementBriefs(source);
+  const detailedItems = rmDetailedInsights(source, period);
+  const totalPages = 2;
   const isUnder = hasPct && pct < (data.reportingThresholds?.targetAlertPercent ?? 80);
-  const topActions: Array<{ urgency: string; title: string; detail: string; action: string; color: string; thresholdsProvisional: boolean }> = (data.managementInsights ?? []).slice(0, 3).map((item: any) => ({
-    urgency: item.severity === "high" ? "URGENT PRIORITY" : "REVIEW SOON",
+  const topActions = briefs.slice(0, 3).map((item: any) => ({
+    urgency: item.severity === "high" ? "DO THIS FIRST" : "CHECK THIS",
     title: item.title,
-    detail: item.metric,
-    action: item.action,
+    detail: item.finding,
+    actions: item.actions as string[],
     color: item.severity === "high" ? "#dc2626" : "#d97706",
-    thresholdsProvisional: item.thresholdsProvisional,
   }));
 
-  const monthlyRows: Array<{ month: string; label: string; target: number | null; actual: number; achievementPercent: number | null }> =
-    data.monthlyTargetVsActual ?? [];
+  const isShortPeriod = period !== "fytd";
+  const monthlyCandidates: Array<{ month: string; label: string; target: number | null; actual: number | null; achievementPercent: number | null }> = isShortPeriod
+    ? data.periodChartRows ?? [{ month: data.to ?? period, label: period === "today" ? "Today" : "This Week", target: hasTarget ? target : null, actual: hasActual ? actual : null, achievementPercent: hasPct ? pct : null }]
+    : data.monthlyTargetVsActual ?? [];
+  const monthlyRows = monthlyCandidates.length ? monthlyCandidates : [{month:"empty",label:"Selected period",target:null,actual:null,achievementPercent:null}];
+  const hasChartValues = monthlyRows.some(row => (row.actual ?? 0) !== 0 || (row.target ?? 0) > 0);
   const chartW = 730;
   const chartH = 92;
   const cLeft = 46;
@@ -67,8 +82,11 @@ export function RmReportDocument({ data, period }: { data: any; period?: string 
   const cBottom = 20;
   const plotW = chartW - cLeft - cRight;
   const plotH = chartH - cTop - cBottom;
-  const maxVal = monthlyRows.reduce((m, r) => Math.max(m, r.target || 0, r.actual || 0), 0) || 100000;
-  const ceiling = Math.ceil(maxVal / 100000) * 100000 || 100000;
+  const maxVal = hasChartValues ? monthlyRows.reduce((m, r) => Math.max(m, Math.abs(r.target || 0), Math.abs(r.actual || 0)), 1) : 100000;
+  const magnitude = 10 ** Math.floor(Math.log10(maxVal));
+  const ceiling = Math.ceil(maxVal * 1.15 / magnitude) * magnitude;
+  const floor = Math.min(0, ...monthlyRows.map(row => row.actual ?? 0)) * 1.15;
+  const chartY = (value: number) => chartH - cBottom - (value - floor) / (ceiling - floor) * plotH;
   const stepX = monthlyRows.length > 0 ? plotW / monthlyRows.length : plotW;
   const barW = Math.max(6, Math.min(18, (stepX - 8) / 2));
 
@@ -90,6 +108,7 @@ export function RmReportDocument({ data, period }: { data: any; period?: string 
       ══════════════════════════════════════════════════════════════ */}
       <div
         id="rm-report-page-1"
+        data-rm-report-page
         className="pdf-page-1"
         style={{
           width: "794px",
@@ -187,7 +206,7 @@ export function RmReportDocument({ data, period }: { data: any; period?: string 
                 )}
               </div>
               <div style={{ fontSize: "10.5px", color: "rgba(255,255,255,0.85)", fontWeight: 500 }}>
-                📅 Report Cycle: <strong>{periodLabel}</strong> ({new Date().toLocaleString("en-IN", { month: "long", year: "numeric" })})
+                📅 Report Cycle: <strong>{periodLabel}</strong> ({new Date(`${data.reportSource?.asOf ?? data.to}T12:00:00Z`).toLocaleString("en-IN", { month: "long", year: "numeric" })})
               </div>
             </div>
 
@@ -226,6 +245,8 @@ export function RmReportDocument({ data, period }: { data: any; period?: string 
             </div>
           </div>
 
+          {data.technicalService && <div style={{ marginBottom: 12 }}><TechnicalServiceDetails service={data.technicalService} compact /></div>}
+
           {/* ── AI SALES INSIGHT BLOCK ── */}
           <div
             style={{
@@ -241,26 +262,27 @@ export function RmReportDocument({ data, period }: { data: any; period?: string 
                 <span style={{ fontSize: "18px" }}>🤖</span>
                 <div>
                   <h3 style={{ margin: 0, fontSize: "13px", fontWeight: 800, color: "#1e3a8a" }}>
-                    AI Executive Diagnostic &amp; Field Intelligence
+                    AI Insights
                   </h3>
                   <div style={{ fontSize: "9px", color: "#3b82f6" }}>
-                    Algorithmic synthesis combining CRM field activity, order pipelines, and reconciled Tally sales
+                    How sales and customer visits are going
                   </div>
                 </div>
               </div>
               <span style={{ background: "#dbeafe", color: "#1e40af", padding: "2px 8px", borderRadius: "99px", fontSize: "9px", fontWeight: 700 }}>
-                AI Model Generated
+                {data.livePreviewDemo ? "Demo preview" : "Report analysis"}
               </span>
             </div>
 
-            <div style={{ display: "flex", flexDirection: "column", gap: "5px", fontSize: "10.5px", color: "#1e293b", lineHeight: 1.45 }}>
-              {aiLines.map((line, idx) => (
-                <div key={idx} style={{ display: "flex", alignItems: "flex-start", gap: "6px" }}>
-                  <span style={{ color: "#3b82f6", fontWeight: 800, fontSize: "12px" }}>•</span>
-                  <span>{line}</span>
-                </div>
-              ))}
-            </div>
+            <ol className="pdf-ai-points" style={{ margin: 0, paddingLeft: "16px", color: "#334155" }}>
+              {detailedItems.slice(0, 2).map(item => <li key={item.id} style={{ marginBottom: "7px", paddingLeft: "2px", fontSize: "9px", lineHeight: 1.5 }}>
+                <strong style={{ color: "#003a5c", fontSize: "10px" }}>{item.title}</strong>
+                <ul style={{ margin: "3px 0 0", paddingLeft: "13px" }}>
+                  {item.points.map((point, index) => <li key={index} style={{ marginBottom: "2px" }}>{point}</li>)}
+                </ul>
+              </li>)}
+            </ol>
+            {!detailedItems.length && <div style={{ fontSize: "10px", color: "#64748b" }}>There is not enough data to explain sales yet.</div>}
           </div>
 
           {/* ── MANAGER ACTION PLAN BLOCK ── */}
@@ -276,7 +298,7 @@ export function RmReportDocument({ data, period }: { data: any; period?: string 
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "10px" }}>
               <div>
                 <span style={{ fontSize: "9px", fontWeight: 800, textTransform: "uppercase", letterSpacing: ".06em", color: isUnder ? "#991b1b" : "#166534" }}>
-                  Managerial Directive &amp; Remediation Plan
+                  Next steps
                 </span>
                 <h3 style={{ margin: "2px 0 0", fontSize: "14px", fontWeight: 800, color: "#0f172a" }}>
                   Manager Action Plan — {data.name}
@@ -292,7 +314,7 @@ export function RmReportDocument({ data, period }: { data: any; period?: string 
                   color: "#ffffff",
                 }}
               >
-                {!hasPct ? "Data unavailable" : isUnder ? "Review required" : topActions.length ? "Review findings" : "No alerts triggered"}
+                {!hasPct ? "Numbers not available" : isUnder ? "Needs a closer look" : topActions.length ? "Check these points" : "No issues found"}
               </span>
             </div>
 
@@ -336,7 +358,7 @@ export function RmReportDocument({ data, period }: { data: any; period?: string 
                       color: "#334155",
                     }}
                   >
-                    <strong>Direct Action:</strong> {item.action}
+                    <ul style={{ margin: 0, paddingLeft: "13px" }}>{item.actions.map((action: string) => <li key={action}>{action}</li>)}</ul>
                   </div>
                 </div>
               ))}
@@ -351,13 +373,13 @@ export function RmReportDocument({ data, period }: { data: any; period?: string 
           <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "8px", marginBottom: "12px" }}>
             {[
               { label: "Target Quota", val: hasTarget ? fmt(target) : "Data unavailable", icon: "🎯", bg: "#dbeafe", sub: "Period quota", col: "#0f172a" },
-              { label: "Actual Sales", val: fmt(actual), icon: "💰", bg: "#dcfce7", sub: "Billed in Tally", col: "#16a34a" },
+              { label: "Actual Sales", val: hasActual ? fmt(actual) : "Data unavailable", icon: "💰", bg: "#dcfce7", sub: data.financialSource ? "Supplied report" : "Billed in Tally", col: "#16a34a" },
               { label: "Gap to Target", val: gap == null ? "Data unavailable" : gap > 0 ? fmt(gap) : `+${fmt(Math.abs(gap))}`, icon: "📉", bg: "#fef3c7", sub: "Target difference", col: "#d97706" },
               { label: "Achievement %", val: hasPct ? `${Math.round(pct)}%` : "Data unavailable", icon: "⚡", bg: "#f1f5f9", sub: "Quota ratio", col: statusColor },
-              { label: "Active Dealers", val: data.activeDealerCount ?? "Data unavailable", icon: "🤝", bg: "#ede9fe", sub: "Billed accounts", col: "#0f172a" },
+              { label: "Active Dealers", val: data.activeDealerCount ?? "Data unavailable", icon: "🤝", bg: "#ede9fe", sub: demoCustomers ? "Demo accounts" : "Billed accounts", col: "#0f172a" },
               { label: "Customer Visits", val: kpi.visitsCompleted ?? recentVisits.length, icon: "🏪", bg: "#fce7f3", sub: "Visits logged", col: "#0f172a" },
-              { label: "Open Follow-ups", val: openFollowUps.length, icon: "📋", bg: openFollowUps.length > 0 ? "#fee2e2" : "#dcfce7", sub: "Pending action", col: openFollowUps.length > 0 ? "#dc2626" : "#16a34a" },
-              { label: "Products Sold", val: topProducts.length, icon: "📦", bg: "#dcfce7", sub: "Distinct SKUs", col: "#0f172a" },
+              { label: "Open Follow-ups", val: kpi.followUpsOpen ?? openFollowUps.length, icon: "📋", bg: openFollowUps.length > 0 ? "#fee2e2" : "#dcfce7", sub: data.demoSections?.followups ? "Demo follow-ups" : "Pending action", col: openFollowUps.length > 0 ? "#dc2626" : "#16a34a" },
+              { label: "Products Sold", val: kpi.productsSold ?? topProducts.length, icon: "📦", bg: "#dcfce7", sub: demoProducts ? "Demo products" : "Distinct products", col: "#0f172a" },
             ].map((c, i) => (
               <div
                 key={i}
@@ -378,7 +400,7 @@ export function RmReportDocument({ data, period }: { data: any; period?: string 
             ))}
           </div>
 
-          {/* ── 📈 IMPACTFUL MONTHLY TARGET VS ACHIEVEMENT DUAL-BAR GRAPH ── */}
+          {/* ── Sales target versus actual for the selected reporting period ── */}
           <div
             style={{
               background: "#ffffff",
@@ -392,8 +414,8 @@ export function RmReportDocument({ data, period }: { data: any; period?: string 
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "6px" }}>
               <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
                 <span style={{ fontSize: "12px" }}>📈</span>
-                <strong style={{ fontSize: "10.5px", color: "#0f172a" }}>Monthly Sales Target vs Achievement Trend</strong>
-                <span style={{ fontSize: "9px", color: "#64748b" }}>· 12-Month Financial Year Quota Trajectory</span>
+                <strong style={{ fontSize: "10.5px", color: "#0f172a" }}>{data.selectedPeriod?.label ?? "Selected period"} Sales vs Target</strong>
+                <span style={{ fontSize: "9px", color: "#64748b" }}>{data.chartGranularity === "weekly" || data.chartGranularity === "source-week" ? "Supplied weekly totals" : period === "fytd" || data.chartGranularity === "monthly" ? "Monthly totals" : "Daily totals"}</span>
               </div>
               <div style={{ display: "flex", alignItems: "center", gap: "10px", fontSize: "9px" }}>
                 <span style={{ display: "flex", alignItems: "center", gap: "3px" }}>
@@ -411,13 +433,15 @@ export function RmReportDocument({ data, period }: { data: any; period?: string 
               </div>
             </div>
 
+            {data.chartNote && <p style={{fontSize:8,color:"#64748b",margin:"0 0 5px"}}>{data.chartNote}</p>}
+            {!hasChartValues && <p style={{fontSize:9,color:"#64748b",margin:"0 0 5px"}}>No Data Available</p>}
             {/* SVG Visual Graph */}
             {monthlyRows.length > 0 ? (
               <svg viewBox={`0 0 ${chartW} ${chartH}`} style={{ width: "100%", height: "94px", display: "block" }}>
                 {/* Horizontal reference grid lines */}
                 {[0, 0.5, 1].map((ratio) => {
-                  const val = ceiling * ratio;
-                  const yPos = chartH - cBottom - ratio * plotH;
+                  const val = floor + (ceiling - floor) * ratio;
+                  const yPos = chartY(val);
                   return (
                     <g key={ratio}>
                       <line
@@ -430,23 +454,23 @@ export function RmReportDocument({ data, period }: { data: any; period?: string 
                         strokeWidth={ratio === 0 ? 1 : 0.8}
                       />
                       <text x={cLeft - 5} y={yPos + 3} textAnchor="end" fontSize="7.5" fill="#94a3b8" fontWeight="600">
-                        {val >= 10000000 ? `₹${(val / 10000000).toFixed(1)}Cr` : val >= 100000 ? `₹${Math.round(val / 100000)}L` : "₹0"}
+                        {fmt(val)}
                       </text>
                     </g>
                   );
                 })}
 
-                {/* Bars for all months */}
+                {/* Bars for the selected period */}
                 {monthlyRows.map((row, idx) => {
                   const groupX = cLeft + idx * stepX + stepX / 2;
                   const targetX = groupX - barW - 1;
                   const actualX = groupX + 1;
 
-                  const targetH = Math.max(2, ((row.target ?? 0) / ceiling) * plotH);
-                  const targetY = chartH - cBottom - targetH;
+                  const targetH = Math.abs(chartY(0) - chartY(row.target ?? 0));
+                  const targetY = Math.min(chartY(0), chartY(row.target ?? 0));
 
-                  const actualH = Math.max(2, (row.actual / ceiling) * plotH);
-                  const actualY = chartH - cBottom - actualH;
+                  const actualH = Math.abs(chartY(0) - chartY(row.actual ?? 0));
+                  const actualY = Math.min(chartY(0), chartY(row.actual ?? 0));
 
                   const isMet = row.achievementPercent != null && row.achievementPercent >= 100;
                   const actualColor = isMet ? "#16a34a" : "#0284c7";
@@ -464,17 +488,17 @@ export function RmReportDocument({ data, period }: { data: any; period?: string 
                       />}
 
                       {/* Actual bar */}
-                      <rect
+                      {row.actual != null && <rect
                         x={actualX}
                         y={actualY}
                         width={barW}
                         height={actualH}
                         rx="2"
                         fill={actualColor}
-                      />
+                      />}
 
                       {/* % text above actual bar for active billing */}
-                      {row.actual > 0 && row.achievementPercent != null && (
+                      {monthlyRows.length <= 12 && (row.actual ?? 0) > 0 && row.achievementPercent != null && (
                         <text
                           x={actualX + barW / 2}
                           y={actualY - 3}
@@ -487,7 +511,7 @@ export function RmReportDocument({ data, period }: { data: any; period?: string 
                         </text>
                       )}
 
-                      {/* Month label at bottom */}
+                      {/* Period label at bottom */}
                       <text
                         x={groupX}
                         y={chartH - 4}
@@ -496,7 +520,7 @@ export function RmReportDocument({ data, period }: { data: any; period?: string 
                         fontWeight="600"
                         fill="#64748b"
                       >
-                        {row.label.split(" ")[0]}
+                        {idx % Math.ceil(monthlyRows.length / 12) === 0 || idx === monthlyRows.length - 1 ? row.label : ""}
                       </text>
                     </g>
                   );
@@ -517,12 +541,14 @@ export function RmReportDocument({ data, period }: { data: any; period?: string 
                 </div>
                 <div style={{ display: "flex", justifyContent: "space-between", fontSize: "9.5px", color: "#64748b" }}>
                   <span>Target: <strong>{hasTarget ? fmt(target) : "Data unavailable"}</strong></span>
-                  <span>Achieved: <strong style={{ color: "#16a34a" }}>{fmt(actual)}</strong></span>
+                  <span>Achieved: <strong style={{ color: "#16a34a" }}>{hasActual ? fmt(actual) : "Data unavailable"}</strong></span>
                   <span>Gap: <strong style={{ color: gap == null ? "#64748b" : gap > 0 ? "#dc2626" : "#16a34a" }}>{gap == null ? "Data unavailable" : gap > 0 ? fmt(gap) : `+${fmt(Math.abs(gap))}`}</strong></span>
                 </div>
               </div>
             )}
           </div>
+
+        </div>
 
         {/* ── PAGE 1 FOOTER ── */}
         <div
@@ -539,7 +565,7 @@ export function RmReportDocument({ data, period }: { data: any; period?: string 
           <div style={{ fontWeight: 600, color: "#475569" }}>
             Progressive Surface Systems · RM Report Card · <strong>{data.name}</strong>
           </div>
-          <div>Page 1 of 2 · Confidential · Generated {generatedAt}</div>
+          <div>Page 1 of {totalPages} · Confidential · Generated {generatedAt}</div>
         </div>
       </div>
 
@@ -551,6 +577,7 @@ export function RmReportDocument({ data, period }: { data: any; period?: string 
       ══════════════════════════════════════════════════════════════ */}
       <div
         id="rm-report-page-2"
+        data-rm-report-page
         className="pdf-page-2"
         style={{
           width: "794px",
@@ -566,7 +593,7 @@ export function RmReportDocument({ data, period }: { data: any; period?: string 
           backgroundColor: "#ffffff",
         }}
       >
-        <div style={{ width: "100%", marginLeft: "-28px" }}>
+        <div style={{ width: "100%" }}>
           {/* ── PAGE 2 HEADER BAR ── */}
           <div
             style={{
@@ -586,16 +613,41 @@ export function RmReportDocument({ data, period }: { data: any; period?: string 
             </div>
             <div style={{ textAlign: "right", fontSize: "9.5px", color: "rgba(255,255,255,0.85)", lineHeight: 1.5 }}>
               <strong style={{ color: "#ffffff" }}>{data.name}</strong><br />
-              RM Code: <strong>{data.rmCode || "075709"}</strong> · {periodLabel}
+              RM Code: <strong>{data.rmCode || "Unavailable"}</strong> · {periodLabel}
             </div>
           </div>
+
+          {data.executiveTerritoryCoverage?.entries?.length > 0 && <div style={{ marginBottom: 10 }}><ExecutiveTerritoryCoverage coverage={data.executiveTerritoryCoverage} compact /></div>}
+          {thrustProducts.length > 0 && (
+            <section aria-label="Strategic Thrust Products" className="pdf-thrust-products" style={{ border: "1px solid #bae6fd", background: "#f0f9ff", borderRadius: "9px", padding: "10px 12px", marginBottom: "10px" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "12px", marginBottom: "8px" }}>
+                <div>
+                  <h3 style={{ margin: 0, fontSize: "11px", color: "#003a5c" }}>Strategic Thrust Products ({thrustProducts.length})</h3>
+                  <div style={{ fontSize: "9px", color: "#64748b" }}>Strategic Focus {thrust.financialYear ?? ""}{data.reportSource?.asOf ? ` | As of ${formatDate(data.reportSource.asOf)}` : " | Selected reporting period"}</div>
+                </div>
+                <div style={{ textAlign: "right", color: "#854d0e", background: "#fef9c3", borderRadius: "6px", padding: "5px 8px", flexShrink: 0 }}>
+                  <div style={{ fontSize: "8px", fontWeight: 700 }}>TOTAL THRUST SALES</div>
+                  <strong style={{ fontSize: "13px" }}>{thrust.totalSalesRupees == null ? "Not provided" : fmt(thrust.totalSalesRupees)}</strong>
+                </div>
+              </div>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: "5px" }}>
+                {thrustProducts.map((product, index) => (
+                  <div key={product.id ?? product.name} className="pdf-thrust-product" style={{ background: "#ffffff", border: "1px solid #e0f2fe", borderRadius: "5px", padding: "5px 7px" }}>
+                    <div style={{ fontSize: "9px", fontWeight: 700, color: "#0f172a", overflowWrap: "anywhere" }}>{index + 1}. {product.name}</div>
+                    <div style={{ fontSize: "8px", color: product.isDemo ? "#92400e" : product.ytdSalesRupees == null ? "#64748b" : "#15803d", marginTop: "2px" }}>{product.ytdSalesRupees == null ? "Sales not provided by source" : `${fmt(product.ytdSalesRupees)}${product.isDemo ? " | Demo sales" : ""}`}</div>
+                  </div>
+                ))}
+              </div>
+              {thrust.hasDemoProducts && <p style={{ margin: "6px 0 0", fontSize: 8, color: "#92400e" }}>Demo product sales are not included in the reported total above.</p>}
+            </section>
+          )}
 
           {/* ── TWO COLUMN: TOP CUSTOMERS & TOP PRODUCTS ── */}
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px", marginBottom: "10px" }}>
             {/* Top Customers */}
             <div style={{ background: "#ffffff", border: "1px solid #e2e8f0", borderRadius: "9px", padding: "10px 12px" }}>
               <div style={{ fontSize: "10.5px", fontWeight: 800, color: "#0f172a", marginBottom: "6px", display: "flex", alignItems: "center", gap: "4px" }}>
-                🤝 Top Customers ({topCustomers.length})
+                🤝 Top Customers ({topCustomers.length}){demoCustomers ? " · Demo" : ""}
               </div>
               {topCustomers.length > 0 ? (
                 <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "10px" }}>
@@ -628,14 +680,14 @@ export function RmReportDocument({ data, period }: { data: any; period?: string 
                   </tbody>
                 </table>
               ) : (
-                <div style={{ textAlign: "center", color: "#94a3b8", padding: "14px 0", fontSize: "10px" }}>No customer sales data</div>
+                <div style={{ textAlign: "center", color: "#94a3b8", padding: "14px 0", fontSize: "10px" }}>No Data Available</div>
               )}
             </div>
 
             {/* Top Products */}
             <div style={{ background: "#ffffff", border: "1px solid #e2e8f0", borderRadius: "9px", padding: "10px 12px" }}>
               <div style={{ fontSize: "10.5px", fontWeight: 800, color: "#0f172a", marginBottom: "6px", display: "flex", alignItems: "center", gap: "4px" }}>
-                📦 Top Products ({topProducts.length})
+                📦 Top Products ({topProducts.length}){demoProducts ? " · Demo" : ""}
               </div>
               {topProducts.length > 0 ? (
                 <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "10px" }}>
@@ -668,18 +720,17 @@ export function RmReportDocument({ data, period }: { data: any; period?: string 
                   </tbody>
                 </table>
               ) : (
-                <div style={{ textAlign: "center", color: "#94a3b8", padding: "14px 0", fontSize: "10px" }}>No product sales data</div>
+                <div style={{ textAlign: "center", color: "#94a3b8", padding: "14px 0", fontSize: "10px" }}>No Data Available</div>
               )}
             </div>
           </div>
-        </div>
 
           {/* ── TWO COLUMN: FIELD VISITS & OPEN FOLLOW-UPS ── */}
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px" }}>
             {/* Customer Visits */}
             <div style={{ background: "#ffffff", border: "1px solid #e2e8f0", borderRadius: "9px", padding: "10px 12px" }}>
               <div style={{ fontSize: "10.5px", fontWeight: 800, color: "#0f172a", marginBottom: "6px" }}>
-                🏪 Recent Field Visits ({recentVisits.length})
+                🏪 Recent Field Visits ({recentVisits.length}){data.livePreviewDemo ? " · Demo" : ""}
               </div>
               {recentVisits.length > 0 ? (
                 <div>
@@ -690,20 +741,20 @@ export function RmReportDocument({ data, period }: { data: any; period?: string 
                         <span style={{ fontSize: "8.5px", color: "#94a3b8" }}>{fmtDate(v.date)}</span>
                       </div>
                       <div style={{ fontSize: "9.5px", color: v.outcome ? "#475569" : "#94a3b8", fontStyle: v.outcome ? "normal" : "italic" }}>
-                        {v.outcome || "No outcome logged"}
+                        {v.outcome || v.purpose || "No outcome recorded"}
                       </div>
                     </div>
                   ))}
                 </div>
               ) : (
-                <div style={{ textAlign: "center", color: "#94a3b8", padding: "12px 0", fontSize: "10px" }}>No visits recorded</div>
+                <div style={{ textAlign: "center", color: "#94a3b8", padding: "12px 0", fontSize: "10px" }}>No Data Available</div>
               )}
             </div>
 
             {/* Follow-ups */}
             <div style={{ background: "#ffffff", border: "1px solid #e2e8f0", borderRadius: "9px", padding: "10px 12px" }}>
               <div style={{ fontSize: "10.5px", fontWeight: 800, color: "#0f172a", marginBottom: "6px" }}>
-                📋 Open Follow-ups ({openFollowUps.length})
+                📋 Open Follow-ups ({openFollowUps.length}){data.demoSections?.followups ? " | Demo" : ""}
               </div>
               {openFollowUps.length > 0 ? (
                 <div>
@@ -724,7 +775,7 @@ export function RmReportDocument({ data, period }: { data: any; period?: string 
                 </div>
               ) : (
                 <div style={{ textAlign: "center", color: "#16a34a", padding: "12px 0", fontSize: "10px", fontWeight: 600 }}>
-                  ✅ All follow-ups cleared
+                  No Data Available
                 </div>
               )}
             </div>
@@ -746,7 +797,7 @@ export function RmReportDocument({ data, period }: { data: any; period?: string 
           <div style={{ fontWeight: 600, color: "#475569" }}>
             Progressive Surface Systems · Supervisory Directives · <strong>{data.name}</strong>
           </div>
-          <div>Page 2 of 2 · End of Executive Report</div>
+          <div>Page 2 of {totalPages} · End of report</div>
         </div>
       </div>
     </div>
@@ -754,65 +805,31 @@ export function RmReportDocument({ data, period }: { data: any; period?: string 
 }
 
 /* ─────────────────────────────────────────────────────────────
-   Direct 2-Page PDF Downloader Function (NO BLANK PAGES, EXACTLY 2 PAGES!)
+   PDF Downloader: capture every report page
 ───────────────────────────────────────────────────────────── */
 export async function downloadRmReportDirect(data: any, period?: string): Promise<boolean> {
   if (!data) return false;
+  if (data.version === 2 && document.querySelector('#rm-report-render-target')?.getAttribute('data-pagination-ready') !== 'true') return false;
 
-  const page1El = document.getElementById("rm-report-page-1");
-  const page2El = document.getElementById("rm-report-page-2");
-  if (!page1El || !page2El) return false;
-
+  const pageElements = Array.from(document.querySelectorAll<HTMLElement>("#rm-report-render-target [data-rm-report-page]"));
+  if (!pageElements.length) return false;
   const cleanName = (data.name || "RM").replace(/[^a-zA-Z0-9_-]/g, "_");
-  const fileName = `${cleanName}_RM_Report_${new Date().toISOString().slice(0, 10)}.pdf`;
-
+  const fileName = `${cleanName}_RM_Report_${data.selectedPeriod?.reportType ?? period ?? "month"}_${data.from ? `${formatDate(data.from)}_to_` : ""}${formatDate(data.to ?? new Date().toISOString())}.pdf`;
   try {
+    await document.fonts.ready;
     const { jsPDF } = await import("jspdf");
     const html2canvasModule = await import("html2canvas");
     const html2canvas = (html2canvasModule as any).default || html2canvasModule;
-
-    // 1. Capture Page 1 to high-resolution canvas
-    const canvas1 = await html2canvas(page1El, {
-      scale: 2,
-      useCORS: true,
-      letterRendering: true,
-      logging: false,
-      backgroundColor: "#ffffff",
-      scrollY: 0,
-    });
-
-    // 2. Capture Page 2 to high-resolution canvas
-    const canvas2 = await html2canvas(page2El, {
-      scale: 2,
-      useCORS: true,
-      letterRendering: true,
-      logging: false,
-      backgroundColor: "#ffffff",
-      scrollY: 0,
-    });
-
-    // 3. Create strictly 2-page A4 PDF (210mm x 297mm per page)
-    const pdf = new jsPDF({
-      orientation: "portrait",
-      unit: "mm",
-      format: "a4",
-      compress: true,
-    });
-
-    // Page 1
-    const img1 = canvas1.toDataURL("image/jpeg", 0.98);
-    pdf.addImage(img1, "JPEG", 0, 0, 210, 297, undefined, "FAST");
-
-    // Page 2
-    pdf.addPage("a4", "portrait");
-    const img2 = canvas2.toDataURL("image/jpeg", 0.98);
-    pdf.addImage(img2, "JPEG", 0, 0, 210, 297, undefined, "FAST");
-
-    // Save directly to user's downloads folder (GUARANTEED EXACTLY 2 PAGES!)
+    const pdf = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4", compress: true });
+    for (const [index, element] of pageElements.entries()) {
+      const canvas = await html2canvas(element, { scale: 2, useCORS: true, logging: false, backgroundColor: "#ffffff", scrollY: 0 });
+      if (index > 0) pdf.addPage("a4", "portrait");
+      pdf.addImage(canvas.toDataURL("image/jpeg", 0.98), "JPEG", 0, 0, 210, 297, undefined, "FAST");
+    }
     pdf.save(fileName);
     return true;
   } catch (err) {
-    console.error("Direct 2-page PDF generation failed:", err);
+    console.error("Report PDF generation failed:", err);
     return false;
   }
 }
@@ -821,7 +838,13 @@ export async function downloadRmReportDirect(data: any, period?: string): Promis
 /* ─────────────────────────────────────────────────────────────
    In-Page Report Preview Modal (NO NEXT PAGE OPENS!)
 ───────────────────────────────────────────────────────────── */
-export function RmReportPreviewModal({
+export function RmReportPreviewModal(props: { isOpen: boolean; onClose: () => void; data: any; period?: string }) {
+  if (!props.isOpen || !props.data) return null;
+  if (props.data.version === 2) return <RmPerformancePdfPreview report={props.data as RmPerformanceReport} onClose={props.onClose} onDownload={() => downloadRmReportDirect(props.data, props.period)} />;
+  return <LegacyRmReportPreviewModal {...props} />;
+}
+
+function LegacyRmReportPreviewModal({
   isOpen,
   onClose,
   data,
@@ -834,6 +857,7 @@ export function RmReportPreviewModal({
 }) {
   const [downloading, setDownloading] = React.useState(false);
   const [downloadSuccess, setDownloadSuccess] = React.useState(false);
+  const [downloadError, setDownloadError] = React.useState<string | null>(null);
 
   // Close on Escape key
   React.useEffect(() => {
@@ -850,24 +874,28 @@ export function RmReportPreviewModal({
   const handleDownload = async () => {
     if (downloading) return;
     setDownloading(true);
+    setDownloadError(null);
     try {
       const ok = await downloadRmReportDirect(data, period);
       if (ok) {
         setDownloadSuccess(true);
         setTimeout(() => setDownloadSuccess(false), 3500);
+      } else {
+        setDownloadError("PDF could not be generated. Please try Download PDF again.");
       }
     } catch (e) {
       console.error(e);
+      setDownloadError("PDF could not be generated. Please try Download PDF again.");
     } finally {
       setDownloading(false);
     }
   };
 
-  const periodLabel =
+  const periodLabel = data.reportLabel ?? (
     period === "today" ? "Today" :
     period === "week"  ? "This Week" :
     period === "fytd"  ? "FYTD" :
-    "This Month";
+    "This Month");
 
   return (
     <div
@@ -997,6 +1025,7 @@ export function RmReportPreviewModal({
         </div>
       </div>
 
+      {downloadError && <p role="alert" style={{ margin: 0, padding: "10px 24px", background: "#fff1f2", color: "#be123c" }}>{downloadError}</p>}
       {/* ── Scrollable Document Preview Area ── */}
       <div
         style={{
@@ -1036,7 +1065,7 @@ export function RmReportPreviewModal({
           </div>
 
           <div style={{ color: "#64748b", fontSize: "11px", fontWeight: 600, textAlign: "center", padding: "8px 0" }}>
-            End of 2-Page Executive Report · Click <strong>Download PDF</strong> above to save
+            End of Full Report · Click <strong>Download PDF</strong> above to save
           </div>
         </div>
       </div>

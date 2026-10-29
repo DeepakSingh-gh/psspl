@@ -5,6 +5,7 @@ import { createPortal } from "react-dom";
 import { AdminPage } from "./admin-shell";
 import { adminApi } from "@/lib/api";
 import { AiResponseFormatter } from "../ai-response-formatter";
+import type { AiAnswerPresentation } from "@/types/ai-answer";
 
 const QUESTIONS = [
   { icon: "📉", text: "Which products sold the least?" },
@@ -29,7 +30,7 @@ function AskAiContent({ autoFocus = false, initialQuestion = "" }: { autoFocus?:
   const [question, setQuestion] = useState(initialQuestion);
   const [from, setFrom] = useState(defaults.from);
   const [to, setTo] = useState(defaults.to);
-  const [result, setResult] = useState<{ answer: string; source: string; from: string; to: string } | null>(null);
+  const [result, setResult] = useState<{ answer: string; source: string; from: string; to: string; presentation?: AiAnswerPresentation } | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const inputRef = useRef<HTMLInputElement | null>(null);
@@ -116,7 +117,8 @@ function AskAiContent({ autoFocus = false, initialQuestion = "" }: { autoFocus?:
         </div>
       </div>
 
-      <p className="askai-label">Suggested questions</p>
+      <details className="askai-suggestions" open={!result}>
+      <summary className="askai-label">{result ? "Try another question" : "Suggested questions"}</summary>
       <div className="askai-chips">
         {QUESTIONS.map((item) => (
           <button type="button" key={item.text} onClick={() => handleChipClick(item.text)}>
@@ -125,6 +127,8 @@ function AskAiContent({ autoFocus = false, initialQuestion = "" }: { autoFocus?:
           </button>
         ))}
       </div>
+
+      </details>
 
       {error && <p className="askai-error" role="alert">{error}</p>}
 
@@ -142,6 +146,7 @@ function AskAiContent({ autoFocus = false, initialQuestion = "" }: { autoFocus?:
             source={result.source}
             from={result.from}
             to={result.to}
+            presentation={result.presentation}
           />
         </div>
       )}
@@ -273,7 +278,7 @@ export function AskAiLauncher() {
 
 export function AdminAskAi() {
   return (
-    <AdminPage eyebrow="Ask AI" title="Ask your CRM" description="Ask management questions in everyday language. Answers use only your synced Tally records and CRM activity.">
+    <AdminPage className="askai-dashboard-page" eyebrow="Ask AI" title="Ask your CRM" description="Ask management questions in everyday language. Answers use only your synced Tally records and CRM activity.">
       <section className="admin-card askai-page">
         <AskAiContent />
       </section>

@@ -1,4 +1,20 @@
-﻿# PSSPL CRM â€” Final Production Readiness Report
+# PSSPL CRM â€” Final Production Readiness Report
+
+<!-- current-admin-ui:start -->
+> Latest local UI notes (27-10-2026): explicit Rais Khan top-five sample previews and the RM-only Monthly target card removal are documented in [the latest preview and dashboard notes](docs/operations/2026-10-27-ui-adjustments.md#local-top-five-samples-and-rm-dashboard-cleanup). Overview cleanup, period filters and shared PDF rendering remain. Earlier dated verification retains its scope; this Markdown update does not rerun tests or establish deployment/client acceptance.
+<!-- current-admin-ui:end -->
+
+<!-- current-source-status:start -->
+> Current source status (27-10-2026): backend RM rankings remain source-backed. Local Admin preview can fill empty products or append clearly marked sample customers without changing real rows, totals or database records. See [the latest preview and dashboard notes](docs/operations/2026-10-27-ui-adjustments.md#local-top-five-samples-and-rm-dashboard-cleanup). Overview cleanup, period filters and shared PDF rendering remain. Earlier dated verification retains its scope; this Markdown update does not rerun tests or establish deployment/client acceptance.
+<!-- current-source-status:end -->
+
+## Current local follow-up - 21 October 2026
+
+The assessment below is the dated 19 October snapshot. Current local source now supports direct admin-created login, optional password changes, Gmail SMTP or preserved Resend, explicit professional employee emails with a supplied/verified initial password and complete saved profile, encrypted queue metadata, provider pinning (013), token-free account notices (014), archived-employee restoration and attendance check-in map links.
+
+Gmail SMTP authentication succeeded locally. Earlier user-authorized notices were accepted and the user supplied inbox evidence; these were not password-bearing emails. The latest password-inclusive template was tested with mocked providers, browser/mobile checks, TypeScript and production build. These results do not constitute production rollout or remote-account provisioning. Account details may be emailed without a public URL, but remote login/reset still needs a reachable CRM using the corresponding database. Passwords are never retrieved from stored hashes or returned in send responses/audits.
+
+The interim sender is `deepaksingh873785@gmail.com`; backend secrets remain local and must not be copied into reports. Final mailbox credentials, remote HTTPS configuration, database backup/migration review, matching API/client rollout, outbound SMTP access and production acceptance remain deployment work. The original Resend incident, risks and historical test results below remain dated evidence. See the [current source summary](docs/operations/2026-10-21-current-state.md) and [current email operations](docs/operations/gmail-smtp-authentication.md).
 
 Assessment date: 19 October 2026. Scope: local repository code and isolated synthetic test databases, plus the additive local queue-schema repair described below. No deployment, commit, push, production configuration change, Tally exchange, WhatsApp delivery, or production database write was performed. One queued invitation was submitted to Resend during the local repair; see the incident note below.
 
@@ -21,8 +37,8 @@ This follow-up verified the salesperson and RM dashboards using the configured l
 
 - Dhruv Maurya is an active `salesperson` account assigned to active RM Harsh Shah through `salesperson_profiles.manager_user_id`. Harsh has one active salesperson assigned in the local roster (Dhruv). Dhruv currently has zero customers owned by his account and zero visit, follow-up, or lead records; 58 local customer rows are owned directly by Harsh's RM account. Do not infer or create customer ownership from RM relationship or Tally names.
 - Found and fixed a cross-salesperson authorization defect: salesperson customer, overview, and customer-detail scopes had expanded to all salespeople reporting to the same RM. Salesperson data is now scoped to that user's own account. RM access continues to use the explicit assigned team. Regression coverage now asserts peer-customer denial and filters peer activity from customer detail.
-- The RM root route previously redirected to `/sales/my-day`, despite an existing RM dashboard. It now renders the RM dashboard. The dashboard's territory list now comes from active assigned salespeople; hard-coded city coverage and fallback RM identity/area values were removed from that dashboard.
-- Salesperson routes are `/sales/my-day` and `/sales/hub`. The hub contains Customer DB, Pipeline, Requests, Alerts, and Reports. RM routes include `/rm` for the team dashboard and `/rm/team` for date-filtered team performance.
+- The RM root route redirects to `/sales/my-day` again after the requested 22 October restoration. The separate team dashboard remains implemented. The dashboard's territory list now comes from active assigned salespeople; hard-coded city coverage and fallback RM identity/area values were removed from that dashboard.
+- Salesperson routes are `/sales/my-day` and `/sales/hub`. The hub contains Customer DB, Pipeline, Requests, Alerts, and Reports. RM routes include `/rm` as a redirect to My Day and `/rm/team` for date-filtered team performance.
 - Tally diagnosis from the local database: an active paired connector record exists and its latest heartbeat reached the CRM service, but `tally_available` is false and no company is selected in that heartbeat. The most recent successful sync is dated 10 October 2026 and stored 27,285 records; cached data currently includes 1,692 customer rows, 25,116 invoice rows, and 14,547 product rows. The 19 October dashboard warning is therefore explained by the connector reporting that Tally/the company was unavailable, with stale cached data; it is not evidence of CRM API outage or a missing local database. The heartbeat does not distinguish a closed Tally company from a Tally-side permission problem. No live Tally probe or sync was initiated. Open Tally with the authorized company selected, confirm the connector can read it, then allow a heartbeat/sync before current figures can be verified.
 - Verification: all 17 test files passed (93 checks) on isolated temporary databases, including authentication/RBAC, invitation/reset lifecycle, email retries/webhooks, cross-team isolation, RM reassignment, Tally accuracy, desktop dashboard navigation, and mobile layout. `npx tsc --noEmit` and `npm run build` passed on Next.js 15.5.28. Browser evidence was directed outside the repository to a disposable temp folder.
 
@@ -133,3 +149,5 @@ The canonical 142-row matrix retains the reviewed 18 October 2026 evidence statu
 
 The full 142-row requirement status and evidence table is maintained in the canonical [Phase 9C requirements matrix](docs/project-records/PSSPL_PHASE9C_REQUIREMENTS_MATRIX.md).
 
+<!-- current-rm-report-card-2026-10-24 -->
+> **24 October 2026 RM report-card update:** [Current implementation and recorded validation](docs/operations/2026-10-21-current-state.md#rm-report-card-update--24-october-2026). Earlier dated findings in this file retain their original scope.
