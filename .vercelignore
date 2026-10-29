@@ -7,3 +7,7 @@ scratch
 *.sqlite*
 .env
 .env.local
+
+.next-dev
+.next-*/
+*.tsbuildinfo
