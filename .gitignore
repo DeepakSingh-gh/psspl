@@ -32,3 +32,11 @@ scripts/apply-indexes.js
 .next-dev/
 
 .next-*/
+
+# Local UAT artifacts can contain customer/employee information; publish code
+# and sanitized Markdown summaries, not raw captures or exported records.
+docs/uat/**/*.png
+docs/uat/**/*.pdf
+docs/uat/**/*.json
+docs/uat/**/*.log
+docs/uat/**/*.pid

@@ -1,12 +1,8 @@
 # SQLite backup and recovery
 
-<!-- current-admin-ui:start -->
-> Latest local UI notes (27-10-2026): explicit Rais Khan top-five sample previews and the RM-only Monthly target card removal are documented in [the latest preview and dashboard notes](2026-10-27-ui-adjustments.md#local-top-five-samples-and-rm-dashboard-cleanup). Overview cleanup, period filters and shared PDF rendering remain. Earlier dated verification retains its scope; this Markdown update does not rerun tests or establish deployment/client acceptance.
-<!-- current-admin-ui:end -->
-
-<!-- current-source-status:start -->
-> Current source status (27-10-2026): backend RM rankings remain source-backed. Local Admin preview can fill empty products or append clearly marked sample customers without changing real rows, totals or database records. See [the latest preview and dashboard notes](2026-10-27-ui-adjustments.md#local-top-five-samples-and-rm-dashboard-cleanup). Overview cleanup, period filters and shared PDF rendering remain. Earlier dated verification retains its scope; this Markdown update does not rerun tests or establish deployment/client acceptance.
-<!-- current-source-status:end -->
+<!-- current-local-status-2026-11-20:start -->
+> **Current local status - 20 November 2026:** [Database, cleanup and four verified RM logins](2026-11-20-current-state.md); [automatic pipeline synchronization](../uat/pipeline-sync-2026-11-20/report.md); [GPS, checkout and phone HTTPS requirements](check-in-location.md). Trusted phone HTTPS and the self-hosted address endpoint remain pending. Earlier dated behavior/results below remain historical where superseded; local work does not establish production deployment.
+<!-- current-local-status-2026-11-20:end -->
 
 The CRM database contains customer, sales and employee information. Backups created by `scripts/backup-sqlite.mjs` use SQLite's online `VACUUM INTO` snapshot in the host's temporary directory, restrict its file permissions where supported, validate SQLite integrity, and encrypt each snapshot with AES-256-GCM. The encrypted bytes are written to a uniquely named temporary file inside the destination, flushed, decrypted and compared with the validated snapshot, then atomically renamed to the final `.sqlite.enc` name on the same filesystem. Only final-name files are eligible for retention or restore. Authentication tags detect corruption or tampering. The plaintext snapshot is removed after the run; ensure host temporary storage is access-restricted and has enough space. Temporary backup artifacts are cleaned on normal failure/exit; a later run removes only matching tool temp files older than seven days and preserves recent files. Only the 30 newest completed backups are retained.
 
@@ -43,3 +39,9 @@ Before starting a restored worker, review queued providers, account status, toke
 
 <!-- current-rm-report-card-2026-10-24 -->
 > **24 October 2026 RM report-card update:** [Current implementation and recorded validation](2026-10-21-current-state.md#rm-report-card-update--24-october-2026). Earlier dated findings in this file retain their original scope.
+
+## 20 November 2026 baseline and cleanup recovery
+
+Missing development/test databases no longer restore the bundled gzip baseline automatically. Explicit restoration requires `CRM_ALLOW_BASELINE_RESTORE=true`; `CRM_DISABLE_BASELINE_RESTORE=true` takes precedence. Production still refuses an unapproved baseline bootstrap. Legacy bundled data can include fixtures; review it before business use.
+
+The completed local cleanup retained the separate full SQLite backup `data/crm-before-dummy-removal-2026-11-20-verified.sqlite` and transactional archive tables `crm_dummy_cleanup_archive` / `crm_dummy_cleanup_runs`. These cleanup artifacts are separate from the encrypted scheduled-backup procedure above. Restoring an old full backup can reintroduce fixtures and overwrite newer work; inspect a disposable restored copy before any cutover. See [cleanup preservation evidence](../uat/dummy-removal-2026-11-20/report.md).

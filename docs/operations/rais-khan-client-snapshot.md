@@ -1,12 +1,15 @@
 # Rais Khan missing-field client snapshot fallback
 
-<!-- current-admin-ui:start -->
-> Latest local UI notes (27-10-2026): explicit Rais Khan top-five sample previews and the RM-only Monthly target card removal are documented in [the latest preview and dashboard notes](2026-10-27-ui-adjustments.md#local-top-five-samples-and-rm-dashboard-cleanup). Overview cleanup, period filters and shared PDF rendering remain. Earlier dated verification retains its scope; this Markdown update does not rerun tests or establish deployment/client acceptance.
-<!-- current-admin-ui:end -->
+<!-- current-local-status-2026-11-20:start -->
+> **Current local status - 20 November 2026:** [Database, cleanup and four verified RM logins](2026-11-20-current-state.md); [automatic pipeline synchronization](../uat/pipeline-sync-2026-11-20/report.md); [GPS, checkout and phone HTTPS requirements](check-in-location.md). Trusted phone HTTPS and the self-hosted address endpoint remain pending. Earlier dated behavior/results below remain historical where superseded; local work does not establish production deployment.
+<!-- current-local-status-2026-11-20:end -->
 
-<!-- current-source-status:start -->
-> Current source status (27-10-2026): backend RM rankings remain source-backed. Local Admin preview can fill empty products or append clearly marked sample customers without changing real rows, totals or database records. See [the latest preview and dashboard notes](2026-10-27-ui-adjustments.md#local-top-five-samples-and-rm-dashboard-cleanup). Overview cleanup, period filters and shared PDF rendering remain. Earlier dated verification retains its scope; this Markdown update does not rerun tests or establish deployment/client acceptance.
-<!-- current-source-status:end -->
+## Current behavior - 20 November 2026
+
+The active workspace renders the API report directly. Synthetic demo previews, sample top-five injection and fabricated missing-field values have been retired. Compatibility adapters return the original report unchanged. Missing evidence remains unavailable; actual PDF preview/export remains. See [current status](2026-11-20-current-state.md) and [cleanup verification](../uat/dummy-removal-2026-11-20/report.md).
+
+## Historical implementation record (superseded where it describes synthetic fallbacks)
+
 
 Implemented locally on 24 October 2026. The separate frontend data/adapter file is
 `src/lib/rais-khan-client-snapshot.mjs`. It applies only to RM `raiskhan`, code `033705`,

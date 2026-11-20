@@ -1,12 +1,28 @@
 # PSSPL CRM — Enterprise Sales & Accounting Intelligence Platform
 
-<!-- current-admin-ui:start -->
-> Latest local UI notes (27-10-2026): explicit Rais Khan top-five sample previews and the RM-only Monthly target card removal are documented in [the latest preview and dashboard notes](docs/operations/2026-10-27-ui-adjustments.md#local-top-five-samples-and-rm-dashboard-cleanup). Overview cleanup, period filters and shared PDF rendering remain. Earlier dated verification retains its scope; this Markdown update does not rerun tests or establish deployment/client acceptance.
-<!-- current-admin-ui:end -->
+<!-- current-local-status-2026-11-20:start -->
+> **Current local status - 20 November 2026:** [Database, cleanup and four verified RM logins](docs/operations/2026-11-20-current-state.md); [automatic pipeline synchronization](docs/uat/pipeline-sync-2026-11-20/report.md); [GPS, checkout and phone HTTPS requirements](docs/operations/check-in-location.md). Trusted phone HTTPS and the self-hosted address endpoint remain pending. Earlier dated behavior/results below remain historical where superseded; local work does not establish production deployment.
+<!-- current-local-status-2026-11-20:end -->
 
-<!-- current-source-status:start -->
-> Current source status (27-10-2026): backend RM rankings remain source-backed. Local Admin preview can fill empty products or append clearly marked sample customers without changing real rows, totals or database records. See [the latest preview and dashboard notes](docs/operations/2026-10-27-ui-adjustments.md#local-top-five-samples-and-rm-dashboard-cleanup). Overview cleanup, period filters and shared PDF rendering remain. Earlier dated verification retains its scope; this Markdown update does not rerun tests or establish deployment/client acceptance.
-<!-- current-source-status:end -->
+## RM check-in location
+
+Check-in now captures one fresh high-accuracy fix, stores original accuracy/capture time, and requires explicit choices for permission failure or low accuracy. Admin map/history use the original attendance coordinates and automatically refresh address changes. Self-hosted Nominatim support is ready; the user deferred endpoint configuration, so missing addresses remain unavailable. See [location operations](docs/operations/check-in-location.md) and [audit/test evidence](docs/uat/check-in-location-2026-11-20/report.md). No automatic background position watch runs.
+
+## Automatic pipeline synchronization
+
+Saved lead changes automatically update authorized Admin/RM/salesperson pipeline views using authenticated SSE and targeted reads. No manual refresh is required. Reconnect, scoped delivery, rollback safety and separate browser sessions are covered in the [pipeline synchronization report](docs/uat/pipeline-sync-2026-11-20/report.md). Tally ingestion remains on its existing hourly schedule.
+
+## Real data setup and isolated fixtures
+
+`npm run db:setup` applies migrations only. Normal API startup does not seed webinar data, including when an old `CRM_ENABLE_WEBINAR_DEMO_DATA` setting is present. Workbook imports update only source keys present in the supplied files and retain unrelated historical aggregates, targets and master records, including when the input folder is empty or partial. They do not create invoice detail, field activity, employee accounts or credentials from those aggregates. Workbook invoice detail is recorded as unavailable.
+
+For aggregate and target cells, blank or invalid values provide no update; explicit numeric zero replaces the existing value for that key. Signed sales, quantities and payment adjustments are retained, including negative values.
+
+A missing development/test database starts empty by default. Restoring the bundled `data/crm-baseline.sqlite.gz` requires the explicit operator setting `CRM_ALLOW_BASELINE_RESTORE=true`; `CRM_DISABLE_BASELINE_RESTORE=true` takes precedence and prevents restoration. The bundled baseline can contain legacy fixtures and generated projections: review and clean an approved restored copy before using it as business data. Production retains its refusal to bootstrap from that baseline without approval. These changes do not alter the bundled archive or an existing database.
+
+Dummy/sample seed scripts, including `npm run db:seed`, require all four explicit settings: `NODE_ENV=test`, `CRM_FIXTURE_DATABASE=true`, `CRM_TEST_DATABASE_ROOT` pointing to a dedicated existing directory strictly beneath the operating system temporary directory, and `CRM_DATABASE_PATH` pointing to a database strictly inside that directory. They reject normal CRM databases and symbolic-link targets and disable bundled baseline restoration. Create a fresh temporary fixture directory for each test; never copy a live database there for dummy seeding. The webinar fixture function uses the same checks against its actual open database connection and must be invoked explicitly by fixture code.
+
+Verify these safeguards with `node --test scripts/fixture-data-guard.test.mjs` and `python scripts/workbook-import-safety.test.py` (requires `openpyxl`). Both use isolated temporary databases.
 
 <!-- oct27-ui-details:start -->
 ## Latest Overview and RM ranking behavior
@@ -14,7 +30,7 @@
 Overview hides At a glance, Money / Collections and Planned customer visits; other KPIs and Field activity remain. The Quarter-wise Trend uses dashboard-themed cards. Product Trends rows hide links and percentage/units subtext; Pipeline hides conversion-rate presentation while retaining lead counts. RM report Top Customers / Top Products use actual scoped invoices and the same dashboard/PDF component, with source gaps disclosed. See the latest UI and ranking notes linked above.
 
 
-Latest follow-up: [Local preview and RM dashboard scope](docs/operations/2026-10-27-ui-adjustments.md#local-top-five-samples-and-rm-dashboard-cleanup): **Start Preview / Exit Preview** controls optional Rais Khan sample rows. Empty products receive five examples; a short customer list keeps real rows and appends marked samples to five. Sample customer shares are unavailable and totals remain recorded values. Dashboard/PDF labels match; no persistence occurs. The bottom Monthly target card is hidden for RM accounts only, with the salesperson card retained.
+Historical 27 October behavior (sample previews retired 20 November): [Local preview and RM dashboard scope](docs/operations/2026-10-27-ui-adjustments.md#local-top-five-samples-and-rm-dashboard-cleanup): **Start Preview / Exit Preview** controls optional Rais Khan sample rows. Empty products receive five examples; a short customer list keeps real rows and appends marked samples to five. Sample customer shares are unavailable and totals remain recorded values. Dashboard/PDF labels match; no persistence occurs. The bottom Monthly target card is hidden for RM accounts only, with the salesperson card retained.
 <!-- oct27-ui-details:end -->
 
 ## Latest Admin UI — 26 October 2026
@@ -24,15 +40,15 @@ Latest follow-up: [Local preview and RM dashboard scope](docs/operations/2026-10
 - [Implementation, source files and dated verification](docs/operations/admin-product-trends-and-sidebar.md). No deployment or source-record change is implied.
 - **Product comparison recovery:** recorded FY sales/product counts remain intact. When dated YoY evidence is absent, the existing cards, movement lists and product drawer use a clearly labeled MoM baseline. The inspected August/July comparison was ₹6.19 Cr vs ₹3.22 Cr (+91.99%); lifecycle labels refer only to the observed window. Generated `excel-import` invoices remain excluded. [Source findings, unresolved header variance and 22-test verification](docs/operations/admin-product-trends-and-sidebar.md#product-trend-data-and-comparison-recovery).
 
-## Current local workflow - 27 October 2026
+## Historical local workflow - 27 October 2026 (demo behavior retired)
 
-- **RM report card and demo view:** FY 2026-27 chart rows include clearly marked display-only sample values for missing months and four-week breakdowns. FY 2025-26 provides a four-week display-only breakdown for every month that reconciles to its existing monthly totals. Rais Khan's five presentation RM Save Entries appear when the selected CRM range is empty, while real entries retain priority. The separate **Actual sales / invoice detail** accordion has been removed. Demo labels have been removed from the Thrust Products cards, and demo explanation copy and the **Future / unverified** legend item are hidden in the attendance section. [Current UI notes](docs/operations/2026-10-27-ui-adjustments.md).
+- **RM report data:** the current workspace shows the API report without generated chart values, presentation entries or fake top-five rows. Missing evidence remains unavailable. Historical 27 October demo behavior has been retired; see [current status](docs/operations/2026-11-20-current-state.md).
 - **Admin Team and Field Activity:** The Team page no longer shows the top info strip or PDF FYTD captions beneath targets. Field Activity keeps Visits and Follow-ups tabs; the Attendance tab and its route-detail table were removed. The Check-ins summary remains.
 
 ## Previous local workflow - 24 October 2026
 
-- **Current RM report card:** Manager Action Plan is immediately below the header/FY toolbar, before Performance Overview; AI Insights stays after RM Save Entries. Shared chart legends show smaller `(<100%)` / `(≥100%)` second lines. UI/PDF have complete attendance matrices and a four-column desktop/PDF product grid. PDF uses the eight-column saved-entry table, complete-card pagination and no supporting-detail appendix. FY/month/four-week navigation, verified metrics and existing opt-in local Demo Preview remain intact. [Current implementation and scoped verification](docs/operations/rm-report-finalization.md).
-- **Rais Khan client snapshot:** code `033705` receives labeled frontend fallback only for missing fields. Populated values and valid zeros take priority; August Week 2 gets the missing ₹3.11 lakh actual, plus territory expansion and two product names with visually blank unavailable amounts in live mode. Separate explicit local preview can display labeled synthetic metrics. [Preservation audit and source discrepancies](docs/operations/rais-khan-client-snapshot.md).
+- **Current RM report card:** Manager Action Plan is immediately below the header/FY toolbar, before Performance Overview; AI Insights stays after RM Save Entries. Shared chart legends show smaller `(<100%)` / `(≥100%)` second lines. UI/PDF have complete attendance matrices and a four-column desktop/PDF product grid. PDF uses the eight-column saved-entry table, complete-card pagination and no supporting-detail appendix. FY/month/four-week navigation, verified metrics and PDF export remain intact. Synthetic local Demo Preview and sample injection have been retired. [Current implementation and scoped verification](docs/operations/rm-report-finalization.md).
+- **Rais Khan report:** the old missing-field fallback and demo generators are retired; compatibility adapters return the original report unchanged. Genuine supplied historical source reports remain available. See [retirement and historical evidence](docs/operations/rais-khan-client-snapshot.md).
 - **RM My Day saved entries:** a completed visit and its linked order, follow-up and generated lead display in one row; pending route plans stay on My Day. The eight-column table and the thrust-product source are documented in the [original V3 table implementation](docs/operations/rm-performance-v3.md#current-compact-saved-entry-table); current PDF table/order refinements are recorded in [finalization](docs/operations/rm-report-finalization.md#pdf-output).
 
 - **AI:** Ask AI uses the configured Claude provider. The active RM report flow uses Claude to prioritize verified findings; AI Insights and Manager Action Plan use existing vetted templates, with honest rule-based fallback. One live FY verification succeeded; explicit RM name/ID is absent from the current V2 provider payload, although facts/cache are RM-scoped. Backend prompts, model settings and credentials remain unchanged. [AI verification and limits](docs/operations/rm-report-finalization.md#ai-verification-and-limits).
@@ -97,7 +113,7 @@ The live Render service was confirmed to use Free compute. Its [idle spin-down b
 # Install dependencies
 npm install
 
-# Setup database migrations and seeds
+# Apply database migrations (no sample seeding)
 npm run db:setup
 
 # Start development servers (Next.js on 3000 + Express API on 4000)
@@ -105,7 +121,7 @@ npm run dev
 ```
 
 ### 2. Local setup for teammates
-Requirements: Node.js 22 or newer and npm. The CRM uses a local SQLite file with automated gzip baseline initialization (`data/crm-baseline.sqlite.gz`), so external databases are not required for local development.
+Requirements: Node.js 22 or newer and npm. The CRM reads a local SQLite file, normally `data/crm.sqlite`; an external database is not required for local development. Missing development/test databases start empty. Bundled baseline restoration requires explicit opt-in and review because it can contain legacy fixtures.
 
 ```bash
 git clone https://github.com/DeepakSingh-gh/psspl.git
@@ -130,38 +146,34 @@ npm run dev
 
 ## 🔑 Default Roles & Login Credentials
 
-All accounts are pre-seeded in the database for local development and testing:
+Existing local RM accounts verified read-only on 20 November 2026 (no account creation or password reset):
 
-| Persona | Email | Password | Access & Scope |
-| :--- | :--- | :--- | :--- |
-| **Administrator** | `admin@psspl.com` | `psspl-admin-2026` | Full platform access, user management, audit logs, Tally connector, approved scheduled WhatsApp reports, margin approvals. |
-| **Regional Manager (Anil Jena)** | `anil.jena@psspl.com` | Existing admin-managed password | Canonical RM Code 075709. The duplicate `anil@psspl.com` alias was archived locally on 21 October 2026; it no longer signs in. Supplied snapshot figures are dated 30 September 2026. |
-| **Regional Manager (Ketan Bhatt)** | `ketan.bhatt@psspl.com` / `ketan@psspl.com` | `psspl-rm-2026` | West Region, key accounts (Protec Finish, etc.), regional product comparison. |
-| **Field Sales Executive** | `anil.jaina@psspl.com` | `demo123` | Mobile-first day planner, GPS check-in/out, visit logging, voice notes, lead pipeline with inline deletion, order requests. |
+| RM | Email | Local credential |
+| --- | --- | --- |
+| Rais Khan | `rais.khan@psspl.com` | Provided privately; omitted from public source |
+| Gowri Shankar | `gowri.shankar@psspl.com` | Provided privately; omitted from public source |
+| Anil Jena | `anil.jena@psspl.com` | Provided privately; omitted from public source |
+| Harsh Shah | `harsh.shah@psspl.com` | Provided privately; omitted from public source |
+
+Login: [local CRM](http://localhost:3000/login). These checks apply to the local SQLite database only. These four existing RM accounts were verified against local stored password hashes; no account was created and no password was reset. Other historical credentials are unverified. Anil Jena's old duplicate alias remains archived. See [current status](docs/operations/2026-11-20-current-state.md).
 
 ---
 
 ## 📊 Real Client Dataset & Ingestion
 
-The CRM is loaded with actual client records imported from client workbooks and executive target schedules:
+The active local CRM retains Tally/connector masters and transactions, genuine supplied workbook aggregates, user work and configured targets. After the 20 November cleanup it contained 2,142 non-dummy customers, 14,588 products, 8,294 genuine invoices and 19,198 genuine invoice lines. These are dated verification counts. The previously described 868 workbook invoices were generated projections and have been removed along with the other known synthetic invoices.
 
-* **171 Customers & Dealers:** Protec Finish Innovators, Metfin Systems, Schneider Electric, Chem X Enterprises, S.B. Refractory, etc., including city mappings, destination codes, and outstanding balances.
-* **666 PSS Chemical Products:** Complete catalog with packing sizes, UOM (Kgs., Ltrs., Nos.), rates, and historical sales.
-* **868 Real Invoices & 1,730 Product Lines:** Totaling **Rs 35.47 Crore** in sales, backing all executive charts and customer history.
-* **Live Tally Ingestion Pipeline:** Real-time collection receipts (`tally_payments_live`), raw material procurement vouchers (`tally_purchases`, `tally_purchase_lines`), and chunked session state tracking (`tally_import_metadata`).
-* **12 Regional Managers & 144 Monthly Targets:** Full target tracking across all 12 zones, plus exact **FY 2026-27 Target Feedback Support schedule (501.00 Lakh target)** for Anil Jena (North Region / Gurugram).
-* **1,896 RM Product Sales Comparison Records:** FY 2024-25 vs FY 2025-26 volume and value comparisons.
-* **48 Field Sales Executives:** Mapped under their respective Regional Managers, including Anil Jena's 9 Gurugram team members.
+Tally data sync is configured hourly, with a minute heartbeat. Refreshing a page reads the latest stored CRM data. Supabase is an outbound mirror whose remote cleanup remains unverified because of a TLS certificate error.
 
-### Re-running the Data Importer & RM Seeder
-To reload or refresh data from Excel workbooks or seed Anil Jena's real-time PDF metrics at any time:
+### Re-running the workbook importer
+
+Use actual supplied workbooks:
+
 ```bash
-# Using npm script for general Excel workbooks:
 npm run import:data
-
-# Or seeding Anil Jena real-time target feedback data:
-node scripts/seed_anil_jena_realtime.mjs
 ```
+
+The importer preserves unrelated history/targets and existing credentials/ownership. It does not generate invoice detail or field activity. Do not run the Anil, demo or sample seeders against the active CRM; they now require an explicitly isolated temporary fixture database. See [fixture rules](docs/operations/2026-11-20-current-state.md#setup-import-and-report-behavior) and [cleanup evidence](docs/uat/dummy-removal-2026-11-20/report.md).
 
 ---
 
@@ -201,10 +213,10 @@ The CRM dashboard features the official PSS corporate visual identity:
   - **Quotations & Margin Approvals:** Multi-level approval matrix for discounts and sub-margin pricing.
   - **Reports & Scheduled WhatsApp Summaries:** Filterable management reports with one-click **PDF Print** (A4 optimized via `print.css`), **Excel/CSV Export**, and approved recipient-specific **WhatsApp scheduling**. External delivery is disabled by default; the legacy direct-send action is blocked.
   - **Tally Live Connector:** Pairing codes, rotating HMAC tokens, heartbeat monitoring, chunked session imports, and persistent high-contrast Disconnect action button.
-  - **Supabase Cloud Sync Engine (GI Connector):** Automatic real-time background sync (`server/supabase-sync.mjs`) pushes all new Tally data directly to an external Supabase Postgres database. Uses advanced Upsert (`ON CONFLICT DO UPDATE`) logic to prevent data overlap while maintaining local SQLite speed.
+  - **Supabase Cloud Sync Engine (GI Connector):** An outbound upsert mirror (`server/supabase-sync.mjs`) copies data to Supabase/Postgres. The API reads SQLite. Local deletions are not propagated by this upsert-only path; remote cleanup remains unverified after a TLS certificate validation failure.
   - **Quarter-wise Trend Analysis:** Visual progress-bar dashboard comparing Q1-Q4 (Apr-Mar Financial Year) revenue performance directly on the admin overview.
   - **High-Performance Query & In-Memory Batch Engine:**
-    - Composite database indexing (`idx_tally_customers_rm_name`, `idx_tally_invoices_session_date`, `idx_tally_invoice_lines_inv_prod`, `idx_tally_rm_product_sales_rm`) eliminates full table scans across 53,000+ invoices and invoice lines.
+    - Composite database indexing (`idx_tally_customers_rm_name`, `idx_tally_invoices_session_date`, `idx_tally_invoice_lines_inv_prod`, `idx_tally_rm_product_sales_rm`) eliminates full table scans across the active invoice ledger and its lines; see the dated cleanup counts above.
     - Single-pass `calculateAllThrustProductsBatch()` aggregates all cross-team chemical thrust lines in memory in ~200ms instead of executing 330+ nested SQL queries, slashing API response time by 8× (~450ms vs 3.6s+).
     - Client-side Stale-While-Revalidate (SWR) cache (`useAdminData`) provides instant zero-latency view switching with background revalidation and namespaced cache keys.
   - **Audit Logging & Security:** Detailed tracking of logins, password resets, user creations, and export actions.

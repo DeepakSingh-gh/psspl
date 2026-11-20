@@ -42,7 +42,7 @@ export interface AdminOverview {
     productSales: Array<{ name: string; salesValue: number; quantity: number }>;
     territorySales: Array<{ name: string; salesValue: number; customerCount: number }>;
     teamPerformance: Array<{ name: string; salesValue: number; targetValue: number; achievementPercent: number | null }>;
-    salespersonLocations: Array<{ userId: string; email: string; fullName: string; region: string | null; territory: string | null; checkInAt: string | null; checkOutAt: string | null; latitude: number | null; longitude: number | null; lastLocationAt: string | null }>;
+    salespersonLocations: Array<{ userId: string; email: string; fullName: string; region: string | null; territory: string | null; checkInAt: string | null; checkOutAt: string | null; latitude: number | null; longitude: number | null; gpsAccuracyMeters?: number | null; gpsCapturedAt?: string | null; locationAddress?: string | null; locationAddressStatus?: string | null; locationAddressProvider?: string | null; lastLocationAt: string | null }>;
   };
   tally: TallyStatus;
 }
@@ -289,7 +289,7 @@ export interface ActivityResponse {
     latitude: number | null;
     longitude: number | null;
     movementPoints: number;
-    lastLocationAt: string | null;
+    gpsAccuracyMeters?: number | null; gpsCapturedAt?: string | null; locationAddress?: string | null; locationAddressStatus?: string | null; locationAddressProvider?: string | null; lastLocationAt: string | null;
     email: string;
     fullName: string | null;
   }>;
@@ -298,7 +298,7 @@ export interface ActivityResponse {
 export interface MovementResponse {
   userId: string;
   date: string;
-  attendance: { checkInAt: string; checkOutAt: string | null; latitude: number | null; longitude: number | null; email: string; fullName: string | null };
+  attendance: { checkInAt: string; checkOutAt: string | null; latitude: number | null; longitude: number | null; gpsAccuracyMeters?: number | null; gpsCapturedAt?: string | null; locationAddress?: string | null; locationAddressStatus?: string | null; email: string; fullName: string | null };
   points: Array<{ latitude: number; longitude: number; accuracy: number | null; capturedAt: string; kind: "check_in" | "movement" }>;
   distanceKm: number;
 }

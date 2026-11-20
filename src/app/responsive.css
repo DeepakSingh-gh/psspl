@@ -1,0 +1,124 @@
+/* Screen layout only. Printable report canvases retain their own dimensions. */
+.mobile-nav-opener, .mobile-nav-close, .sales-mobile-bar { display: none; }
+.mobile-nav-backdrop { position: fixed; inset: 0; z-index: 998; border: 0; background: rgb(7 29 66 / 55%); }
+.mobile-nav-close { align-items: center; justify-content: center; flex: none; width: 44px; height: 44px; border: 1px solid #ffffff55; border-radius: 8px; background: transparent; color: #fff; font-size: 28px; cursor: pointer; }
+.mobile-nav-opener { align-items: center; justify-content: center; flex: none; width: 44px; height: 44px; border: 1px solid var(--line); border-radius: 8px; background: #fff; color: var(--navy); cursor: pointer; }
+.mobile-nav-opener:focus-visible, .mobile-nav-close:focus-visible { outline: 3px solid #33a3dd; outline-offset: 2px; }
+.mobile-nav-account-actions { display: none; }
+
+@media screen {
+  /* Resolve intrinsic grid sizing instead of concealing overflow at the page edge. */
+  .admin-page { grid-template-columns: minmax(0, 1fr); }
+  .admin-grid { grid-template-columns: repeat(auto-fit, minmax(min(100%, 340px), 1fr)); }
+  .admin-page > *, .admin-panel, .admin-card, .admin-definition, .admin-stats > *, .pi-grid > *, .pi-movement > *, .pi-lifecycle > *, .workspace-grid > *, .hub-grid > * { min-width: 0; }
+  .admin-page-heading, .admin-page-actions, .admin-section-header > div, .hub-card, .fact-grid > *, .metrics > * { min-width: 0; overflow-wrap: anywhere; }
+  .admin-table-wrap, .feedback-scroll, .rm-v2-table-scroll, .rm-input-table-scroll { max-width: 100%; overscroll-behavior-x: contain; }
+  .admin-tabs { max-width: 100%; min-width: 0; overflow-x: auto; overscroll-behavior-x: contain; }
+  .admin-tabs button { flex: none; white-space: nowrap; }
+  .admin-table th, .admin-table td { word-break: normal; }
+  .admin-table .numeric { overflow-wrap: normal; }
+  .pi-move-list li { flex-wrap: wrap; }
+  .pi-move-list span { white-space: normal; overflow-wrap: anywhere; }
+  .request-form { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .75rem; }
+  .request-form label, .request-form select, .request-form input, .lead-form label { min-width: 0; }
+  .lead-form { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr)); gap: 1.25rem; }
+  .rm-customer-tabs, .rm-customer-pager, .rm-customer-reason { flex-wrap: wrap; }
+  .rm-customer-reason input { min-width: 0; }
+  .visit-modal { max-height: calc(100dvh - 32px); overscroll-behavior: contain; }
+  .askai-modal { max-height: calc(100dvh - 24px); overflow-y: auto; overscroll-behavior: contain; }
+  .rm-v2-preview { height: 100dvh; }
+  .rm-v2-preview-toolbar { flex: none; flex-wrap: wrap; padding: 12px 16px; }
+  .rm-v2-preview-toolbar > div { display: flex; flex-wrap: wrap; gap: 8px; }
+  .rm-v2-preview-scroll { min-height: 0; align-items: flex-start; overscroll-behavior: contain; }
+  .rm-v2-preview-scroll > .rm-v2-pdf { flex: none; margin-inline: auto; }
+  .legacy-report-preview { height: 100dvh; }
+  .legacy-preview-scroll { min-height: 0; overflow-x: auto; align-items: flex-start !important; }
+  .legacy-preview-track { width: max-content !important; min-width: 100%; max-width: none !important; margin-inline: auto; }
+  .report-table-scroll, .feedback-print-scroll { max-width: 100%; overflow-x: auto; overscroll-behavior-x: contain; }
+  .report-table-scroll .data-table { min-width: 560px; }
+  .feedback-print-canvas { min-width: 1120px; }
+}
+
+@media screen and (max-width: 1000px) {
+  .legacy-preview-toolbar { height: auto !important; min-height: 60px; padding: 12px !important; gap: 12px; flex-wrap: wrap; }
+  .legacy-preview-toolbar > div { flex-wrap: wrap; gap: 8px !important; }
+  .admin-search, .admin-field, .admin-select { min-width: 0; max-width: 100%; }
+  .admin-search input { min-width: 0; width: 100%; max-width: 100%; }
+  .admin-shell .mobile-nav-opener, .admin-shell .mobile-nav-close { display: inline-flex; }
+  .admin-sidebar { width: min(280px, calc(100vw - 32px)); min-width: 0; max-width: none; height: 100dvh; visibility: hidden; }
+  .admin-shell.nav-open .admin-sidebar { visibility: visible; }
+  .admin-brand { justify-content: space-between; gap: 8px; padding: 0; }
+  .admin-brand > svg { max-width: calc(100% - 52px); }
+  .admin-sidebar nav a { min-height: 44px; }
+  .admin-user { flex-wrap: wrap; margin-top: 24px; }
+  .admin-user-name { flex: 1; }
+  .mobile-nav-account-actions { display: flex; width: 100%; gap: 16px; align-items: center; }
+  .mobile-nav-account-actions a, .mobile-nav-account-actions button { display: inline-flex; align-items: center; min-height: 44px; color: #cfe0f0; font-size: 13px; }
+  .rm-mobile-bar { display: flex; align-items: center; gap: 12px; padding: 10px 14px; border-bottom: 1px solid var(--a-line); }
+}
+@media screen and (min-width: 1001px) { .rm-mobile-bar { display: none; } }
+
+@media screen and (max-width: 680px) {
+  .sales-mobile-bar { display: flex; align-items: center; gap: 12px; padding: 10px 14px; background: #fff; border-bottom: 1px solid var(--line); }
+  .sales-mobile-bar .mobile-nav-opener, .sales-sidebar .mobile-nav-close { display: inline-flex; }
+  .sales-sidebar { position: fixed; inset: 0 auto 0 0; z-index: 999; width: min(280px, calc(100vw - 32px)); height: 100dvh; overflow-y: auto; flex-direction: column; align-items: stretch; flex-wrap: nowrap; padding: 20px 16px; transform: translateX(-100%); visibility: hidden; }
+  .sales-sidebar.is-open { transform: translateX(0); visibility: visible; }
+  .sales-sidebar .brand { display: flex; justify-content: space-between; gap: 8px; }
+  .sales-sidebar nav { display: grid; width: auto; order: 0; margin-top: 24px; overflow: visible; }
+  .sales-sidebar nav a { min-height: 44px; white-space: normal; }
+  .sales-sidebar .user-card { margin: auto 0 0; padding-top: 20px; flex-wrap: wrap; border-top: 1px solid #ffffff33; }
+  .sales-sidebar .user-card div { display: block; min-width: 0; flex: 1; overflow-wrap: anywhere; }
+  .sales-sidebar .user-card .logout { min-height: 44px; }
+  .sales-header { height: auto; min-height: 72px; flex-wrap: wrap; gap: 12px; padding-block: 14px; }
+  .sales-header h1, .hub-shell header h1 { overflow-wrap: anywhere; }
+  .sales-header .hub-actions { margin-left: 0; }
+  .metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .metrics article strong { overflow-wrap: anywhere; }
+  .request-form { grid-template-columns: minmax(0, 1fr); }
+  .visit-modal { padding: 24px 16px; }
+  .visit-modal .close, .askai-close, .voice-mic-btn { min-width: 44px; min-height: 44px; }
+  .visit-modal h2 { padding-right: 36px; }
+  .admin-page-header, .admin-section-header, .admin-card-header, .pi-panel-head { flex-wrap: wrap; }
+  .admin-page-actions, .admin-page-actions > form { max-width: 100%; }
+  .admin-button, .admin-tabs button, .hub-tabs button, .section-switch button, .admin-pager button, .quick-form button, .rm-customer-tabs button, .rm-customer-pager button { min-height: 44px; }
+  .admin-filters input, .admin-filters select, .admin-form input, .admin-form select, .quick-form input, .quick-form select { min-height: 44px; min-width: 0; max-width: 100%; }
+  .admin-pager, .admin-dialog-actions { flex-wrap: wrap; }
+  .rm-v2-preview-scroll { padding: 12px; }
+  body:has(.report-body) .print-controls { position: sticky; height: auto; min-height: 56px; flex-wrap: wrap; padding: 12px; gap: 10px; }
+  body:has(.report-body) .print-controls-actions { flex-wrap: wrap; }
+  body:has(.report-body) .print-controls-actions button { min-height: 44px; }
+  .report-body.report-body { padding: 20px 12px 80px; }
+  .report-body .report-cover { flex-direction: column; gap: 18px; padding: 20px 16px; }
+  .report-body .cover-right { text-align: left; }
+  .report-body .cover-name { overflow-wrap: anywhere; }
+  .report-body .two-col, .report-body .kpi-grid { grid-template-columns: minmax(0, 1fr); }
+  .report-body .target-hero-top, .report-body .target-meta-row { flex-wrap: wrap; gap: 12px; }
+  .report-body .report-footer, .report-body .footer-brand { flex-wrap: wrap; gap: 10px; overflow-wrap: anywhere; }
+  .tally-connection { flex-wrap: wrap; }
+  .tally-connection-copy { flex: 1 1 220px; min-width: 0; }
+  .tally-data-overview, .tally-steps { grid-template-columns: minmax(0, 1fr); }
+  .print-report-container.print-report-container { padding: 12px !important; }
+  .print-report-container .controls { display: flex; flex-wrap: wrap; gap: 10px; }
+  .print-report-container .controls button { min-height: 44px; }
+}
+@media screen and (max-width: 480px) {
+  .topbar { gap: 6px; padding: 8px; }
+  .topbar-ai-search { flex: 0 0 44px; width: 44px; height: 44px; padding: 0; justify-content: center; }
+  .topbar-ai-placeholder, .topbar-ai-actions { display: none; }
+  .topbar-right { gap: 6px; min-width: 0; }
+  .topbar-icon, .topbar-user { width: 44px; height: 44px; justify-content: center; flex: none; }
+  .topbar-right > .admin-button { min-height: 44px; padding-inline: 8px; }
+  .admin-stats { grid-template-columns: repeat(auto-fit, minmax(min(100%, 140px), 1fr)); }
+  .admin-form-row { grid-template-columns: minmax(0, 1fr); }
+  .fact-grid { grid-template-columns: minmax(0, 1fr); }
+  .pi-panel { padding: 16px 12px; }
+  .admin-definition > div { flex-wrap: wrap; gap: 6px; }
+  .admin-definition dd { max-width: 100%; overflow-wrap: anywhere; }
+}
+@media screen and (max-width: 359px) {
+  .metrics, .rm-kpi-grid, .rm-report-kpis { grid-template-columns: minmax(0, 1fr); }
+}
+@media print {
+  .mobile-nav-opener, .mobile-nav-close, .mobile-nav-backdrop, .sales-mobile-bar, .rm-mobile-bar { display: none !important; }
+  .report-table-scroll, .feedback-print-scroll, .feedback-print-canvas { display: contents; }
+}

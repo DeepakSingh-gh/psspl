@@ -1,12 +1,8 @@
 # PSSPL CRM System Architecture & Technical Specifications
 
-<!-- current-admin-ui:start -->
-> Latest local UI notes (27-10-2026): explicit Rais Khan top-five sample previews and the RM-only Monthly target card removal are documented in [the latest preview and dashboard notes](docs/operations/2026-10-27-ui-adjustments.md#local-top-five-samples-and-rm-dashboard-cleanup). Overview cleanup, period filters and shared PDF rendering remain. Earlier dated verification retains its scope; this Markdown update does not rerun tests or establish deployment/client acceptance.
-<!-- current-admin-ui:end -->
-
-<!-- current-source-status:start -->
-> Current source status (27-10-2026): backend RM rankings remain source-backed. Local Admin preview can fill empty products or append clearly marked sample customers without changing real rows, totals or database records. See [the latest preview and dashboard notes](docs/operations/2026-10-27-ui-adjustments.md#local-top-five-samples-and-rm-dashboard-cleanup). Overview cleanup, period filters and shared PDF rendering remain. Earlier dated verification retains its scope; this Markdown update does not rerun tests or establish deployment/client acceptance.
-<!-- current-source-status:end -->
+<!-- current-local-status-2026-11-20:start -->
+> **Current local status - 20 November 2026:** [Database, cleanup and four verified RM logins](docs/operations/2026-11-20-current-state.md); [automatic pipeline synchronization](docs/uat/pipeline-sync-2026-11-20/report.md); [GPS, checkout and phone HTTPS requirements](docs/operations/check-in-location.md). Trusted phone HTTPS and the self-hosted address endpoint remain pending. Earlier dated behavior/results below remain historical where superseded; local work does not establish production deployment.
+<!-- current-local-status-2026-11-20:end -->
 
 <!-- oct27-ui-details:start -->
 ## Read-only RM top-sales projection
@@ -14,7 +10,7 @@
 `server/rm-performance-report.mjs` adds optional `topSales` via `server/rm-top-sales.mjs`. Customer aggregates reuse the existing voucher query; product aggregates use signed authoritative lines grouped by master ID (exact recorded name when missing). Existing RM/subordinate scope, period/cutoff and net-sales rules are preserved. Both shares use total report RM sales; zero/negative denominators and aggregate-only snapshots remain unavailable. No schema, persistence, inferred parent grouping or demo source is added. `RmTopSales` is reused by Performance Details and one measured PDF pagination block; line/header variance is disclosed.
 
 
-Latest follow-up: [Local preview and RM dashboard scope](docs/operations/2026-10-27-ui-adjustments.md#local-top-five-samples-and-rm-dashboard-cleanup): **Start Preview / Exit Preview** controls optional Rais Khan sample rows. Empty products receive five examples; a short customer list keeps real rows and appends marked samples to five. Sample customer shares are unavailable and totals remain recorded values. Dashboard/PDF labels match; no persistence occurs. The bottom Monthly target card is hidden for RM accounts only, with the salesperson card retained.
+Historical 27 October behavior (sample previews retired 20 November): [Local preview and RM dashboard scope](docs/operations/2026-10-27-ui-adjustments.md#local-top-five-samples-and-rm-dashboard-cleanup): **Start Preview / Exit Preview** controls optional Rais Khan sample rows. Empty products receive five examples; a short customer list keeps real rows and appends marked samples to five. Sample customer shares are unavailable and totals remain recorded values. Dashboard/PDF labels match; no persistence occurs. The bottom Monthly target card is hidden for RM accounts only, with the salesperson card retained.
 <!-- oct27-ui-details:end -->
 
 ## Admin chart and navigation presentation — 26 October 2026
@@ -91,7 +87,7 @@ graph TD
 
 ### Production Deployment Topology
 * **Frontend Web Application:** Hosted on **Vercel** (`https://psspl-crm.vercel.app`), configured with Next.js 15 App Router, static page optimization across 27 routes, and `.env.production` pointing to the live Render API.
-* **Backend API Server:** Hosted on **Render** (`https://psspl-crm-backend.onrender.com`), running Node.js 22 with Express 5.1, SQLite WAL mode, and automated decompression of `data/crm-baseline.sqlite.gz` (57 MB uncompressed) on startup if the database file is absent.
+* **Backend API Server:** Hosted on **Render** (`https://psspl-crm-backend.onrender.com`), running Node.js 22 with Express 5.1, SQLite WAL mode, and explicit opt-in baseline restoration only. A missing development/test database starts empty by default; `CRM_ALLOW_BASELINE_RESTORE=true` permits the legacy gzip baseline, while `CRM_DISABLE_BASELINE_RESTORE=true` prevents restoration. Normal startup does not seed demo data.
 * **Source Control:** Synchronized on GitHub at [https://github.com/DeepakSingh-gh/psspl](https://github.com/DeepakSingh-gh/psspl).
 
 ---
@@ -217,7 +213,7 @@ All application state resides in `data/crm.sqlite` across four primary domains:
 Located in `server/supabase-sync.mjs` and `server/connector-api.mjs`:
 * Asynchronously spawned by the Express server immediately after a Tally GI chunk upload is finalized (`action === "finalize"`).
 * Leverages advanced Postgres `INSERT INTO ... ON CONFLICT (...) DO UPDATE` commands.
-* Syncs local `crm.sqlite` schema and data to Supabase Postgres (acting as a Cloud Replica) without overlap or duplication, enabling external cloud analytics.
+* Mirrors local SQLite data outbound using upserts; application requests continue to read SQLite. This path does not propagate local deletes. Remote dummy cleanup is unverified because TLS validation failed; the local cleanup did not modify Supabase.
 
 ### 4. Modern Sales & Analytics Dashboards
 * Features a premium glassmorphic Kanban pipeline and Optimistic UI Drag-and-Drop.
@@ -254,3 +250,11 @@ Remaining caching and local follow-up notes: [Architecture continued](./docs/pro
 
 See [period rules, source limitations and verification](docs/operations/rm-period-reports.md) and [other UI/loading changes](docs/operations/2026-10-22-ui-and-performance.md). The proposed Claude Call Sheet image is a preview, not an implemented feature set. No production deployment or production-data modification was performed for these updates.
 <!-- rm-report-current:end -->
+
+## Pipeline synchronization - 20 November 2026
+
+`server/pipeline-sync.mjs` exposes authenticated `/api/pipeline/events` (SSE revision invalidations) and `/api/pipeline/summary` (scoped stage counts, expected values and recent leads). Migrations 017/018 add per-owner revision counters and lead/profile/user triggers. Changes become visible only with their database commit. Each worker observes its shared SQLite database; no in-memory mutation counter or external broker is required.
+
+The browser shares one fetch-stream subscription per tab via `pipeline-live.ts` / `pipeline-monitor.ts`. Background reads coalesce, retain the last saved view during failures and retry failed reads. SSE framing, heartbeats, bounded reconnect backoff, focus/online resynchronization, automatic credential renewal through reconnect and a targeted-read fallback cover dropped/blocked connections. Tokens remain in auth headers/cookies. No page navigation or whole-dashboard fetch is used for pipeline events. The existing single-database instance and explicit role/team boundary remain; lead company text is not a tenant identifier.
+
+See [design](docs/superpowers/specs/2026-11-20-pipeline-sync-design.md) and [verification](docs/uat/pipeline-sync-2026-11-20/report.md).

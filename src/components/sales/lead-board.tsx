@@ -1,7 +1,8 @@
 "use client";
 import { indiaBusinessDate } from "@/lib/business-date";
-import { FormEvent, useEffect, useState } from "react";
+import { FormEvent, useEffect, useRef, useState } from "react";
 import { salesFeaturesApi } from "@/lib/api";
+import { usePipelineRefresh } from "@/lib/pipeline-live";
 
 const STAGES = ["lead", "technical_discussion", "sample", "quotation", "follow_up", "expected_order", "won", "lost"] as const;
 type Stage = typeof STAGES[number];
@@ -26,7 +27,7 @@ interface Lead { id: string; user_id: string; name: string; company: string; pho
 
 
 
-export function LeadBoard() {  
+export function LeadBoard() {
   const [leads, setLeads] = useState<Lead[]>([]);
   const [assignees, setAssignees] = useState<Array<{ userId: string; name: string; role: string }>>([]);
   const [conversion, setConversion] = useState<{ total: number; won: number; lost: number; conversionPercent: number | null } | null>(null);
@@ -39,6 +40,10 @@ export function LeadBoard() {
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [dragging, setDragging] = useState<string | null>(null);
   const [overStage, setOverStage] = useState<string | null>(null);
+  const refreshSequence = useRef(0);
+  const loaded = useRef(false);
+  const expanded = useRef(expandedId); expanded.current = expandedId;
+  usePipelineRefresh(signal => refresh(true, signal));
 
   const today = indiaBusinessDate();
 
@@ -61,22 +66,37 @@ export function LeadBoard() {
   }
 
   async function moveLeadToStage(id: string, stage: Stage) {
-    setLeads(current => current.map(l => l.id === id ? { ...l, stage } : l));
     setMovingId(id);
     try { await salesFeaturesApi.setLeadStage(id, stage); }
     catch (error: any) { alert(error.message || "Stage update failed"); }
     finally { setMovingId(null); refresh(true); }
   }
 
-  async function refresh(silent = false) {
-    if (!silent) setLoading(true);
+  async function refresh(silent = false, signal?: AbortSignal) {
+    const sequence = ++refreshSequence.current;
+    if (!silent && !loaded.current) setLoading(true);
     try {
-      const [leadRows, people, report] = await Promise.all([salesFeaturesApi.leads(), salesFeaturesApi.leadAssignees(), salesFeaturesApi.leadConversionReport()]);
+      const [leadRows, people, report] = await Promise.all([salesFeaturesApi.leads(signal), salesFeaturesApi.leadAssignees(), salesFeaturesApi.leadConversionReport()]);
+      if (signal?.aborted) return;
+      if (sequence !== refreshSequence.current) {
+        if (signal) throw new Error("A newer pipeline read is pending");
+        return;
+      }
       setLeads(leadRows); setAssignees(people); setConversion(report); setLoadError("");
+      loaded.current = true;
+      const selected = expanded.current;
+      if (selected && !leadRows.some(lead => lead.id === selected)) { setExpandedId(null); setExpandedDetail(null); }
+      else if (selected) {
+        const detail = await salesFeaturesApi.leadDetail(selected);
+        if (!signal?.aborted && sequence === refreshSequence.current && expanded.current === selected) setExpandedDetail(detail);
+      }
     } catch (error) {
-      setLoadError(error instanceof Error ? error.message : "Unable to load the lead pipeline");
+      if (!signal?.aborted) {
+        if (sequence === refreshSequence.current) setLoadError(error instanceof Error ? error.message : "Unable to load the lead pipeline");
+        if (signal) throw error; // subscription retains the invalidation and retries
+      }
     } finally {
-      if (!silent) setLoading(false);
+      if (!signal?.aborted && sequence === refreshSequence.current) setLoading(false);
     }
   }
 
@@ -87,7 +107,7 @@ export function LeadBoard() {
       request.detail.tasks.push(refresh(true));
     };
     window.addEventListener("psspl:refresh-data", handleRefresh);
-    return () => window.removeEventListener("psspl:refresh-data", handleRefresh);
+    return () => { refreshSequence.current++; window.removeEventListener("psspl:refresh-data", handleRefresh); };
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   async function moveStage(lead: Lead, direction: 1 | -1) {
@@ -332,7 +352,7 @@ function LeadForm({ onCreated, onCancel }: { onCreated: () => void; onCancel: ()
       
       {error && <div style={{ background: "#fef2f2", color: "#ef4444", padding: "0.75rem 1rem", borderRadius: "8px", marginBottom: "1.5rem", fontSize: "0.9rem", border: "1px solid #fca5a5" }}>{error}</div>}
       
-      <form onSubmit={handleSubmit} style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: "1.25rem" }}>
+      <form className="lead-form" onSubmit={handleSubmit}>
         <label style={{ gridColumn: "1 / -1", maxWidth: "100%" }}>
           <span style={labelStyle}>Contact Person Name <span style={{ color: "#ef4444" }}>*</span></span>
           <input className="premium-input" name="name" required placeholder="John Doe" style={inputStyle} />

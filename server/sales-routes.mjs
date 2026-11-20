@@ -77,7 +77,7 @@ salesRouter.post("/location", (req, res) => {
 salesRouter.get("/movement", (req, res) => {
   const date = String(req.query.date || today());
   const attendance = db.prepare("SELECT check_in_at,check_out_at,latitude,longitude FROM attendance WHERE user_id=? AND business_date=?").get(req.user.id, date);
-  const points = db.prepare("SELECT latitude,longitude,accuracy,captured_at FROM location_pings WHERE user_id=? AND date(captured_at)=? ORDER BY captured_at").all(req.user.id, date);
+  const points = db.prepare("SELECT latitude,longitude,accuracy,captured_at FROM location_pings WHERE user_id=? AND date(captured_at,'+5 hours','+30 minutes')=? ORDER BY captured_at").all(req.user.id, date);
   res.json({ date, attendance: attendance ?? null, points, count: points.length });
 });
 salesRouter.post("/visits/unplanned", (req, res) => {

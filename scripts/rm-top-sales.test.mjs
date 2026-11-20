@@ -5,30 +5,14 @@ import { rmTopSales } from '../server/rm-top-sales.mjs';
 import { localReportPreview } from '../src/lib/rm-client-demo.mjs';
 import { finalReportFixture } from './fixtures/rm-report-finalization.mjs';
 
-test('Rais Khan local preview fills only empty products and preserves real rows, customers and totals',()=>{
-  const options={enabled:true,role:'admin',audience:'admin',hostname:'localhost',today:'2026-10-27'};
+test('retired preview leaves missing rankings and real rows unchanged',()=>{
   const report=finalReportFixture();
   report.topSales={totalSales:5300000,customers:[{id:'real',name:'Recorded customer',salesValue:100,sharePercent:1}],products:[],reason:'Aggregate snapshot only'};
   const original=structuredClone(report);
-  const result=localReportPreview(report,options);
-  assert.equal(result.topSales.products.length,5);
-  assert.equal(result.topSales.products[0].salesValue,1590000);
-  assert.match(result.topSales.productDemo.label,/illustrative/);
-  assert.deepEqual(result.topSales.customers.slice(0,1),report.topSales.customers);
-  assert.equal(result.topSales.customers.length,5);
-  assert.ok(result.topSales.customers.slice(1).every(row=>row.sample&&row.sharePercent===null));
-  assert.equal(result.topSales.totalSales,report.topSales.totalSales);
-  assert.deepEqual(result.summary,report.summary);assert.deepEqual(report,original);
-  assert.deepEqual(localReportPreview(report,{...options,enabled:false}),report);
-  assert.deepEqual(localReportPreview(report,{...options,hostname:'example.com'}),report);
-  const real={...report,topSales:{...report.topSales,products:[{id:'real-zero',name:'Recorded zero',salesValue:0,sharePercent:0}]}};
-  assert.deepEqual(localReportPreview(real,options).topSales.products,real.topSales.products);
-  const full={...report,topSales:{...report.topSales,customers:Array.from({length:5},(_,i)=>({...report.topSales.customers[0],id:String(i)}))}};
-  assert.deepEqual(localReportPreview(full,options).topSales.customers,full.topSales.customers);
-  const other={...report,rmCode:'OTHER'};
-  assert.deepEqual(localReportPreview(other,options).topSales,other.topSales);
-  const person={...report,selectedSalespersonId:'rep'};
-  assert.deepEqual(localReportPreview(person,options),person);
+  assert.equal(localReportPreview(report,{enabled:true,role:'admin',audience:'admin',hostname:'localhost'}),report);
+  assert.deepEqual(report,original);
+  assert.equal(report.topSales.products.length,0);
+  assert.equal(report.topSales.customers.length,1);
 });
 
 function fixture() {

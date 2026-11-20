@@ -7,6 +7,7 @@ import { SalesSidebar } from "./sales-sidebar";
 import { SalesAskAi } from "./sales-ask-ai";
 import { VoiceMicButton } from "@/components/common/voice-mic-button";
 import { LeadBoard } from "./lead-board";
+import { captureCheckInPosition, type CheckInPosition } from "../../../shared/check-in-location.mjs";
 import { formatRupees } from "@/lib/format";
 import type { CompleteVisitPayload, SalesDay, Visit } from "@/types/sales";
 
@@ -116,13 +117,18 @@ export function SalesWorkspace() {
   const [data, setData] = useState<SalesDay | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [attendanceNotice, setAttendanceNotice] = useState("");
+  const [checkingOut, setCheckingOut] = useState(false);
+  const checkingOutRef = useRef(false);
   const [selectedVisit, setSelectedVisit] = useState<Visit | null>(null);
   const [saving, setSaving] = useState(false);
   const [showUnplanned, setShowUnplanned] = useState(false);
   const [editingUnplannedVisit, setEditingUnplannedVisit] = useState<any>(null);
   const [addingVisit, setAddingVisit] = useState(false);
   const [modalError, setModalError] = useState("");
-  const [tracking, setTracking] = useState(false);
+  const [gpsFailure, setGpsFailure] = useState(false);
+  const [coarsePosition, setCoarsePosition] = useState<CheckInPosition | null>(null);
+  const checkingInRef = useRef(false);
   const [tab, setTab] = useState<Tab>("visits");
   const [requests, setRequests] = useState<any[]>([]);
   const [showRequestForm, setShowRequestForm] = useState(false);
@@ -135,8 +141,6 @@ export function SalesWorkspace() {
   const [uvPriority, setUvPriority] = useState("high");
   const [uvDate, setUvDate] = useState(indiaDate());
   const [uvTime, setUvTime] = useState(new Date().toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" }));
-  const watchId = useRef<number | null>(null);
-  const lastPingAt = useRef(0);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
 
@@ -188,6 +192,7 @@ export function SalesWorkspace() {
   function stopDictation() { dictationRecorderRef.current?.stop(); }
 
   function handleError(cause: unknown) {
+    setAttendanceNotice("");
     if (cause instanceof ApiError && cause.status === 401) { clearSession(); router.replace("/login"); return; }
     setError(cause instanceof Error ? cause.message : "Something went wrong");
   }
@@ -195,7 +200,6 @@ export function SalesWorkspace() {
   async function refreshMyDay() {
     const day = await salesApi.getMyDay();
     setData(day);
-    if (day.salesperson.trackingActive) startTracking();
   }
   useEffect(() => {
     refreshMyDay().catch(handleError).finally(() => setLoading(false));
@@ -206,43 +210,35 @@ export function SalesWorkspace() {
     window.addEventListener("psspl:refresh-data", refresh);
     return () => window.removeEventListener("psspl:refresh-data", refresh);
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
-  useEffect(() => () => { if (watchId.current !== null) navigator.geolocation.clearWatch(watchId.current); }, []);
   useEffect(() => { if (tab === "requests") salesFeaturesApi.requests().then(setRequests).catch(() => {}); }, [tab]);
 
   const completed = useMemo(() => data?.visits.filter((visit) => visit.status === "completed").length ?? 0, [data]);
   const achievement = data && data.performance.target > 0 ? Math.round((data.performance.actual / data.performance.target) * 100) : null;
 
-  async function performCheckIn(coords?: { latitude: number; longitude: number; accuracy?: number }) {
+  async function performCheckIn(coords?: CheckInPosition, acceptLowAccuracy = false) {
+    setError(""); setAttendanceNotice("");
+    checkingInRef.current = true;
+    setCheckingIn(true);
     try {
-      const day = await salesApi.checkIn(coords ? { latitude: coords.latitude, longitude: coords.longitude, accuracy: coords.accuracy } : undefined);
-      setData(day);
-      if (coords) {
-        salesFeaturesApi.location({ latitude: coords.latitude, longitude: coords.longitude, accuracy: coords.accuracy }).catch(() => {});
-        startTracking();
-      } else setError("Checked in without GPS coordinates; GPS permission was denied or location was unavailable.");
+      const day = await salesApi.checkIn(coords ? { latitude: coords.latitude, longitude: coords.longitude, accuracy: coords.accuracy, capturedAt: coords.capturedAt, acceptLowAccuracy } : undefined);
+      setData(day); setCoarsePosition(null); setGpsFailure(false);
+      setAttendanceNotice(coords ? `Check-in saved with GPS accuracy ±${Math.round(coords.accuracy)} meters. Address lookup may still be pending.` : "Checked in by your explicit choice without GPS. No location was recorded.");
     } catch (e) {
+      if (e instanceof ApiError && e.status === 409) await refreshMyDay().catch(handleError);
       handleError(e);
-    } finally {
-      setCheckingIn(false);
-    }
+    } finally { checkingInRef.current = false; setCheckingIn(false); }
   }
 
   async function handleCheckIn() {
-    setError("");
-    setCheckingIn(true);
-    if (typeof navigator !== "undefined" && navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        ({ coords }) => {
-          performCheckIn({ latitude: coords.latitude, longitude: coords.longitude, accuracy: coords.accuracy });
-        },
-        () => {
-          performCheckIn();
-        },
-        { enableHighAccuracy: false, timeout: 6000 }
-      );
-    } else {
-      performCheckIn();
-    }
+    if (checkingInRef.current) return;
+    checkingInRef.current = true; setCheckingIn(true); setError(""); setAttendanceNotice(""); setGpsFailure(false); setCoarsePosition(null);
+    try {
+      const position = await captureCheckInPosition(typeof navigator === 'undefined' ? undefined : navigator.geolocation);
+      if (position.lowAccuracy) {
+        setCoarsePosition(position); setError(`Low GPS accuracy: ±${Math.round(position.accuracy)} meters. Retry GPS or explicitly accept this fix.`);
+      } else await performCheckIn(position);
+    } catch (e) { setGpsFailure(true); handleError(e); }
+    finally { checkingInRef.current = false; setCheckingIn(false); }
   }
 
   async function openVisit(visit: Visit) {
@@ -356,21 +352,21 @@ export function SalesWorkspace() {
   }
   async function logout() { try { await authApi.logout(); } catch {} clearSession(); router.replace("/login"); }
 
-  function startTracking() {
-    if (watchId.current !== null) return;
-    if (typeof navigator === "undefined" || !navigator.geolocation) return;
+  async function finishCheckOut(position?: GeolocationPosition) {
     try {
-      watchId.current = navigator.geolocation.watchPosition(({ coords }) => {
-        if (Date.now() - lastPingAt.current < 30000) return;
-        lastPingAt.current = Date.now();
-        salesFeaturesApi.location({ latitude: coords.latitude, longitude: coords.longitude, accuracy: coords.accuracy }).catch(() => {});
-      }, () => { setTracking(false); setError("GPS tracking is unavailable. Check your location permission and network; recorded coordinates may be incomplete."); }, { enableHighAccuracy: false, maximumAge: 30000, timeout: 60000 });
-      setTracking(true);
-    } catch {}
+      const payload = position ? { latitude: position.coords.latitude, longitude: position.coords.longitude, accuracy: position.coords.accuracy } : undefined;
+      const result = await salesFeaturesApi.checkOut(payload);
+      setData(await salesApi.getMyDay());
+      setAttendanceNotice(result.gpsCaptured ? "Checked out successfully; the final GPS coordinates were stored with the reported accuracy." : `Check-out saved without a final GPS fix.${window.isSecureContext === false ? " GPS on this device requires a trusted HTTPS connection." : " GPS was unavailable or permission was denied."} Your original check-in record remains unchanged.`);
+    } catch (e) { handleError(e); }
+    finally { checkingOutRef.current = false; setCheckingOut(false); }
   }
-  function stopTracking() { if (watchId.current !== null) navigator.geolocation.clearWatch(watchId.current); watchId.current = null; setTracking(false); }
-  async function finishCheckOut(position?: GeolocationPosition) { try { const payload = position ? { latitude: position.coords.latitude, longitude: position.coords.longitude, accuracy: position.coords.accuracy } : undefined; const result = await salesFeaturesApi.checkOut(payload); stopTracking(); setData(await salesApi.getMyDay()); setError(result.gpsCaptured ? "Checked out successfully; the final GPS coordinates were stored with the reported accuracy." : "Checked out successfully without a final GPS fix. Previously captured route points, if any, remain saved."); } catch (e) { handleError(e); } }
-  function checkOut() { if (navigator.geolocation) navigator.geolocation.getCurrentPosition(finishCheckOut, () => finishCheckOut(), { enableHighAccuracy: true, timeout: 10000 }); else finishCheckOut(); }
+  function checkOut() {
+    if (checkingOutRef.current) return;
+    checkingOutRef.current = true; setCheckingOut(true); setError(""); setAttendanceNotice("");
+    if (window.isSecureContext !== false && navigator.geolocation) navigator.geolocation.getCurrentPosition(finishCheckOut, () => finishCheckOut(), { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 });
+    else void finishCheckOut();
+  }
   async function addUnplanned(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setModalError("");
@@ -440,9 +436,10 @@ const tabStyle = (t: Tab): React.CSSProperties => ({
 
   return <div className="crm-shell">
     <SalesSidebar name={data.salesperson.name} subtitle={data.salesperson.territory} onSignOut={logout} />
-    <main className="sales-main"><header className="sales-header"><div><p>PSSPL CRM · SALESPERSON</p><h1>My Day</h1></div><div className="hub-actions"><SalesAskAi /><span>{new Intl.DateTimeFormat("en-IN", { dateStyle: "full" }).format(new Date())}</span></div></header>
+    <main data-navigation-content className="sales-main"><header className="sales-header"><div><p>PSSPL CRM · SALESPERSON</p><h1>My Day</h1></div><div className="hub-actions"><SalesAskAi /><span>{new Intl.DateTimeFormat("en-IN", { dateStyle: "full" }).format(new Date())}</span></div></header>
       {!data.tally.connected && <div className="sync-banner"><b>Data source:</b> {data.tally.message} {data.tally.lastSyncAt && <span>· Loaded {new Date(data.tally.lastSyncAt).toLocaleString("en-IN")}</span>}</div>}
       {error && <div className="error-banner">{error}<button onClick={() => setError("")}>×</button></div>}
+      {attendanceNotice && <div className="admin-note" role="status">{attendanceNotice}<button type="button" aria-label="Dismiss attendance message" onClick={() => setAttendanceNotice("")}>×</button></div>}
       <section className="welcome-card">
         <div>
           <p>GOOD MORNING</p>
@@ -458,7 +455,8 @@ const tabStyle = (t: Tab): React.CSSProperties => ({
           {(data.salesperson.region || data.salesperson.territory) && <span style={{ display: "block", marginTop: "4px", fontSize: "12px", color: "rgba(255,255,255,0.85)" }}>{[data.salesperson.region, data.salesperson.territory].filter(Boolean).join(" · ")}</span>}
           <span style={{ display: "block", marginTop: "6px" }}>Plan your visits, capture discussions and close every follow-up.</span>
         </div>
-        <div className="checkin"><div><b>{data.salesperson.checkedOutAt ? `Checked out · ${data.salesperson.checkedOutAt}` : data.salesperson.checkedInAt ? `Checked in · ${data.salesperson.checkedInAt}` : "Not checked in"}</b><small>{tracking ? "Live movement tracking active · route points saved automatically" : data.salesperson.checkedOutAt ? "Working day completed and route saved" : "Check in with location permission to begin tracking"}</small></div><button disabled={checkingIn || (Boolean(data.salesperson.checkedInAt) && !data.salesperson.checkedOutAt)} onClick={handleCheckIn} style={{ opacity: (Boolean(data.salesperson.checkedInAt) && !data.salesperson.checkedOutAt) ? 0.75 : 1 }}>{checkingIn ? "Checking In…" : (data.salesperson.checkedInAt && !data.salesperson.checkedOutAt) ? "Checked In" : "Check In"}</button>{data.salesperson.trackingActive && <button className="secondary-action" onClick={checkOut}>Check Out</button>}</div>
+        <div className="checkin"><div><b>{data.salesperson.checkedOutAt ? `Checked out · ${data.salesperson.checkedOutAt}` : data.salesperson.checkedInAt ? `Checked in · ${data.salesperson.checkedInAt}` : "Not checked in"}</b><small>{data.salesperson.checkedInAt ? data.attendanceHistory.some(entry => entry.businessDate === indiaDate() && entry.latitude !== null && entry.longitude !== null) ? "Check-in location is saved once; no background tracking" : "No GPS check-in location was recorded" : "Check in to capture your current GPS location"}</small></div><button disabled={checkingIn || Boolean(data.salesperson.checkedInAt)} onClick={handleCheckIn} style={{ opacity: data.salesperson.checkedInAt ? 0.75 : 1 }}>{checkingIn ? "Checking In…" : data.salesperson.checkedOutAt ? "Checked Out" : data.salesperson.checkedInAt ? "Checked In" : "Check In"}</button>{data.salesperson.trackingActive && <button className="secondary-action" disabled={checkingOut} onClick={checkOut}>{checkingOut ? "Checking Out…" : "Check Out"}</button>}</div>
+        {(gpsFailure || coarsePosition) && !data.salesperson.checkedInAt && <div role="status" className="admin-note"><button type="button" disabled={checkingIn} onClick={handleCheckIn}>Retry GPS</button>{coarsePosition ? <button type="button" disabled={checkingIn} onClick={() => performCheckIn(coarsePosition, true)}>Accept low accuracy (±{Math.round(coarsePosition.accuracy)} m)</button> : <button type="button" disabled={checkingIn} onClick={() => performCheckIn()}>Check in without GPS</button>}</div>}
       </section>
       <section className="metrics">
         <Metric label="Today's visits" value={String(data.visits.length)} detail={`${data.visits.length - completed} remaining`} />
@@ -494,7 +492,7 @@ const tabStyle = (t: Tab): React.CSSProperties => ({
       </section>}
       <details className="panel attendance-details" style={{ marginTop: "1rem", padding: "1rem 1.25rem" }}>
         <summary><span><b>Recent attendance</b><small>View your latest check-in and location records</small></span><span aria-hidden="true">⌄</span></summary>
-        {data.attendanceHistory.length === 0 ? <p>No saved attendance history.</p> : <ul>{data.attendanceHistory.slice(0, 7).map((entry) => <li key={entry.businessDate}>{entry.businessDate} · In {new Date(entry.checkInAt).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit", timeZone: "Asia/Kolkata" })}{entry.checkOutAt ? ` · Out ${new Date(entry.checkOutAt).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit", timeZone: "Asia/Kolkata" })}` : " · Still checked in"} · {entry.latitude === null || entry.longitude === null ? "No GPS coordinates recorded" : `GPS coordinates recorded${entry.gpsAccuracyMeters == null ? "; accuracy unavailable" : `; reported accuracy ${entry.gpsAccuracyMeters} m`}`}</li>)}</ul>}
+        {data.attendanceHistory.length === 0 ? <p>No saved attendance history.</p> : <ul>{data.attendanceHistory.slice(0, 7).map((entry) => <li key={entry.businessDate}>{entry.businessDate} · In {new Date(entry.checkInAt).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit", timeZone: "Asia/Kolkata" })}{entry.checkOutAt ? ` · Out ${new Date(entry.checkOutAt).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit", timeZone: "Asia/Kolkata" })}` : " · Still checked in"} · {entry.latitude === null || entry.longitude === null ? "No GPS coordinates recorded" : `GPS coordinates recorded${entry.gpsAccuracyMeters == null ? "; accuracy unavailable" : `; reported accuracy ±${entry.gpsAccuracyMeters} m`}; ${entry.locationAddress || (entry.locationAddressStatus === "pending" ? "Resolving address..." : "Address unavailable")}`}</li>)}</ul>}
       </details>
 
       {/* Voice note prompt */}
@@ -746,7 +744,7 @@ const tabStyle = (t: Tab): React.CSSProperties => ({
           })()}
         </section>
 
-      {selectedVisit && <div className="modal-backdrop" onMouseDown={() => setSelectedVisit(null)}><section className="visit-modal" role="dialog" aria-modal="true" onMouseDown={(e) => e.stopPropagation()}><button className="close" onClick={() => setSelectedVisit(null)}>×</button><p>CUSTOMER VISIT</p><h2>{selectedVisit.customer}</h2><form onSubmit={handleVisitSubmit}>
+      {selectedVisit && <div className="modal-backdrop" onMouseDown={() => setSelectedVisit(null)}><section className="visit-modal" role="dialog" aria-modal="true" onMouseDown={(e) => e.stopPropagation()}><button type="button" aria-label="Close dialog" className="close" onClick={() => setSelectedVisit(null)}>×</button><p>CUSTOMER VISIT</p><h2>{selectedVisit.customer}</h2><form onSubmit={handleVisitSubmit}>
         <div style={{ marginBottom: "0.75rem", display: "flex", flexDirection: "column", gap: "0.25rem" }}>
           <span style={{ fontSize: "0.85rem", fontWeight: 500, color: "var(--color-text-1)" }}>Product discussed</span>
           <SearchableSelect name="productId" options={data.referenceData.products} defaultValue={selectedVisit.productId ?? ""} required />
@@ -778,8 +776,8 @@ const tabStyle = (t: Tab): React.CSSProperties => ({
 
       {showAddFollowUp && (
         <div className="modal-backdrop" onMouseDown={() => { setShowAddFollowUp(false); setFollowUpModalError(""); }}>
-          <section className="visit-modal" onMouseDown={(e) => e.stopPropagation()}>
-            <button className="close" onClick={() => { setShowAddFollowUp(false); setNewFollowUpNotes(""); setFollowUpModalError(""); }}>×</button>
+          <section className="visit-modal" role="dialog" aria-modal="true" onMouseDown={(e) => e.stopPropagation()}>
+            <button type="button" aria-label="Close dialog" className="close" onClick={() => { setShowAddFollowUp(false); setNewFollowUpNotes(""); setFollowUpModalError(""); }}>×</button>
             <p>NEW FOLLOW-UP</p>
             <h2>Schedule Follow-up</h2>
             {followUpModalError && (
@@ -846,8 +844,8 @@ const tabStyle = (t: Tab): React.CSSProperties => ({
 
       {showUnplanned && (
         <div className="modal-backdrop" onMouseDown={() => { setShowUnplanned(false); setEditingUnplannedVisit(null); setModalError(""); }}>
-          <section className="visit-modal" onMouseDown={e => e.stopPropagation()} style={{ width: "min(520px, 100%)" }}>
-            <button className="close" onClick={() => { setShowUnplanned(false); setEditingUnplannedVisit(null); setModalError(""); }}>×</button>
+          <section className="visit-modal" role="dialog" aria-modal="true" onMouseDown={e => e.stopPropagation()} style={{ width: "min(520px, 100%)" }}>
+            <button type="button" aria-label="Close dialog" className="close" onClick={() => { setShowUnplanned(false); setEditingUnplannedVisit(null); setModalError(""); }}>×</button>
             <p>{editingUnplannedVisit ? "EDIT VISIT" : "UNPLANNED VISIT"}</p>
             <h2>{editingUnplannedVisit ? "Update details" : "Add to today's route"}</h2>
 
@@ -1013,7 +1011,7 @@ function RequestForm({ products, customers, onCreated, onCancel }: { products: a
     onCreated();
   }
   return (
-    <form onSubmit={submit} style={{ background: "var(--color-surface-2)", border: "1px solid var(--color-border)", borderRadius: "8px", padding: "1rem", marginBottom: "1rem", display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.75rem" }}>
+    <form className="request-form" onSubmit={submit} style={{ background: "var(--color-surface-2)", border: "1px solid var(--color-border)", borderRadius: "8px", padding: "1rem", marginBottom: "1rem" }}>
       <label style={{ gridColumn: "1/-1" }}>Request Type<select name="requestType" required style={{ width: "100%", marginTop: "0.25rem", padding: "0.4rem", borderRadius: "6px", border: "1px solid var(--color-border)", background: "var(--color-surface)", color: "inherit" }}><option value="">Select type</option>{["quotation", "complaint", "technical_support", "sample_request", "other"].map((t) => <option key={t}>{t}</option>)}</select></label>
       <label>Customer<select name="customerId" style={{ width: "100%", marginTop: "0.25rem", padding: "0.4rem", borderRadius: "6px", border: "1px solid var(--color-border)", background: "var(--color-surface)", color: "inherit" }}><option value="">None</option>{customers.map((c: any) => <option key={c.id} value={c.id}>{c.name}</option>)}</select></label>
       <label>Product<select name="productId" style={{ width: "100%", marginTop: "0.25rem", padding: "0.4rem", borderRadius: "6px", border: "1px solid var(--color-border)", background: "var(--color-surface)", color: "inherit" }}><option value="">None</option>{products.map((p: any) => <option key={p.id} value={p.id}>{p.name}</option>)}</select></label>

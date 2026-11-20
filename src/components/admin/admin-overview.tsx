@@ -6,7 +6,9 @@ import Link from "next/link";
 import { AdminState } from "./admin-shell";
 import { AskAiLauncher } from "./admin-ask-ai";
 import { SalespersonMap } from "./salesperson-map";
-import { adminApi, getSessionUser } from "@/lib/api";
+import { adminApi, getSessionUser, pipelineApi, type PipelineSummary } from "@/lib/api";
+import { usePipelineRefresh } from "@/lib/pipeline-live";
+import pipelineStyles from "./pipeline-live-values.module.css";
 import { useAdminData } from "@/lib/use-admin-data";
 import { formatFinancialYear, formatNumber, formatPercent, formatRupees } from "@/lib/format";
 
@@ -93,7 +95,7 @@ function FieldMonitor({ people, checkedIn, visits, completed, followUps }: { peo
     <div className="command-field-total"><strong>{checkedIn} / {people.length}</strong><span>checked in today</span></div>
     <div className="command-field-stats"><div><strong>{visits}</strong><span>Visits</span></div><div><strong>{completed}</strong><span>Completed</span></div><div><strong>{followUps}</strong><span>Follow-ups</span></div></div>
     <div className="command-roster">{people.slice(0, 5).map((person) => <Link href="/admin/activity" key={person.userId}><i className={person.checkInAt && !person.checkOutAt ? "live" : ""} /><span><strong>{person.fullName}</strong><small>{person.territory || person.region || "Territory not assigned"}</small></span><em>{person.checkInAt ? person.checkOutAt ? "Checked out" : "In field" : "Not checked in"}</em></Link>)}</div>
-    {!located.length ? <div className="command-location-empty"><span>⌖</span><p><strong>No locations captured today</strong><small>Movement appears after a salesperson checks in.</small></p></div> : <Link className="command-location-live" href="/admin/activity"><span className="live-dot" />{located.length} live location{located.length === 1 ? "" : "s"}<b>View map →</b></Link>}
+    {!located.length ? <div className="command-location-empty"><span>⌖</span><p><strong>No locations captured today</strong><small>Locations appear after a salesperson checks in.</small></p></div> : <Link className="command-location-live" href="/admin/activity"><span className="live-dot" />{located.length} saved check-in location{located.length === 1 ? "" : "s"}<b>View map →</b></Link>}
   </div>;
 }
 
@@ -111,7 +113,12 @@ export function AdminOverview() {
   const overview = useAdminData(() => adminApi.overview(financialYear || undefined), [financialYear], `admin-overview-${financialYear || "default"}`, true);
   const alerts = useAdminData(() => adminApi.alerts(), [], undefined, true);
   const management = useAdminData(() => adminApi.managementAttention(financialYear || undefined), [financialYear], `admin-management-attention-${financialYear || "default"}`, true);
-  const data = overview.data;
+  const [livePipeline, setLivePipeline] = useState<PipelineSummary | null>(null);
+  usePipelineRefresh(async signal => {
+    const next = await pipelineApi.summary(signal);
+    if (!signal.aborted) setLivePipeline(next);
+  });
+  const data = overview.data ? { ...overview.data, leadPipeline: livePipeline ?? overview.data.leadPipeline } : null;
 
   const summaryLine = (() => {
     if (!data || !data.sales) return "Loading the latest synced figures…";
@@ -252,8 +259,8 @@ export function AdminOverview() {
             {Object.entries(LEAD_STAGE_LABELS).map(([stage, label]) => {
               const row = data.leadPipeline.stages.find((item) => item.stage === stage);
               return <div key={stage} style={{ border: "1px solid #dbe6ef", borderRadius: 10, padding: 12, background: "#f8fbfe" }}>
-                <small>{label}</small><strong style={{ display: "block", fontSize: 22 }}>{row?.count ?? 0}</strong>
-                <small>{formatRupees(row?.expectedValue ?? 0)} expected</small>
+                <small>{label}</small><strong key={`count-${row?.count ?? 0}`} className={pipelineStyles.value} style={{ display: "block", fontSize: 22 }}>{row?.count ?? 0}</strong>
+                <small key={`value-${row?.expectedValue ?? 0}`} className={pipelineStyles.value}>{formatRupees(row?.expectedValue ?? 0)} expected</small>
               </div>;
             })}
           </div>

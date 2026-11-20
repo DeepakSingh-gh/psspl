@@ -1,5 +1,8 @@
-import { db } from "../server/db.mjs";
-import { passwordHash } from "../server/auth.mjs";
+import { configureFixtureDatabase } from '../server/fixture-data-guard.mjs';
+
+configureFixtureDatabase();
+const { db } = await import('../server/db.mjs');
+const { passwordHash } = await import('../server/auth.mjs');
 
 const today = new Date();
 const isoDate = (offsetDays = 0) => {

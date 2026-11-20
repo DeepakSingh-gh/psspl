@@ -1,8 +1,8 @@
 # RM report periods
 
-<!-- current-admin-ui:start -->
-> Latest local UI notes (27-10-2026): explicit Rais Khan top-five sample previews and the RM-only Monthly target card removal are documented in [the latest preview and dashboard notes](2026-10-27-ui-adjustments.md#local-top-five-samples-and-rm-dashboard-cleanup). Overview cleanup, period filters and shared PDF rendering remain. Earlier dated verification retains its scope; this Markdown update does not rerun tests or establish deployment/client acceptance.
-<!-- current-admin-ui:end -->
+<!-- current-local-status-2026-11-20:start -->
+> **Current local status - 20 November 2026:** [Database, cleanup and four verified RM logins](2026-11-20-current-state.md); [automatic pipeline synchronization](../uat/pipeline-sync-2026-11-20/report.md); [GPS, checkout and phone HTTPS requirements](check-in-location.md). Trusted phone HTTPS and the self-hosted address endpoint remain pending. Earlier dated behavior/results below remain historical where superseded; local work does not establish production deployment.
+<!-- current-local-status-2026-11-20:end -->
 
 > Current UI (24 October 2026): [V4](rm-performance-v4.md) adds attendance and the YTD product grid;
 > [Rais Khan snapshot fallback](rais-khan-client-snapshot.md) fills labeled missing fields only.
@@ -18,11 +18,6 @@
 > chart-based month/four-week drill-down, verified period narratives and measured multi-page
 > PDFs. See [RM Performance Report V2](rm-performance-v2.md) for current behavior, data limits
 > and verification. The V1 controls and fixed two-page notes below describe the earlier version.
-
-<!-- current-source-status:start -->
-> Current source status (27-10-2026): backend RM rankings remain source-backed. Local Admin preview can fill empty products or append clearly marked sample customers without changing real rows, totals or database records. See [the latest preview and dashboard notes](2026-10-27-ui-adjustments.md#local-top-five-samples-and-rm-dashboard-cleanup). Overview cleanup, period filters and shared PDF rendering remain. Earlier dated verification retains its scope; this Markdown update does not rerun tests or establish deployment/client acceptance.
-<!-- current-source-status:end -->
-
 
 The V1/V2/V3 controls, two-page limits and section-order descriptions below are dated implementation history. The current status block and [current report/PDF record](rm-report-finalization.md) take precedence for the active workspace. Current ordering is header, Manager Action Plan, Performance Overview, sales charts, Attendance, Thrust Products, RM Save Entries, AI Insights. The separate invoice-detail accordion is no longer shown.
 

@@ -2,7 +2,8 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { authApi, clearSession, rmApi } from "@/lib/api";
+import { authApi, clearSession, rmApi, pipelineApi, type PipelineSummary } from "@/lib/api";
+import { usePipelineRefresh } from "@/lib/pipeline-live";
 import { PssplLogo } from "@/components/common/psspl-logo";
 import { formatRupees, formatNumber } from "@/lib/format";
 
@@ -27,6 +28,8 @@ export function RmHome() {
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [livePipeline, setLivePipeline] = useState<PipelineSummary | null>(null);
+  usePipelineRefresh(async signal => { const next = await pipelineApi.summary(signal, 'team'); if (!signal.aborted) setLivePipeline(next); });
 
   useEffect(() => {
     authApi.me()
@@ -43,7 +46,7 @@ export function RmHome() {
 
   async function signOut() { try { await authApi.logout(); } catch {} clearSession(); router.replace("/login"); }
 
-  const pipeline = STAGE_ORDER.map((s) => data?.pipeline?.find((p: any) => p.stage === s) ?? { stage: s, count: 0, expectedValue: 0 });
+  const pipeline = STAGE_ORDER.map((s) => (livePipeline?.stages ?? data?.pipeline)?.find((p: any) => p.stage === s) ?? { stage: s, count: 0, expectedValue: 0 });
   const maxCount = Math.max(1, ...pipeline.map((p: any) => p.count));
 
   return (

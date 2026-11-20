@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
+import { NavigationOpener, NavigationClose, NavigationBackdrop, useMobileNavigation } from "@/components/common/mobile-navigation";
 import { useRouter } from "next/navigation";
 import { authApi, clearSession, rmApi } from "@/lib/api";
 import { PssplLogo } from "@/components/common/psspl-logo";
@@ -18,6 +19,7 @@ interface Props { children: React.ReactNode; activeHref: string; }
 
 export function RmShell({ children, activeHref }: Props) {
   const router = useRouter();
+  const navigation = useMobileNavigation(activeHref);
   const [manager, setManager] = useState<{ fullName: string; region: string } | null>(null);
 
   useEffect(() => {
@@ -30,16 +32,17 @@ export function RmShell({ children, activeHref }: Props) {
   async function signOut() { try { await authApi.logout(); } catch {} clearSession(); router.replace("/login"); }
 
   return (
-    <div className="admin-shell rm-shell">
-      <aside className="admin-sidebar">
+    <div className={`admin-shell rm-shell${navigation.open ? " nav-open" : ""}`}>
+      <NavigationBackdrop navigation={navigation} />
+      <aside className="admin-sidebar" id="rm-navigation" {...navigation.drawerProps}>
         <div className="admin-brand">
-          <PssplLogo />
+          <PssplLogo /><NavigationClose navigation={navigation} />
         </div>
         <p className="admin-workspace">Regional manager workspace</p>
         <nav>
           <div className="admin-nav-group">
             {NAV_ITEMS.map((item) => (
-              <a key={item.href} className={item.href === activeHref ? "active" : ""} href={item.href}>
+              <a key={item.href} className={item.href === activeHref ? "active" : ""} aria-current={item.href === activeHref ? "page" : undefined} href={item.href}>
                 {item.label}
               </a>
             ))}
@@ -55,7 +58,7 @@ export function RmShell({ children, activeHref }: Props) {
           <button type="button" onClick={signOut}>Sign out</button>
         </div>
       </aside>
-      <div className="admin-main">{children}</div>
+      <div className="admin-main" data-navigation-content><div className="rm-mobile-bar"><NavigationOpener navigation={navigation} id="rm-navigation" /><span>Regional manager workspace</span></div>{children}</div>
     </div>
   );
 }

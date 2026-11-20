@@ -4,6 +4,7 @@ import "./auth.css";
 import "./insights.css";
 import "./hub.css";
 import "./admin.css";
+import "./responsive.css";
 import { Inter } from "next/font/google";
 import { RefreshDataButton } from "@/components/common/refresh-data-button";
 

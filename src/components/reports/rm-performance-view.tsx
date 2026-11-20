@@ -35,20 +35,19 @@ export function ReportIdentity({ report, controls, document = false }: { report:
 
 export function PerformanceSummary({ report }: { report: RmPerformanceReport }) {
   const s = report.summary, k = report.kpi;
-  const demoPreview = Boolean(report.clientDemo || report.clientSnapshotFallback);
   const crm=report.myDaySummary??k;
   const crmDate=formatDate(report.myDayRange?.to??report.asOf);
-  const achievement = s.achievementPercent ?? (demoPreview && s.actual != null && s.target ? s.actual / s.target * 100 : null);
-  const variation = s.variation ?? (demoPreview && s.actual != null && s.target != null ? s.actual - s.target : null);
+  const achievement = s.achievementPercent;
+  const variation = s.variation;
   const cards = [
     { label: report.selectedPeriod.reportType === 'yearly' && !report.historical ? 'Target through cutoff' : 'Sales target', value: money(s.target), context: `Through ${formatDate(report.asOf)}` },
     { label: 'Actual sales', value: money(s.actual), context: report.selectedPeriod.reportType === 'yearly' ? 'Recorded sales to cutoff' : 'Selected period net sales' },
     { label: 'Achievement', value: achievement == null ? 'N/A' : `${achievement.toFixed(2)}%`, context: s.target == null ? 'Verified target unavailable' : 'Of selected target' },
     { label: variation != null && variation >= 0 ? 'Target surplus' : 'Target gap', value: money(variation == null ? null : Math.abs(variation)), tone: variation == null ? '' : variation < 0 ? 'negative' : 'positive', context: variation == null ? 'Comparison unavailable' : variation < 0 ? 'Below planned revenue' : 'Above planned revenue' },
-    { label: 'Previous comparable sales', value: s.previousActual == null && demoPreview ? '₹41.93 L' : money(s.previousActual), context: s.previousActual == null ? demoPreview ? 'Demo data' : 'Comparable period unavailable' : report.comparison ? `${formatDate(report.comparison.from)}–${formatDate(report.comparison.to)}` : 'Comparable period unavailable' },
-    { label: 'Sales growth', value: s.growthPercent == null && demoPreview ? '+14.07%' : percent(s.growthPercent), tone: s.growthPercent == null || s.growthPercent >= 0 ? 'positive' : 'negative', context: s.growthPercent == null ? demoPreview ? 'Demo data' : 'Versus comparable period' : 'Versus comparable period' },
+    { label: 'Previous comparable sales', value: money(s.previousActual), context: s.previousActual == null ? 'Comparable period unavailable' : report.comparison ? `${formatDate(report.comparison.from)}–${formatDate(report.comparison.to)}` : 'Comparable period unavailable' },
+    { label: 'Sales growth', value: percent(s.growthPercent), tone: s.growthPercent == null ? '' : s.growthPercent >= 0 ? 'positive' : 'negative', context: 'Versus comparable period' },
     { label: 'Customer visits', value: crm.visitsCompleted == null ? 'N/A' : `${crm.visitsCompleted} / ${crm.visitsPlanned}`, context: `Completed / planned · CRM through ${crmDate}` },
-    { label: 'Pending follow-ups', value: crm.followUpsOpen ?? (demoPreview ? 8 : 'N/A'), context: crm.followUpsOpen == null ? demoPreview ? 'Demo data' : 'Historical status unavailable' : `${crm.followUpsOverdue ?? 0} overdue · CRM through ${crmDate}` },
+    { label: 'Pending follow-ups', value: crm.followUpsOpen ?? 'N/A', context: crm.followUpsOpen == null ? 'Historical status unavailable' : `${crm.followUpsOverdue == null ? 'Unavailable' : crm.followUpsOverdue} overdue · CRM through ${crmDate}` },
   ];
   const paths=['summary.target','summary.actual','summary.achievementPercent','summary.variation','summary.previousActual','summary.growthPercent','',''];
   return <section aria-label="Performance summary" className="rm-v2-summary"><div className="rm-v3-section-label"><h2>Performance overview</h2><span>{report.selectedPeriod.reportType === 'yearly' ? `Annual target ${money(report.annualTarget)}` : report.reportLabel}<SnapshotFieldBadge report={report} field="annualTarget"/></span></div>

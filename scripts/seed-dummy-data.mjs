@@ -1,7 +1,7 @@
 import { DatabaseSync } from "node:sqlite";
-import { join } from "node:path";
+import { configureFixtureDatabase } from '../server/fixture-data-guard.mjs';
 
-const db = new DatabaseSync("data/crm.sqlite");
+const db = new DatabaseSync(configureFixtureDatabase());
 
 const dummyCustomers = [
   { id: "dummy-1", name: "JMD Traders", city: "Delhi", outstanding: 200000, total_sales: 14080000 },

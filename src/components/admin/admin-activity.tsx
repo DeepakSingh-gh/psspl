@@ -1,5 +1,6 @@
 "use client";
 import { useState } from "react";
+import { CheckInLocation } from "./check-in-location";
 import { AdminPage, AdminState, StatTile } from "./admin-shell";
 import { Pager, usePagination } from "./use-pagination";
 import { AlertsBody } from "./admin-alerts";
@@ -48,8 +49,10 @@ export function AdminActivity({ initialSection = "activity" }: { initialSection?
               <StatTile label="Visits today" value={formatNumber(visitsToday)} sub={formatDate(data.today)} />
               <StatTile label="Visits recorded" value={formatNumber(data.visits.length)} sub="Most recent 100" />
               <StatTile label="Follow-ups open" value={formatNumber(openFollowUps)} sub={`${formatNumber(data.followUps.length)} total`} />
-              <StatTile label="Check-ins" value={formatNumber(data.attendance.length)} sub="Most recent 60 days" />
+              <StatTile label="Check-ins" value={formatNumber(data.attendance.length)} sub="Most recent 60 check-ins" />
             </div>
+
+            <details style={{ marginBottom: 16 }}><summary>Check-in location history</summary><div className="admin-table-wrap"><table className="admin-table"><thead><tr><th>Date</th><th>RM / salesperson</th><th>Check-in location</th></tr></thead><tbody>{data.attendance.map(entry=><tr key={entry.id}><td>{formatDate(entry.businessDate)}</td><td>{entry.fullName || entry.email}</td><td><CheckInLocation location={entry} /></td></tr>)}</tbody></table>{!data.attendance.length&&<p>No saved check-ins.</p>}</div></details>
 
             <div className="admin-tabs" role="tablist">
               {TABS.map((item) => (

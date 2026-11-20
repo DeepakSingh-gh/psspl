@@ -9,8 +9,9 @@
  * exact. Only CRM tables are written; Tally data is never modified.
  */
 import { DatabaseSync } from "node:sqlite";
+import { configureFixtureDatabase } from '../server/fixture-data-guard.mjs';
 
-const DB = "C:/Users/khushi/Downloads/psspl-dashboard/psspl-dashboard/data/crm.sqlite";
+const DB = configureFixtureDatabase();
 const db = new DatabaseSync(DB);
 const REMOVE = process.argv.includes("--remove");
 

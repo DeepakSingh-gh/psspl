@@ -216,7 +216,7 @@ test('all saved My Day inputs retain fields, isolate RM scope, respect cutoff an
   assert.equal(field('orders','Expected value'),12345);
   assert.equal(field('requests','Responsible person'),'Service Executive');
   assert.equal(field('leads','Phone'),'1234567890');
-  assert.equal(field('attendance','GPS accuracy (m)'),12);
+  assert.equal(field('attendance','GPS accuracy (m)'),null,'legacy attendance accuracy must not be borrowed from a movement ping');
   assert.doesNotMatch(JSON.stringify(report.myDayTables),/PRIVATE OTHER RM/);
   const september=await (await call('/admin/team/raiskhan?'+new URLSearchParams(selection({reportType:'monthly',month:9})))).json();
   assert.doesNotMatch(JSON.stringify(september.myDayTables),/After India cutoff|October future visit/);

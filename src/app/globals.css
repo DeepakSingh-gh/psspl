@@ -29,14 +29,12 @@ html {
   padding: 0;
   width: 100%;
   max-width: 100%;
-  overflow-x: clip;
 }
 body {
   margin: 0;
   padding: 0;
   width: 100%;
   max-width: 100%;
-  overflow-x: clip;
   background: #f0f6fb;
   color: var(--ink);
   font-family: Inter, "Segoe UI", Arial, sans-serif;
@@ -47,7 +45,6 @@ button, input, select, textarea { font: inherit; }
   min-height: 100vh;
   width: 100%;
   max-width: 100%;
-  overflow-x: clip;
   display: grid;
   grid-template-columns: 248px minmax(0, 1fr);
 }

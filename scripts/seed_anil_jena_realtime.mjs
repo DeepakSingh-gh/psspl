@@ -1,5 +1,8 @@
-import { db, transaction } from "../server/db.mjs";
+import { configureFixtureDatabase } from '../server/fixture-data-guard.mjs';
 import crypto from "crypto";
+
+configureFixtureDatabase();
+const { db, transaction } = await import('../server/db.mjs');
 
 function hashPassword(pwd) {
   const salt = crypto.randomBytes(16).toString("hex");

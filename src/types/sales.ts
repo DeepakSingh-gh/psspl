@@ -60,7 +60,7 @@ export interface SalesDay {
   };
   summary: { expectedOrderValue: number; expectedOrderCount: number; followUpsCreated: number; productsDiscussed: number; plannedVisits: number; completedVisits: number; pendingVisits: number; loggedCalls: number; pendingFollowUps: number; overdueActivities: number; completedActivities: number; expectedOrderValueToday: number; expectedOrderCountToday: number; attendanceStatus: "not_checked_in" | "checked_in" | "checked_out" };
   calls: Array<{ id: string; customer: string; direction: "incoming" | "outgoing" | "unspecified"; purpose: string; notes: string | null; occurredAt: string }>;
-  attendanceHistory: Array<{ businessDate: string; checkInAt: string; checkOutAt: string | null; latitude: number | null; longitude: number | null; gpsAccuracyMeters: number | null }>;
+  attendanceHistory: Array<{ businessDate: string; checkInAt: string; checkOutAt: string | null; latitude: number | null; longitude: number | null; gpsAccuracyMeters: number | null; gpsCapturedAt?: string | null; locationAddress?: string | null; locationAddressStatus?: string | null }>;
   tally: { mode: string; connected: boolean; lastSyncAt: string | null; message?: string };
   referenceData: { customers: TallyCustomer[]; products: Pick<TallyProduct, "id" | "name">[] };
   insights?: { customerCount: number; totalOutstanding: number; topProducts: Array<{ name: string; salesValue: number; quantity: number }>; decliningProducts: Array<{ name: string; previousSales: number; currentSales: number; difference: number }> };

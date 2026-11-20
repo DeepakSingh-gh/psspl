@@ -2,10 +2,11 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import { CheckInLocation, type CheckInLocationData } from "./check-in-location";
+import { checkInMapUrl, formatCheckInTimestamp } from "../../../shared/check-in-location.mjs";
 import "leaflet/dist/leaflet.css";
-import { formatDateTime } from "@/lib/format";
 
-export interface MappedSalesperson {
+export interface MappedSalesperson extends CheckInLocationData {
   userId: string;
   fullName: string;
   email: string;
@@ -71,7 +72,7 @@ export function SalespersonMap({ people }: { people: MappedSalesperson[] }) {
         L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
           maxZoom: 18,
           attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
-        }).addTo(map);
+        }).on("tileerror", () => { if (!cancelled) setFailed(true); }).addTo(map);
 
         mapRef.current = map;
         layerRef.current = L.layerGroup().addTo(map);
@@ -118,7 +119,10 @@ export function SalespersonMap({ people }: { people: MappedSalesperson[] }) {
             <strong>${escapeHtml(person.fullName)}</strong>
             <span>${escapeHtml(person.territory || person.region || "Territory not assigned")}</span>
             <em class="is-${status}">${STATUS_LABEL[status]}</em>
-            <small>${escapeHtml(person.lastLocationAt ? formatDateTime(person.lastLocationAt) : "No timestamp")}</small>
+            <small>${escapeHtml(formatCheckInTimestamp(person.checkInAt))}</small>
+            <small>${escapeHtml(person.locationAddress || (person.locationAddressStatus === 'pending' ? 'Resolving address…' : 'Address unavailable'))}</small>
+            <small>GPS accuracy: ${person.gpsAccuracyMeters == null ? 'Unavailable' : '±'+Math.round(person.gpsAccuracyMeters)+' m'}</small>
+            <a target="_blank" rel="noopener noreferrer" href="${checkInMapUrl(person.latitude,person.longitude)}">View Map</a>
           </div>
         `);
 
@@ -144,8 +148,8 @@ export function SalespersonMap({ people }: { people: MappedSalesperson[] }) {
     <div className="teammap">
       <div className="teammap-head">
         <div>
-          <p className="teammap-eyebrow">Live field positions</p>
-          <h2>Where the team is right now</h2>
+          <p className="teammap-eyebrow">Check-in locations</p>
+          <h2>Where the team checked in</h2>
         </div>
         <div className="teammap-legend">
           <span><i className="is-live" />{counts.live} in field</span>
@@ -158,6 +162,7 @@ export function SalespersonMap({ people }: { people: MappedSalesperson[] }) {
       <div className="teammap-canvas">
         <div ref={containerRef} className="teammap-surface" role="application" aria-label="Map of salesperson locations" />
 
+        {!ready && !failed && located.length > 0 && <div className="teammap-overlay"><strong>Loading map?</strong></div>}
         {failed && (
           <div className="teammap-overlay">
             <strong>Map could not be loaded</strong>
@@ -185,8 +190,8 @@ export function SalespersonMap({ people }: { people: MappedSalesperson[] }) {
               </div>
               <div className="teammap-person-state">
                 <span className={`is-${status}`}>{STATUS_LABEL[status]}</span>
-                <small>{person.lastLocationAt ? formatDateTime(person.lastLocationAt) : "No location yet"}</small>
               </div>
+              <div style={{gridColumn:'2 / -1',minWidth:0}}><CheckInLocation location={person} /></div>
             </div>
           );
         })}

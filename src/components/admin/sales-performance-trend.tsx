@@ -6,7 +6,7 @@ import {salesAxis,salesComparison,salesLine,salesMoney,salesTrendPoints,type Sal
 import styles from './sales-performance-trend.module.css';
 
 export function SalesTrend({rows,grain,financialYear,periodEnd,pending=false,unavailableReason}:{rows:SalesTrendRow[];grain:'month'|'quarter';financialYear:string;periodEnd:string;pending?:boolean;unavailableReason?:string}) {
-  const today=indiaBusinessDate(),id=useId(),container=useRef<HTMLDivElement>(null),tooltip=useRef<HTMLDivElement>(null),pointerType=useRef('mouse');
+  const today=indiaBusinessDate(),id=useId(),container=useRef<HTMLDivElement>(null),plot=useRef<HTMLDivElement>(null),tooltip=useRef<HTMLDivElement>(null),pointerType=useRef('mouse');
   const [width,setWidth]=useState(760),[active,setActive]=useState<{key:string;anchor:DOMRect}|null>(null),[placement,setPlacement]=useState<{left:number;top:number}|null>(null);
   const points=useMemo(()=>salesTrendPoints(rows,{financialYear,periodEnd,today,grain}),[rows,financialYear,periodEnd,today,grain]);
   const previousYear=`${Number(financialYear.slice(0,4))-1}-${financialYear.slice(2,4)}`;
@@ -15,15 +15,27 @@ export function SalesTrend({rows,grain,financialYear,periodEnd,pending=false,una
   const y=(value:number)=>top+(axis.max-value)/(axis.max-axis.min)*(height-top-bottom);
   const shown=points.find(point=>point.key===active?.key),comparison=shown?salesComparison(shown.current,shown.previous):null;
   const hasData=points.some(point=>point.current!=null||point.previous!=null);
-  useEffect(()=>{const node=container.current;if(!node)return;const observer=new ResizeObserver(([entry])=>setWidth(Math.max(280,Math.round(entry.contentRect.width))));observer.observe(node);return()=>observer.disconnect();},[]);
+  useEffect(()=>{const node=plot.current;if(!node)return;const observer=new ResizeObserver(([entry])=>setWidth(Math.max(280,Math.round(entry.contentRect.width))));observer.observe(node);return()=>observer.disconnect();},[]);
   useEffect(()=>{setActive(null);setPlacement(null);},[rows,financialYear,grain,pending]);
-  useEffect(()=>{const close=()=>setActive(null);window.addEventListener('scroll',close,true);window.addEventListener('resize',close);return()=>{window.removeEventListener('scroll',close,true);window.removeEventListener('resize',close);};},[]);
+  useEffect(()=>{
+    const reposition=()=>setActive(current=>{
+      const focused=document.activeElement;
+      // Keyboard focus can scroll a period into view; retain its comparison.
+      if(current&&focused instanceof SVGElement&&focused.getAttribute('data-sales-month')===current.key){
+        const anchor=focused.getBoundingClientRect();
+        if(anchor.bottom>0&&anchor.top<innerHeight&&anchor.right>0&&anchor.left<innerWidth)return {...current,anchor};
+      }
+      return null;
+    });
+    window.addEventListener('scroll',reposition,true);window.addEventListener('resize',reposition);
+    return()=>{window.removeEventListener('scroll',reposition,true);window.removeEventListener('resize',reposition);};
+  },[]);
   useLayoutEffect(()=>{if(!active||!tooltip.current)return;const size=tooltip.current.getBoundingClientRect(),edge=8;setPlacement({left:Math.max(edge,Math.min(active.anchor.left+active.anchor.width/2-size.width/2,document.documentElement.clientWidth-size.width-edge)),top:Math.max(edge,Math.min(active.anchor.top-size.height-edge>=edge?active.anchor.top-size.height-edge:active.anchor.bottom+edge,window.innerHeight-size.height-edge))});},[active]);
   const show=(key:string,node:SVGGElement)=>{setPlacement(null);setActive({key,anchor:node.getBoundingClientRect()});};
   const shownMoney=(value:number|null)=>value==null?'Data Not Available':salesMoney(value);
   const signed=(value:number|null)=>value==null?'Data Not Available':`${value>0?'+':''}${salesMoney(value)}`;
   return <div className={styles.chart} ref={container} aria-busy={pending}>
-    <div className={styles.plot} onMouseLeave={()=>{if(pointerType.current!=='touch')setActive(null);}}>
+    <div className={styles.viewport} role="region" aria-label="Sales performance chart; scroll horizontally to view all periods" tabIndex={0}><div ref={plot} className={`${styles.plot} ${grain==='month'?styles.monthly:''}`} onMouseLeave={()=>{if(pointerType.current!=='touch')setActive(null);}}>
       <svg width="100%" height={height} viewBox={`0 0 ${width} ${height}`} role="group" aria-label="Sales Performance Trend">
         <title>Current and previous financial year net sales in rupees; gaps are unavailable values.</title>
         {hasData&&axis.ticks.map(value=><g key={value}><line x1={left} x2={width-right} y1={y(value)} y2={y(value)} className={styles.grid} strokeDasharray="4 5"/><text x={left-10} y={y(value)+4} textAnchor="end" className={styles.axis}>{salesMoney(value,Math.abs(value)>=1000?1:0)}</text></g>)}
@@ -40,6 +52,7 @@ export function SalesTrend({rows,grain,financialYear,periodEnd,pending=false,una
         </g>)}
       </svg>
       {(pending||!hasData)&&<p className={styles.empty} role="status">{pending?'Loading selected financial year…':`Data Not Available ? ${unavailableReason??'No dated invoice sales observations exist for this financial year.'}`}</p>}
+    </div>
     </div>
     <div className={styles.legend}><span><i style={{background:'#2769BE'}}/>Current FY <small>{financialYear}</small></span><span><i style={{background:'#308840'}}/>Previous FY <small>{previousYear}</small></span></div>
     <p className={styles.note}>Gaps indicate unavailable or future data.{points.some(point=>point.partial)?' Current period is partial; comparison uses the API’s matching prior-year cutoff.':''}</p>

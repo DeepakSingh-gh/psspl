@@ -1,0 +1,17 @@
+# Check-in location audit and fix design
+
+<!-- current-local-status-2026-11-20:start -->
+> **Current local status - 20 November 2026:** [Database, cleanup and four verified RM logins](../../operations/2026-11-20-current-state.md); [automatic pipeline synchronization](../../uat/pipeline-sync-2026-11-20/report.md); [GPS, checkout and phone HTTPS requirements](../../operations/check-in-location.md). Trusted phone HTTPS and the self-hosted address endpoint remain pending. Earlier dated behavior/results below remain historical where superseded; local work does not establish production deployment.
+<!-- current-local-status-2026-11-20:end -->
+
+The user requested correctness and historical integrity without rebuilding the attendance feature. Existing GPS failures silently save attendance, low-accuracy capture is configured, watchPosition starts automatically, Admin substitutes latest movement coordinates for check-in coordinates, accuracy is inferred from unrelated pings, and no reverse geocoder exists.
+
+Reuse attendance, its unique employee/day key, existing authenticated self check-in API, Admin map and existing attendance revision monitor. Add nullable capture/accuracy/address metadata; preserve all historical rows and do not backfill guessed accuracy/addresses. Keep original coordinates immutable when resolving the saved attendance ID. Check duplicates inside the write transaction. Retry returns an explicit existing-record response without replacing its location.
+
+Only the Check-in click starts a fresh high-accuracy capture (maximumAge zero, 15-second timeout). Permission/unavailable/timeouts produce actionable messages and no silent attendance save. Preserve existing attendance-without-GPS policy through an explicit separate action. Accuracy above 100 m requires explicit acceptance or retry; transmit the browser capture timestamp. Remove automatic movement watching/duplicate pings; preserve separately user-triggered visit/check-out features.
+
+Use a configurable Nominatim-compatible self-hosted/approved endpoint, server-side single-flight queue, durable exact-coordinate cache, rate spacing and timeout. Public OSMF Nominatim is not used for employee GPS because its policy forbids personal/confidential submissions. No provider is currently configured; report this deployment limitation and show Address unavailable rather than guessing. Provider lookup only occurs for a newly saved user-triggered GPS check-in; no automatic historical backfill. Failed lookups never roll back saved GPS.
+
+Admin roster/map and historical attendance APIs use attendance coordinates, timestamp, saved accuracy/address. Exact map links use lat/lon, never address search. Existing authorized attendance revision monitoring includes address/capture updates so delayed resolution refreshes the UI without manual action. Correct India date boundaries for historical movement endpoints and stop deriving historical accuracy from movement points.
+
+Tests use injected browser positions and mock geocoding HTTP replies on disposable databases. Cover permissions/timeouts/coarse fixes, duplicate/concurrent saves, correct employee mapping/history, geocoder failure/cache/rate behavior, authorization, map URLs, automatic Admin updates and mobile/desktop flows. Actual phone GPS and a configured approved geocoder require manual verification; no real locations will be fabricated or submitted by tests.

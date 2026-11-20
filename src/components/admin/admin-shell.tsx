@@ -7,6 +7,7 @@ import { prefetchAdminData } from "@/lib/use-admin-data";
 import { initialsOf } from "@/lib/format";
 import type { SessionUser } from "@/types/admin";
 import { HeaderAiAsk } from "./admin-ask-ai";
+import { NavigationOpener, NavigationClose, NavigationBackdrop, useMobileNavigation, type MobileNavigation } from "@/components/common/mobile-navigation";
 import { PssplLogo } from "@/components/common/psspl-logo";
 
 /** One line-glyph vocabulary for the whole rail — same weight, same 16px box. */
@@ -63,7 +64,7 @@ export function AdminShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const [user, setUser] = useState<SessionUser | null>(null);
   const [denied, setDenied] = useState(false);
-  const [navOpen, setNavOpen] = useState(false);
+  const navigation = useMobileNavigation(pathname);
 
   const prepareNavigation = (href: string) => {
     if (href === pathname) return;
@@ -99,7 +100,6 @@ export function AdminShell({ children }: { children: ReactNode }) {
     return () => { cancelled = true; };
   }, [router]);
 
-  useEffect(() => { setNavOpen(false); }, [pathname]);
 
   async function signOut() { try { await authApi.logout(); } catch {} clearSession(); router.replace("/login"); }
 
@@ -125,11 +125,11 @@ export function AdminShell({ children }: { children: ReactNode }) {
   }
 
   return (
-    <div className={`admin-shell${navOpen ? " nav-open" : ""}`}>
-      {navOpen && <div className="admin-sidebar-backdrop" onClick={() => setNavOpen(false)} aria-hidden="true" />}
-      <aside className="admin-sidebar">
+    <div className={`admin-shell${navigation.open ? " nav-open" : ""}`}>
+      <NavigationBackdrop navigation={navigation} />
+      <aside className="admin-sidebar" id="admin-navigation" {...navigation.drawerProps}>
         <div className="admin-brand">
-          <PssplLogo />
+          <PssplLogo /><NavigationClose navigation={navigation} />
         </div>
         <p className="admin-workspace">Tally + CRM intelligence</p>
         <nav>
@@ -160,10 +160,11 @@ export function AdminShell({ children }: { children: ReactNode }) {
             <small>Administrator</small>
           </span>
         </div>
+        <div className="mobile-nav-account-actions"><Link href="/profile">My profile</Link><button type="button" onClick={signOut}>Sign out</button></div>
       </aside>
 
-      <div className="admin-main">
-        <AdminTopBar user={user} onSignOut={signOut} onToggleNav={() => setNavOpen((open) => !open)} navOpen={navOpen} />
+      <div className="admin-main" data-navigation-content>
+        <AdminTopBar user={user} onSignOut={signOut} navigation={navigation} />
         <div className="admin-content">{children}</div>
       </div>
     </div>
@@ -171,34 +172,14 @@ export function AdminShell({ children }: { children: ReactNode }) {
 }
 
 /** Application bar: global search & AI Ask, alerts, who is signed in, sign out. */
-function AdminTopBar({ user, onSignOut, onToggleNav, navOpen }: {
+function AdminTopBar({ user, onSignOut, navigation }: {
   user: SessionUser;
   onSignOut: () => void;
-  onToggleNav: () => void;
-  navOpen: boolean;
+  navigation: MobileNavigation;
 }) {
   return (
     <header className="topbar">
-      <button
-        type="button"
-        className="admin-nav-toggle"
-        onClick={onToggleNav}
-        aria-expanded={navOpen}
-        aria-label={navOpen ? "Close navigation" : "Open navigation"}
-      >
-        {navOpen ? (
-          <svg viewBox="0 0 20 20" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
-            <line x1="4" y1="4" x2="16" y2="16" />
-            <line x1="16" y1="4" x2="4" y2="16" />
-          </svg>
-        ) : (
-          <svg viewBox="0 0 20 20" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
-            <line x1="3" y1="5" x2="17" y2="5" />
-            <line x1="3" y1="10" x2="17" y2="10" />
-            <line x1="3" y1="15" x2="17" y2="15" />
-          </svg>
-        )}
-      </button>
+      <NavigationOpener navigation={navigation} id="admin-navigation" />
 
       <HeaderAiAsk />
 

@@ -26,8 +26,7 @@ export function rmMyDayTables(db, { ids, from, asOf, available }) {
     WHERE r.user_id IN (${slots}) AND ${date('r.created_at')} BETWEEN ? AND ? ORDER BY r.created_at DESC,r.id`);
   const leads = read(`SELECT l.*,${person('l')} executive,${product('l.interested_product_id')} product FROM leads l
     WHERE l.user_id IN (${slots}) AND ${date('l.created_at')} BETWEEN ? AND ? ORDER BY l.created_at DESC,l.id`);
-  const attendance = read(`SELECT a.*,${person('a')} executive,
-    (SELECT lp.accuracy FROM location_pings lp WHERE lp.user_id=a.user_id AND ${date('lp.captured_at')}=a.business_date ORDER BY lp.captured_at,lp.id LIMIT 1) gps_accuracy_meters FROM attendance a
+  const attendance = read(`SELECT a.*,${person('a')} executive FROM attendance a
     WHERE a.user_id IN (${slots}) AND a.business_date BETWEEN ? AND ? ORDER BY a.business_date DESC,a.id`);
   return [
     table('input-visits','Visits',['Customer','Executive','Visit date','Scheduled at','Purpose','Priority','Products discussed','Recorded outcome','Discussion notes','Visit tags','Recorded status','Started at','Completed at','Latitude','Longitude','Voice note'],visits.map(v=>[v.customer ?? v.tally_customer_id,v.executive,v.business_date,v.scheduled_at,v.purpose,v.priority,v.products,v.outcome,v.notes,tags(v.visit_tags),v.status,v.started_at,v.completed_at,v.latitude,v.longitude,v.voice_note_path?'Recorded':'Not recorded'])),

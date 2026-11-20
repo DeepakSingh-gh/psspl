@@ -301,7 +301,7 @@ export default function RmPrintReport() {
               {hasCustomers && (
                 <div className="card-box">
                   <div className="card-box-title">🤝 Top Customers</div>
-                  <table className="data-table">
+                  <div className="report-table-scroll"><table className="data-table">
                     <thead>
                       <tr>
                         <th style={{ width: 28 }}>#</th>
@@ -331,14 +331,14 @@ export default function RmPrintReport() {
                         );
                       })}
                     </tbody>
-                  </table>
+                  </table></div>
                 </div>
               )}
 
               {hasProducts && (
                 <div className="card-box">
                   <div className="card-box-title">📦 Top Products</div>
-                  <table className="data-table">
+                  <div className="report-table-scroll"><table className="data-table">
                     <thead>
                       <tr>
                         <th style={{ width: 28 }}>#</th>
@@ -368,7 +368,7 @@ export default function RmPrintReport() {
                         );
                       })}
                     </tbody>
-                  </table>
+                  </table></div>
                 </div>
               )}
             </div>
@@ -407,7 +407,7 @@ export default function RmPrintReport() {
               <div className="card-box">
                 <div className="card-box-title">📋 Open Follow-ups</div>
                 {hasFollowUps ? (
-                  <table className="data-table">
+                  <div className="report-table-scroll"><table className="data-table">
                     <thead>
                       <tr>
                         <th>Title</th>
@@ -439,7 +439,7 @@ export default function RmPrintReport() {
                         </tr>
                       ))}
                     </tbody>
-                  </table>
+                  </table></div>
                 ) : (
                   <div className="empty-state">
                     <div className="empty-icon">✅</div>

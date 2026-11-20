@@ -1,12 +1,8 @@
 # Database migrations
 
-<!-- current-admin-ui:start -->
-> Latest local UI notes (27-10-2026): explicit Rais Khan top-five sample previews and the RM-only Monthly target card removal are documented in [the latest preview and dashboard notes](../../docs/operations/2026-10-27-ui-adjustments.md#local-top-five-samples-and-rm-dashboard-cleanup). Overview cleanup, period filters and shared PDF rendering remain. Earlier dated verification retains its scope; this Markdown update does not rerun tests or establish deployment/client acceptance.
-<!-- current-admin-ui:end -->
-
-<!-- current-source-status:start -->
-> Current source status (27-10-2026): backend RM rankings remain source-backed. Local Admin preview can fill empty products or append clearly marked sample customers without changing real rows, totals or database records. See [the latest preview and dashboard notes](../../docs/operations/2026-10-27-ui-adjustments.md#local-top-five-samples-and-rm-dashboard-cleanup). Overview cleanup, period filters and shared PDF rendering remain. Earlier dated verification retains its scope; this Markdown update does not rerun tests or establish deployment/client acceptance.
-<!-- current-source-status:end -->
+<!-- current-local-status-2026-11-20:start -->
+> **Current local status - 20 November 2026:** [Database, cleanup and four verified RM logins](../../docs/operations/2026-11-20-current-state.md); [automatic pipeline synchronization](../../docs/uat/pipeline-sync-2026-11-20/report.md); [GPS, checkout and phone HTTPS requirements](../../docs/operations/check-in-location.md). Trusted phone HTTPS and the self-hosted address endpoint remain pending. Earlier dated behavior/results below remain historical where superseded; local work does not establish production deployment.
+<!-- current-local-status-2026-11-20:end -->
 
 ## Email provider and account notices (013/014)
 
@@ -88,3 +84,13 @@ Release context: [source synchronization and deployment status](../../docs/super
 
 <!-- current-rm-report-card-2026-10-24 -->
 > **24 October 2026 RM report-card update:** [Current implementation and recorded validation](../../docs/operations/2026-10-21-current-state.md#rm-report-card-update--24-october-2026). Earlier dated findings in this file retain their original scope.
+
+## Pipeline revisions (017/018)
+
+017 adds `pipeline_owner_revisions` and transactional triggers for lead insert/update/delete plus owner profile and account updates. Reassignment increments both old and new owner revisions. 018 adds profile insert/delete coverage as a separate additive upgrade for local APIs that applied 017 during development. Neither migration rewrites business rows or changes pipeline stages.
+
+The local development API applied 017 while watching source changes; 018 was then applied with `npm run db:migrate`, after an online backup at `data/crm-before-pipeline-profile-triggers-2026-11-20.sqlite`. Production rollout was not performed. The application already requires explicit approval settings for schema changes against an existing production database; preserve that deployment process. See [pipeline verification](../../docs/uat/pipeline-sync-2026-11-20/report.md).
+
+## Check-in location metadata (019)
+
+Adds nullable accuracy, browser capture time, address, resolution status, provider and resolution timestamp to attendance, plus exact-coordinate geocoding cache and provider rate metadata. It does not rewrite legacy coordinates, timestamps or attendance ownership. Unknown historical accuracy remains null. The existing employee/business-day uniqueness rule is unchanged. Existing pending check-in address jobs recover separately through the application; null-status historical records are not backfilled. See [location operations](../../docs/operations/check-in-location.md).

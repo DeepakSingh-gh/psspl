@@ -48,6 +48,7 @@ export default function PrintReport() {
       </div>
 
       {/* Header Block matching PDF layout */}
+      <div className="feedback-print-scroll" role="region" aria-label="RM feedback report" tabIndex={0}><div className="feedback-print-canvas">
       <table style={{ width: "100%", border: "2px solid #000", borderCollapse: "collapse", marginBottom: 0 }}>
         <tbody>
           <tr>
@@ -313,6 +314,7 @@ export default function PrintReport() {
           </tr>
         </tbody>
       </table>
+      </div></div>
 
     </div>
   );

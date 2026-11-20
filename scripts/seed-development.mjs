@@ -1,6 +1,9 @@
 import { randomUUID } from "node:crypto";
-import { db, transaction } from "../server/db.mjs";
-import { passwordHash, seedAdmin } from "../server/auth.mjs";
+import { configureFixtureDatabase } from '../server/fixture-data-guard.mjs';
+
+configureFixtureDatabase();
+const { db, transaction } = await import('../server/db.mjs');
+const { passwordHash, seedAdmin } = await import('../server/auth.mjs');
 
 if (process.env.NODE_ENV === "production") throw new Error("Development seed data cannot be loaded in production.");
 

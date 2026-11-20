@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { authApi, clearSession, rmApi } from "@/lib/api";
 import { formatDateTime, formatNumber, formatRupees } from "@/lib/format";
+import { NavigationOpener, NavigationClose, NavigationBackdrop, useMobileNavigation } from "@/components/common/mobile-navigation";
 import { PssplLogo } from "@/components/common/psspl-logo";
 
 interface Member {
@@ -35,6 +36,7 @@ const NavIcon = ({ name }: { name: string }) => (
 
 export function RmDashboard() {
   const router = useRouter();
+  const navigation = useMobileNavigation("/rm/team");
   const defaults = useMemo(() => reportDateRange("fy"), []);
   const [from, setFrom] = useState(defaults.from);
   const [to, setTo] = useState(defaults.to);
@@ -75,16 +77,17 @@ export function RmDashboard() {
   const soloBook = Boolean(data && team.length === 0);
 
   return (
-    <div className="admin-shell rm-shell">
-      <aside className="admin-sidebar">
+    <div className={`admin-shell rm-shell${navigation.open ? " nav-open" : ""}`}>
+      <NavigationBackdrop navigation={navigation} />
+      <aside className="admin-sidebar" id="rm-team-navigation" {...navigation.drawerProps}>
         <div className="admin-brand">
-          <PssplLogo />
+          <PssplLogo /><NavigationClose navigation={navigation} />
         </div>
         <p className="admin-workspace">Regional manager workspace</p>
         <nav>
           <div className="admin-nav-group">
             <a href="/rm"><NavIcon name="home" />Home</a>
-            <a className="active" href="/rm/team"><NavIcon name="team" />My team</a>
+            <a className="active" aria-current="page" href="/rm/team"><NavIcon name="team" />My team</a>
             <a href="/rm/report-card"><NavIcon name="team" />Report Card</a>
             <a href="/rm/customers"><NavIcon name="day" />Customers</a>
             <a href="/rm/products"><NavIcon name="home" />Product Trends</a>
@@ -103,7 +106,8 @@ export function RmDashboard() {
         </div>
       </aside>
 
-      <div className="admin-main">
+      <div className="admin-main" data-navigation-content>
+        <div className="rm-mobile-bar"><NavigationOpener navigation={navigation} id="rm-team-navigation" /><span>Regional manager workspace</span></div>
         <div className="admin-content">
           <section className="admin-page">
             <header className="admin-page-header">

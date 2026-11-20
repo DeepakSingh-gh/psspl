@@ -898,7 +898,7 @@ function LegacyRmReportPreviewModal({
     "This Month");
 
   return (
-    <div
+    <div className="legacy-report-preview"
       style={{
         position: "fixed",
         inset: 0,
@@ -913,7 +913,7 @@ function LegacyRmReportPreviewModal({
       aria-modal="true"
     >
       {/* ── Top Header Toolbar ── */}
-      <div
+      <div className="legacy-preview-toolbar"
         style={{
           height: "60px",
           background: "linear-gradient(135deg, #0c2040 0%, #003a5c 100%)",
@@ -1027,7 +1027,7 @@ function LegacyRmReportPreviewModal({
 
       {downloadError && <p role="alert" style={{ margin: 0, padding: "10px 24px", background: "#fff1f2", color: "#be123c" }}>{downloadError}</p>}
       {/* ── Scrollable Document Preview Area ── */}
-      <div
+      <div className="legacy-preview-scroll"
         style={{
           flex: 1,
           overflowY: "auto",
@@ -1042,7 +1042,7 @@ function LegacyRmReportPreviewModal({
           if (e.target === e.currentTarget) onClose();
         }}
       >
-        <div
+        <div className="legacy-preview-track"
           style={{
             display: "flex",
             flexDirection: "column",

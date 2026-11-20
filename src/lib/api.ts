@@ -2,6 +2,7 @@ import type { AiAnswerPresentation } from "@/types/ai-answer";
 import type { CompleteVisitPayload, LoginResponse, SalesDay } from "@/types/sales";
 import type { RmFeedbackSummary, RmFeedbackSnapshot } from "@/types/rm-feedback";
 import { feedAdminFeedback, feedRmFeedback } from "./rm-feedback-data";
+import { consumePipelineEvents } from "./pipeline-monitor";
 import type {
   ArchivedEmployee,
   ArchivedHistoryResponse,
@@ -35,6 +36,25 @@ const API_URL = process.env.NODE_ENV === "development"
 
 const TOKEN_KEY = "psspl_crm_session";
 const USER_KEY = "psspl_crm_user";
+export type PipelineSummary = AdminOverview["leadPipeline"];
+export const pipelineApi = { summary: (signal?: AbortSignal, view?: 'team') => request<PipelineSummary>(`/pipeline/summary${view ? '?view=team' : ''}`, { signal }) };
+
+/** Fetch-based SSE keeps bearer credentials out of URLs and supports cookie mode. */
+export async function openPipelineStream(signal: AbortSignal, receive: (revision: string) => void) {
+  const controller = new AbortController();
+  const abort = () => controller.abort();
+  signal.addEventListener('abort', abort, { once: true });
+  if (signal.aborted) controller.abort();
+  let watchdog = setTimeout(abort, 10000);
+  const heartbeat = () => { clearTimeout(watchdog); watchdog = setTimeout(abort, 35000); };
+  try {
+    const token = localStorage.getItem(TOKEN_KEY);
+    const response = await fetch(`${API_URL}/pipeline/events`, { signal: controller.signal, credentials: 'include', cache: 'no-store', headers: { Accept: 'text/event-stream', ...(token ? { Authorization: `Bearer ${token}` } : {}) } });
+    if (!response.ok || !response.body || !response.headers.get('content-type')?.includes('text/event-stream')) throw new Error('Pipeline stream unavailable');
+    heartbeat();
+    await consumePipelineEvents(response.body, receive, heartbeat);
+  } finally { clearTimeout(watchdog); controller.abort(); signal.removeEventListener('abort', abort); }
+}
 export class ApiError extends Error { constructor(message: string, public status: number) { super(message); } }
 export function saveSession(token: string) { localStorage.setItem(TOKEN_KEY, token); }
 export function clearSession() {
@@ -173,7 +193,7 @@ export const salesApi = {
     pendingMyDay.set(session, task);
     return task;
   },
-  checkIn: (position?: { latitude: number; longitude: number; accuracy?: number }) => request<SalesDay>("/salespeople/me/check-in", { method: "POST", body: JSON.stringify(position ?? {}) }),
+  checkIn: (position?: { latitude: number; longitude: number; accuracy?: number; capturedAt?: string; acceptLowAccuracy?: boolean }) => request<SalesDay>("/salespeople/me/check-in", { method: "POST", body: JSON.stringify(position ?? {}) }),
   startVisit: (visitId: string, position?: { latitude: number; longitude: number; accuracy?: number }) => request<SalesDay>(`/visits/${visitId}/start`, { method: "POST", body: JSON.stringify(position ?? {}) }),
   deleteVisit: (visitId: string) => request<SalesDay>(`/visits/${visitId}`, { method: "DELETE" }),
   updateVisit: (visitId: string, payload: { purpose?: string; priority?: string; scheduledAt?: string }) => request<SalesDay>(`/visits/${visitId}`, { method: "PATCH", body: JSON.stringify(payload) }),
@@ -212,7 +232,7 @@ export const salesFeaturesApi = {
   customer: (id: string) => request<any>(`/sales/customers/${id}`),
   addActivity: (payload: any) => request<any>("/sales/activities", { method: "POST", body: JSON.stringify(payload) }),
   addCall: (payload: { customerId: string; direction: "incoming" | "outgoing"; purpose: string; outcome: string; notes?: string; followUpDate?: string; occurredAt?: string }) => request<{ id: string; occurredAt: string; verifiedByTelephony: false }>("/sales/calls", { method: "POST", body: JSON.stringify(payload) }),
-  leads: () => request<any[]>("/sales/leads"),
+  leads: (signal?: AbortSignal) => request<any[]>("/sales/leads", { signal }),
   leadAssignees: () => request<Array<{ userId: string; role: string; name: string }>>("/sales/leads/assignees"),
   leadConversionReport: () => request<{ total: number; won: number; lost: number; conversionPercent: number | null }>("/sales/leads/report/conversion"),
   assignLead: (id: string, userId: string) => request<any>(`/sales/leads/${id}/assignment`, { method: "PATCH", body: JSON.stringify({ userId }) }),

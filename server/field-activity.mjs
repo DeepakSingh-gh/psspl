@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { indiaBusinessDate } from "../shared/business-date.mjs";
+import { LOW_ACCURACY_METERS } from "../shared/check-in-location.mjs";
 export { indiaBusinessDate };
 
 /** Return the calendar date in India without depending on the host timezone. */
@@ -26,19 +27,32 @@ export function isDateOnly(value) {
 }
 
 export function recordDailyCheckIn(database, runTransaction, userId, businessDate, payload = {}) {
-  if (database.prepare("SELECT 1 FROM attendance WHERE user_id=? AND business_date=?").get(userId, businessDate)) {
-    return { ok: false, status: 409, error: "You are already checked in for today" };
-  }
+  if (!payload || typeof payload !== 'object' || Array.isArray(payload)) return {ok:false,status:400,error:'Invalid check-in payload'};
+  const duplicate = () => {
+    const saved = database.prepare("SELECT id FROM attendance WHERE user_id=? AND business_date=?").get(userId,businessDate);
+    return saved ? {ok:false,status:409,attendanceId:saved.id,error:"You are already checked in for today"} : null;
+  };
+  const existing = duplicate(); if (existing) return existing;
   const location = payload.latitude === undefined && payload.longitude === undefined ? null : validateLocation(payload);
   if (location && !location.ok) return { ok: false, status: 400, error: location.error };
+  if (location?.accuracy > LOW_ACCURACY_METERS && payload.acceptLowAccuracy !== true) return {ok:false,status:422,error:`GPS accuracy is ±${Math.round(location.accuracy)} meters. Retry or explicitly accept this low-accuracy fix.`};
+  let capturedAt = null;
+  if (location && payload.capturedAt !== undefined) {
+    const captured = typeof payload.capturedAt === 'string' ? Date.parse(payload.capturedAt) : NaN;
+    if (!Number.isFinite(captured) || captured>Date.now()+30000 || captured<Date.now()-120000) return {ok:false,status:400,error:'GPS capture timestamp is invalid or stale. Retry GPS.'};
+    capturedAt = new Date(captured).toISOString();
+  }
   const checkedInAt = new Date().toISOString();
-  runTransaction(() => {
-    database.prepare("INSERT INTO attendance (id,user_id,business_date,check_in_at,latitude,longitude) VALUES (?,?,?,?,?,?)")
-      .run(randomUUID(), userId, businessDate, checkedInAt, location?.latitude ?? null, location?.longitude ?? null);
+  const attendanceId = randomUUID();
+  const result = runTransaction(() => {
+    const raced = duplicate(); if (raced) return raced;
+    database.prepare("INSERT INTO attendance (id,user_id,business_date,check_in_at,latitude,longitude,gps_accuracy_meters,gps_captured_at,location_address_status) VALUES (?,?,?,?,?,?,?,?,?)")
+      .run(attendanceId, userId, businessDate, checkedInAt, location?.latitude ?? null, location?.longitude ?? null,location?.accuracy??null,capturedAt,location?'pending':'unavailable');
     if (location) database.prepare("INSERT INTO location_pings (id,user_id,latitude,longitude,accuracy) VALUES (?,?,?,?,?)")
       .run(randomUUID(), userId, location.latitude, location.longitude, location.accuracy);
+    return { ok: true, attendanceId, checkedInAt, gpsCaptured: Boolean(location), gpsAccuracyMeters: location?.accuracy ?? null };
   });
-  return { ok: true, checkedInAt, gpsCaptured: Boolean(location), gpsAccuracyMeters: location?.accuracy ?? null };
+  return result;
 }
 
 /** Summarize saved field evidence for one employee and India business day. */

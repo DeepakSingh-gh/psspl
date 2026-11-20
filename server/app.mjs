@@ -1,5 +1,7 @@
 import cors from "cors";
 import compression from "compression";
+import { pipelineRouter } from "./pipeline-sync.mjs";
+import { createCheckInRouter } from "./check-in-routes.mjs";
 import express from "express";
 import { randomBytes, randomUUID } from "node:crypto";
 import { Resend } from "resend";
@@ -18,12 +20,10 @@ import { createRateLimiter } from "./rate-limit.mjs";
 import { consumeAccountToken, queueAccountToken } from "./auth-tokens.mjs";
 import { kickAuthEmailQueue } from "./auth-email-queue.mjs";
 import { recordResendEmailEvent } from "./resend-webhook.mjs";
-import { dailyFieldActivity, indiaBusinessDate, isDateOnly, recordDailyCheckIn, validateLocation } from "./field-activity.mjs";
+import { dailyFieldActivity, indiaBusinessDate, isDateOnly, validateLocation } from "./field-activity.mjs";
 import { completeVisitWithLead } from "./visit-lead.mjs";
-import { seedWebinarDemo } from "./webinar-demo.mjs";
 
 seedAdmin();
-if (process.env.CRM_ENABLE_WEBINAR_DEMO_DATA === "true") seedWebinarDemo(db);
 const app = express();
 const configuredOrigins = (process.env.CRM_ALLOWED_ORIGINS || "").split(",").map((origin) => origin.trim()).filter(Boolean);
 const allowedOrigins = configuredOrigins.length ? configuredOrigins : (process.env.NODE_ENV === "production" ? [] : ["http://localhost:3000", "http://127.0.0.1:3000"]);
@@ -53,6 +53,7 @@ app.use("/api", (_req, res, next) => { res.setHeader("Cache-Control", "no-store"
 app.use("/api", connectorRouter);
 app.use("/api", sttRouter);
 app.use("/api/sales", salesRouter);
+app.use("/api/pipeline", pipelineRouter);
 app.use("/api/rm", rmRouter);
 const today = () => indiaBusinessDate();
 
@@ -77,7 +78,7 @@ async function buildSalesDay(userId, { workspace = false } = {}) {
   const visitRows = db.prepare("SELECT v.*,vp.tally_product_id, f.due_date as next_follow_up_date FROM visits v LEFT JOIN visit_products vp ON vp.visit_id=v.id LEFT JOIN follow_ups f ON f.visit_id=v.id WHERE v.user_id=? AND v.business_date=? ORDER BY v.scheduled_at").all(userId, today());
   const followRows = db.prepare("SELECT * FROM follow_ups WHERE user_id=? ORDER BY completed,due_date").all(userId);
   const fieldActivity = dailyFieldActivity(db, userId, today());
-  const attendanceHistory = db.prepare(`SELECT a.business_date businessDate,a.check_in_at checkInAt,a.check_out_at checkOutAt,a.latitude,a.longitude,(SELECT lp.accuracy FROM location_pings lp WHERE lp.user_id=a.user_id AND date(lp.captured_at,'+5 hours','+30 minutes')=a.business_date ORDER BY lp.captured_at LIMIT 1) gpsAccuracyMeters FROM attendance a WHERE a.user_id=? ORDER BY a.business_date DESC`).all(userId);
+  const attendanceHistory = db.prepare(`SELECT a.id,a.business_date businessDate,a.check_in_at checkInAt,a.check_out_at checkOutAt,a.latitude,a.longitude,a.gps_accuracy_meters gpsAccuracyMeters,a.gps_captured_at gpsCapturedAt,a.location_address locationAddress,a.location_address_status locationAddressStatus FROM attendance a WHERE a.user_id=? ORDER BY a.business_date DESC`).all(userId);
   const expected = db.prepare("SELECT COALESCE(SUM(expected_value),0) total,COUNT(*) count FROM expected_orders WHERE user_id=? AND status='open'").get(userId);
   return {
     salesperson: { id: profile.id, email: profile.email, role: profile.role, name: profile.full_name, employeeCode: profile.employee_code, managerName: profile.manager_name, region: profile.region, territory: profile.territory, checkedInAt: attendance ? new Date(attendance.check_in_at).toLocaleTimeString("en-IN", { hour: "numeric", minute: "2-digit", timeZone: "Asia/Kolkata" }) : null, checkedOutAt: attendance?.check_out_at ? new Date(attendance.check_out_at).toLocaleTimeString("en-IN", { hour: "numeric", minute: "2-digit", timeZone: "Asia/Kolkata" }) : null, trackingActive: Boolean(attendance?.check_in_at && !attendance?.check_out_at) },
@@ -199,7 +200,7 @@ app.get("/api/tally/customers", authenticate, async (req, res) => res.json(await
 app.get("/api/tally/products", authenticate, async (_req, res) => res.json(await tally.products()));
 app.get("/api/reports/overview", authenticate, async (req, res) => res.json(await tally.overview({ salespersonId: req.user.id })));
 app.get("/api/salespeople/me/my-day", authenticate, async (req, res, next) => { try { res.json(await buildSalesDay(req.user.id, { workspace: req.query.view === "workspace" })); } catch (error) { next(error); } });
-app.post("/api/salespeople/me/check-in", authenticate, async (req, res, next) => { try { const checkIn = recordDailyCheckIn(db, transaction, req.user.id, today(), req.body); if (!checkIn.ok) return res.status(checkIn.status).json({ error: checkIn.error }); res.json(await buildSalesDay(req.user.id)); } catch (error) { next(error); } });
+app.use("/api/salespeople/me", createCheckInRouter({buildSalesDay}));
 app.post("/api/visits/:id/start", authenticate, async (req, res, next) => { try { const location = req.body?.latitude === undefined && req.body?.longitude === undefined ? null : validateLocation(req.body); if (location && !location.ok) return res.status(400).json({ error: location.error }); const result = db.prepare("UPDATE visits SET status='in_progress',started_at=?,latitude=COALESCE(?,latitude),longitude=COALESCE(?,longitude) WHERE id=? AND user_id=? AND status='planned'").run(new Date().toISOString(), location?.latitude ?? null, location?.longitude ?? null, req.params.id, req.user.id); if (!result.changes) return res.status(409).json({ error: "Visit is unavailable or has already started" }); if (location) db.prepare("INSERT INTO location_pings (id,user_id,latitude,longitude,accuracy) VALUES (?,?,?,?,?)").run(randomUUID(), req.user.id, location.latitude, location.longitude, location.accuracy); res.json(await buildSalesDay(req.user.id)); } catch (error) { next(error); } });
 app.post("/api/visits/:id/complete", authenticate, async (req, res, next) => {
   try {

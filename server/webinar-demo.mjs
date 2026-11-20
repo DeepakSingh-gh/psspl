@@ -1,5 +1,6 @@
 import { createHash } from "node:crypto";
 import { indiaBusinessDate } from "../shared/business-date.mjs";
+import { assertFixtureConnection } from './fixture-data-guard.mjs';
 
 const PREFIX = "webinar-demo";
 const dayOffset = (date, days) => new Date(Date.parse(`${date}T00:00:00Z`) + days * 86_400_000).toISOString().slice(0, 10);
@@ -7,6 +8,7 @@ const shortId = (value) => createHash("sha256").update(value).digest("hex").slic
 
 /** Small, labelled CRM fixtures for an explicitly enabled webinar environment. */
 export function seedWebinarDemo(db, businessDate = indiaBusinessDate()) {
+  assertFixtureConnection(db);
   const users = db.prepare(`SELECT u.id, u.role, p.full_name, p.region, p.operating_city
     FROM users u LEFT JOIN salesperson_profiles p ON p.user_id=u.id
     WHERE u.active=1 AND u.role IN ('salesperson','rm') ORDER BY u.id`).all();

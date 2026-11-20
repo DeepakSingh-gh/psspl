@@ -39,7 +39,7 @@ export function RmCustomers() {
             <p className="admin-page-description">{total} customers assigned to your team.</p>
           </div>
         </header>
-        <div role="tablist" aria-label="Customer database sections" style={{ display: "flex", gap: 8, marginBottom: 20 }}>
+        <div className="rm-customer-tabs" role="tablist" aria-label="Customer database sections" style={{ display: "flex", gap: 8, marginBottom: 20 }}>
           <button type="button" role="tab" aria-selected={section === "customers"} className="admin-button" onClick={() => setSection("customers")}>Customers</button>
           <button type="button" role="tab" aria-selected={section === "leads"} className="admin-button" onClick={() => setSection("leads")}>Leads</button>
         </div>
@@ -94,7 +94,7 @@ export function RmCustomers() {
                                 return (isDormant || (!last && detail.customer)) && (
                                   <div style={{ marginTop: "1rem", padding: "1rem", background: "var(--color-surface)", border: "1px solid var(--color-border)", borderRadius: "8px" }}>
                                     <h4 style={{ margin: "0 0 0.5rem 0", color: "var(--color-error, #ef4444)" }}>⚠️ Dormant Dealer (No purchase in 3 months)</h4>
-                                    <form onSubmit={(e) => {
+                                    <form className="rm-customer-reason" onSubmit={(e) => {
                                       e.preventDefault();
                                       const formData = new FormData(e.currentTarget);
                                       const reason = formData.get("reason") as string;
@@ -131,7 +131,7 @@ export function RmCustomers() {
             </table>
           </div>
         )}
-        <div style={{ display: "flex", gap: "0.75rem", marginTop: "1rem", alignItems: "center" }}>
+        <div className="rm-customer-pager" style={{ display: "flex", gap: "0.75rem", marginTop: "1rem", alignItems: "center" }}>
           <button className="admin-button" disabled={page === 0} onClick={() => setPage(page - 1)}>← Prev</button>
           <span style={{ fontSize: "0.85rem", color: "var(--color-text-2)" }}>Page {page + 1} · {total} total</span>
           <button className="admin-button" disabled={(page + 1) * 50 >= total} onClick={() => setPage(page + 1)}>Next →</button>

@@ -273,7 +273,7 @@ export default function RmPrintReport() {
               <div className="card-box">
                 <div className="card-box-title">🤝 Top Customers</div>
                 {hasCustomers ? (
-                  <table className="data-table">
+                  <div className="report-table-scroll"><table className="data-table">
                     <thead><tr><th>#</th><th>Customer</th><th className="num">Sales</th><th className="num">Share</th></tr></thead>
                     <tbody>
                       {topCustomers.map(([name, val], i) => {
@@ -291,7 +291,7 @@ export default function RmPrintReport() {
                         );
                       })}
                     </tbody>
-                  </table>
+                  </table></div>
                 ) : (
                   <div className="empty-state">No sales data this period</div>
                 )}
@@ -300,7 +300,7 @@ export default function RmPrintReport() {
               <div className="card-box">
                 <div className="card-box-title">📦 Top Products</div>
                 {hasProducts ? (
-                  <table className="data-table">
+                  <div className="report-table-scroll"><table className="data-table">
                     <thead><tr><th>#</th><th>Product</th><th className="num">Sales</th><th className="num">Share</th></tr></thead>
                     <tbody>
                       {topProducts.map((p: any, i: number) => {
@@ -318,7 +318,7 @@ export default function RmPrintReport() {
                         );
                       })}
                     </tbody>
-                  </table>
+                  </table></div>
                 ) : (
                   <div className="empty-state">No product data this period</div>
                 )}
@@ -350,7 +350,7 @@ export default function RmPrintReport() {
               <div className="card-box">
                 <div className="card-box-title">📋 Open Follow-ups</div>
                 {hasFollowUps ? (
-                  <table className="data-table">
+                  <div className="report-table-scroll"><table className="data-table">
                     <thead><tr><th>Title</th><th>Due</th><th>Priority</th></tr></thead>
                     <tbody>
                       {openFollowUps.map((f: any) => (
@@ -368,7 +368,7 @@ export default function RmPrintReport() {
                         </tr>
                       ))}
                     </tbody>
-                  </table>
+                  </table></div>
                 ) : <div className="empty-state" style={{ color: "#16a34a" }}>✅ All follow-ups cleared</div>}
               </div>
             </div>

@@ -43,6 +43,11 @@ test("completed RM visit creates one exact-customer lead, drag stage persists an
   const visit = db.prepare("SELECT * FROM visits WHERE id='visit-a'").get();
   const completion = { productId: "product-a", outcome: "Quotation required", expectedOrderValue: 25000, nextFollowUp: "2026-10-30", notes: "Discussed samples" };
   const leadId = completeVisitWithLead(db, transaction, visit, completion);
+  // Keep generated fixture inputs inside the report period regardless of the
+  // machine's current date; created_at defaults otherwise drift past October.
+  for (const table of ['leads', 'expected_orders', 'follow_ups']) {
+    db.prepare(`UPDATE ${table} SET created_at='2026-10-23 10:00:00' WHERE user_id='rm-a'`).run();
+  }
   const lead = db.prepare("SELECT * FROM leads WHERE id=?").get(leadId);
   assert.equal(lead.name, "A Customer");
   assert.equal(lead.company, "Acme Ltd");

@@ -30,9 +30,11 @@ if (!existsSync(databasePath) && process.env.CRM_DISABLE_BASELINE_RESTORE !== "t
     if (process.env.NODE_ENV === "production" && process.env.CRM_ALLOW_BASELINE_RESTORE !== "true") {
       throw new Error("Refusing to initialize a production database from the bundled baseline without explicit approval. Set CRM_ALLOW_BASELINE_RESTORE=true only for an approved restore.");
     }
-    console.log("[db] Initializing database from crm-baseline.sqlite.gz...");
-    writeFileSync(databasePath, gunzipSync(readFileSync(gzPath)));
-    console.log("[db] Database initialization complete.");
+    if (process.env.CRM_ALLOW_BASELINE_RESTORE === "true") {
+      console.log("[db] Initializing database from crm-baseline.sqlite.gz...");
+      writeFileSync(databasePath, gunzipSync(readFileSync(gzPath)));
+      console.log("[db] Database initialization complete.");
+    }
   }
 }
 
