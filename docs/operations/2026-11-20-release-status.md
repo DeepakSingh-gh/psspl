@@ -23,3 +23,13 @@ Render documents that [ephemeral local files are lost on deploy/restart](https:/
 **Remaining decision:** provide a current complete live SQLite backup with an approved restore path, or explicitly authorize replacing remote data with the reviewed cleaned local database. The latter is a data migration/reset decision, not implied by publishing code. Upgrading/changing a running service must also be planned for filesystem preservation; it is not assumed to recover the existing ephemeral file safely.
 
 Until that decision is resolved, Render auto-deploy remains held and no production backend rollout is claimed. Actual Git commit/deployment IDs and the Vercel review URL are reported after the API operations complete. No keys or full database exports are published.
+
+## Approved replacement follow-up
+
+The user subsequently explicitly approved replacing remote data with the cleaned local database and accepting loss of live-only records. This supersedes the pending-decision hold above.
+
+A consistent local snapshot preserves 39 users/profiles, 2,142 customers, 8,294 invoices, 19,198 invoice lines, 17 attendance records, 14 visits and 14,588 products. User password hashes remain identical. The copy strips four login sessions, removes setup/reset tokens and cancels queued account emails so they cannot be replayed by deployment; business/history rows and the original local database are preserved. There are no local voice-note attachments to transfer.
+
+The snapshot is gzip-compressed and AES-256-GCM-encrypted before upload as a GitHub release asset. No plaintext SQLite file or encryption key is published. Render holds the key and pinned ciphertext/plaintext checksums in environment configuration. `scripts/restore-deployment-database.mjs` performs bounded HTTPS download, checksum/authentication/decompression checks, SQLite integrity/foreign-key checks and atomic creation of an absent database during the build. It refuses to overwrite an existing database. Restore regression tests and independent review passed.
+
+Render's build command prepares this approved snapshot before normal API startup. Legacy baseline restoration and webinar data settings are disabled. This deployment does not add paid storage. **The Free-plan runtime filesystem remains ephemeral:** the approved build snapshot is not an ongoing backup, and post-deployment writes can still be lost on restart/redeploy. Durable storage and ongoing backup require a separate follow-up. Automatic deploy remains held during coordinated rollout.
